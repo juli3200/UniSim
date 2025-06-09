@@ -1,0 +1,41 @@
+use crate::objects;
+
+mod info_impl;
+
+
+/// a world is a 2D space filled with objects
+/// e.g. ligands, entities, etc.
+/// The interaction between these objects are handled in the world Struct
+/// World provides all the functions to run the simulation
+#[derive(Debug, Clone)]
+pub struct World {
+    // settings are stored in the settings struct
+    // settings are used to configure the world
+    pub settings: Settings,
+
+    // variables
+    pub(crate) time: f64, // current time in the simulation
+    pub(crate) population_size: usize, // current population size of entities
+    pub(crate) ligands_count: usize, // current count of ligands in the world
+
+    pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
+
+
+    // objects in the world
+    pub(crate) entities: Vec<objects::Entity>,
+    pub(crate) ligands: Vec<objects::Ligand>,
+
+
+}
+
+#[derive(Debug, Clone)]
+pub struct Settings {
+    // unchangeable settings
+    pub default_population: usize, // default population size of entities 
+    pub dimensions: (u32, u32), // width, height of the world
+
+    // changeable settings
+    
+
+}
+
