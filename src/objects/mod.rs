@@ -8,4 +8,6 @@ pub struct Ligand {
 #[derive(Debug, Clone)]
 pub struct Entity {
     pub id: usize,
+    pub position: (f32, f32), // position in the world
+    pub size: f32, // size of the entity
 }

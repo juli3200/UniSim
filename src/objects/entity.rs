@@ -1,8 +1,17 @@
 use super::{Entity};
-
+use crate::world::Space;
 
 impl Entity {
-    pub fn new(id: usize) -> Self {
-        Self { id }
+    pub fn new(id: usize, space: &mut Space, size: f32) -> Result<Self, String> {
+        
+        let position = space
+            .get_random_position(size)
+            .ok_or(format!("Failed to get random position in space, entity {}", id))?;
+
+
+        Ok(Self { id
+            , position,
+            size,
+        })
     }
 }

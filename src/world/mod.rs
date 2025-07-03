@@ -38,6 +38,8 @@ pub struct Settings {
     // unchangeable settings
     pub default_population: usize, // default population size of entities 
     pub dimensions: (u32, u32), // width, height of the world
+    pub spawn_size: f32, // size of the entities when they are spawned
+
 
     // changeable settings
     
