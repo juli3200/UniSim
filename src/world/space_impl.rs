@@ -11,13 +11,15 @@ impl Space {
             width: 0,
             height: 0,
             grid: vec![],
+            max_size: 0.0, // no entities or ligands, so max_size is 0
         }
     }
 
-    pub(crate) fn new(dim: (u32, u32)) -> Result<Self, String> {
+    pub(crate) fn new(settings: &Settings) -> Result<Self, String> {
         // creates a new space with the given width and height
-        let (width, height) = dim;
+        let (width, height) = settings.dimensions;
         let grid = vec![vec![Vec::new(); height as usize]; width as usize];
+        let max_size = settings.spawn_size; // set max_size to the spawn size of entities
         if width == 0 || height == 0 {
             return Err("Invalid space dimensions".into());
         }
@@ -25,21 +27,33 @@ impl Space {
             width,
             height,
             grid,
+            max_size
         })
     }
 
-    pub(crate) fn get_random_position(&self, size: f32) -> Option<(f32, f32)> {
+    pub(crate) fn get_random_position(&self, size: f32) -> Result<(f32, f32), String> {
         // returns a random position in the space that is not occupied by any entity or ligand
         // size is the size of the entity or ligand
 
         let mut rng = rand::rng();
-        let x = rng.random_range(0.0..self.width as f32 - size);
-        let y = rng.random_range(0.0..self.height as f32 - size);
-        Some((x, y))
+        let mut c = 0;
+        let (x, y) = loop {
+            let x = rng.random_range(size..(self.width as f32 - size));
+            let y = rng.random_range(size..(self.height as f32 - size));
+            if self.check_position((x, y), Some(size), None) {
+                break (x, y);
+            }
+            c += 1;
+            if c > 10000 {
+                return Err(format!("Failed to find a random position in space after 10000 attempts, size: {}", size));
+            }
+        };
+        Ok((x, y))
+
     }
 
 
-    pub(crate) fn check_position(&self, position: (f32, f32), size: Option<f32>, max_size: f32, id : Option<usize>) -> bool {
+    pub(crate) fn check_position(&self, position: (f32, f32), size: Option<f32>, id : Option<usize>) -> bool {
         // checks if the position is valid in the space
         // position is a tuple of (x, y)
         // size is the size of the entity 
@@ -59,7 +73,7 @@ impl Space {
         }
 
         // ensure max_size is  at least as large as size
-        let max_size = max_size.max(size);
+        let max_size = self.max_size.max(size);
         // check if position is occupied by any entity or object
 
         for x in (position.0 - max_size as f32).floor() as u32..(position.0 + max_size as f32).ceil() as u32 {
