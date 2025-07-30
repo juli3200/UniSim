@@ -9,6 +9,7 @@ impl World{
             population_size: 0,
             ligands_count: 0,
             counter: 0,
+            max_size: 1.0,
 
             // the objects are filled in in the initialize function
             entities: Vec::new(),
@@ -26,6 +27,7 @@ impl World{
 
         // Initialize the space
         self.space = Space::new(self.settings.dimensions)?;
+        self.max_size = self.settings.spawn_size.max(1.0); // ensure max_size is at least 1.0
 
         // Initialize the world with default population size
         for _ in 0..self.settings.default_population {

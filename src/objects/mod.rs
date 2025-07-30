@@ -1,5 +1,13 @@
+use std::cell::RefCell;
+
 pub mod entity;
 pub mod ligand;
+
+#[derive(Debug, Clone)]
+pub enum ObjectType {
+    Entity(RefCell<Entity>),
+    Ligand(RefCell<Ligand>),
+}
 
 #[derive(Debug, Clone)]
 pub struct Ligand {

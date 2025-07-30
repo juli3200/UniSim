@@ -1,6 +1,6 @@
 use crate::objects;
 
-mod info_impl;
+mod info;
 mod global;
 mod space_impl;
 mod settings_impl;
@@ -22,7 +22,7 @@ pub struct World {
     pub(crate) ligands_count: usize, // current count of ligands in the world
 
     pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
-
+    pub(crate) max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)
 
     // objects in the world
     pub(crate) entities: Vec<objects::Entity>,
@@ -50,5 +50,9 @@ pub struct Settings {
 pub struct Space {
     pub width: u32,
     pub height: u32,
-    grid: Vec<Vec<Vec<usize>>>, // 2D grid of indices of entities and ligands
+    grid: Vec<Vec<Vec<objects::ObjectType>>>, // 2D grid of indices of entities and ligands
 }
+/* 
+pub struct CUDAWorld {
+    pub(crate) 
+}*/
