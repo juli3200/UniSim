@@ -7,6 +7,7 @@ impl Entity {
         let position = space
             .get_random_position(size)?;
 
-        Ok(Self { id, position, size })
+        let velocity = (0.0, 0.0); // initial velocity is set to zero
+        Ok(Self { id, position, size, velocity })
     }
 }

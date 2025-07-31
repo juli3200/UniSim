@@ -2,7 +2,7 @@ use super::*;
 
 impl World {
     /// Returns the current time in the simulation.
-    pub fn time(&self) -> f64 {
+    pub fn time(&self) -> f32 {
         self.time
     }
     /// Returns the current population size of entities in the world.

@@ -4,18 +4,21 @@ pub mod entity;
 pub mod ligand;
 
 #[derive(Debug, Clone)]
-pub enum ObjectType {
+pub(crate) enum ObjectType {
     Entity(RefCell<Entity>),
     Ligand(RefCell<Ligand>),
 }
 
 #[derive(Debug, Clone)]
-pub struct Ligand {
+pub(crate) struct Ligand {
     pub id: usize,
 }
 #[derive(Debug, Clone)]
-pub struct Entity {
-    pub id: usize,
-    pub position: (f32, f32), // position in the world
-    pub size: f32, // size of the entity
+pub(crate) struct Entity {
+    pub(crate) id: usize,
+    pub(crate) position: (f32, f32), // position in the world
+    pub(crate) size: f32, // size of the entity
+
+    pub(crate) velocity: (f32, f32), // velocity of the entity
+    
 }
