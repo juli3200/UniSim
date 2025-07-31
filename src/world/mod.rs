@@ -1,4 +1,5 @@
 use crate::objects;
+use std::cell::RefCell;
 
 mod info;
 mod global;
@@ -43,6 +44,22 @@ pub struct Settings {
     // changeable settings
     
 
+}
+
+
+#[derive(Debug, Clone)]
+pub(crate) enum Border {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum Collision {
+    NoCollision,
+    BorderCollision(Border),
+    EntityCollision(RefCell<objects::Entity>),
 }
 
 #[derive(Debug, Clone)]

@@ -40,7 +40,7 @@ impl Space {
         let (x, y) = loop {
             let x = rng.random_range(size..(self.width as f32 - size));
             let y = rng.random_range(size..(self.height as f32 - size));
-            if self.check_position((x, y), Some(size), None) {
+            if let Collision::NoCollision = self.check_position((x, y), Some(size), None) {
                 break (x, y);
             }
             c += 1;
@@ -53,29 +53,43 @@ impl Space {
     }
 
 
-    pub(crate) fn check_position(&self, position: (f32, f32), size: Option<f32>, id : Option<usize>) -> bool {
+    pub(crate) fn check_position(&self, position: (f32, f32), size: Option<f32>, id : Option<usize>) -> Collision {
         // checks if the position is valid in the space
         // position is a tuple of (x, y)
         // size is the size of the entity 
         // ligand has no size size is = 0
 
 
-
+        // extract size or set to 0 if None
+        // if size is None, it means the object is a ligand which has no size
         let size = if let Some(s) = size {
             s
         } else {
             0.0
         };
 
+        // check if position is within the bounds of the space
+        // returns Collision::BorderCollision if the position is out of bounds
         let (width, height) = (self.width as f32, self.height as f32);
-        if position.0 - size < 0.0 || position.0 + size >= width || position.1 - size < 0.0 || position.1 + size >= height {
-            return false; // out of bounds
+        if position.0 - size < 0.0 {
+            return Collision::BorderCollision(Border::Left);
+        }
+        if position.0 + size >= width {
+            return Collision::BorderCollision(Border::Right);
+        }
+        if position.1 - size < 0.0 {
+            return Collision::BorderCollision(Border::Top);
+        }
+        if position.1 + size >= height {
+            return Collision::BorderCollision(Border::Bottom);
         }
 
-        // ensure max_size is  at least as large as size
+        // ensure max_size is at least as large as size
         let max_size = self.max_size.max(size);
         // check if position is occupied by any entity or object
 
+        // iterate over the grid cells that are within the max_size range of the position
+        // this is done to avoid checking every single object in the space
         for x in (position.0 - max_size as f32).floor() as u32..(position.0 + max_size as f32).ceil() as u32 {
             for y in (position.1 - max_size as f32).floor() as u32..(position.1 + max_size as f32).ceil() as u32 {
 
@@ -85,19 +99,23 @@ impl Space {
                 for object in objects {
                     match object {
                         objects::ObjectType::Entity(entity) => {
-                            let entity = entity.borrow();
+                            let entity_ref = entity.borrow();
                             
                             
                             if let Some(id) = id {
-                                if entity.id == id {
-                                    continue; // skip the entity with the given id
+                                if entity_ref.id == id {
+                                    continue; // skip the entity with the given id, because it is itself
                                 }
                             }
 
                             // dist is distance between the entity and the position
-                            let dist = ((entity.position.0 - position.0).powi(2) + (entity.position.1 - position.1).powi(2)).sqrt();
-                            if dist < (entity.size + size) {
-                                return false; // position is occupied by an entity
+                            // Use squared distance to avoid unnecessary sqrt calculation
+                            let dx = entity_ref.position.0 - position.0;
+                            let dy = entity_ref.position.1 - position.1;
+                            let min_dist_sq = (entity_ref.size + size).powi(2);
+                            let dist_sq = dx * dx + dy * dy;
+                            if dist_sq < min_dist_sq {
+                                return Collision::EntityCollision(entity.clone());
                             }
                         }
                         _ => {}
@@ -106,6 +124,6 @@ impl Space {
             
             }
         }
-        true
+        Collision::NoCollision // position is valid
     }
 }

@@ -32,9 +32,10 @@ impl World{
         for _ in 0..self.settings.default_population {
             let entity = objects::Entity::new(self.counter, &mut self.space, self.settings.spawn_size)?;
             self.entities.push(entity);
-            self.population_size += 1;
             self.counter += 1;
         }
+
+        self.population_size = self.settings.default_population;
 
 
 
