@@ -1,5 +1,4 @@
 use crate::objects;
-use std::cell::RefCell;
 
 mod info;
 mod global;
@@ -59,7 +58,7 @@ pub(crate) enum Border {
 pub(crate) enum Collision {
     NoCollision,
     BorderCollision(Border),
-    EntityCollision(RefCell<objects::Entity>),
+    EntityCollision((f32, f32), f32), // velocity and mass of the colliding entity
 }
 
 #[derive(Debug, Clone)]

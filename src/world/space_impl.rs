@@ -115,7 +115,7 @@ impl Space {
                             let min_dist_sq = (entity_ref.size + size).powi(2);
                             let dist_sq = dx * dx + dy * dy;
                             if dist_sq < min_dist_sq {
-                                return Collision::EntityCollision(entity.clone());
+                                return Collision::EntityCollision(entity_ref.velocity, entity_ref.size.powi(2) * std::f32::consts::PI); // return the velocity and mass of the coll
                             }
                         }
                         _ => {}
