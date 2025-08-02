@@ -1,4 +1,5 @@
 use crate::objects;
+use ndarray::Array1;
 
 mod info;
 mod global;
@@ -58,7 +59,7 @@ pub(crate) enum Border {
 pub(crate) enum Collision {
     NoCollision,
     BorderCollision(Border),
-    EntityCollision((f32, f32), f32), // velocity and mass of the colliding entity
+    EntityCollision(Array1<f32>, f32, Array1<f32>), // velocity and mass of the colliding entity, position
 }
 
 #[derive(Debug, Clone)]

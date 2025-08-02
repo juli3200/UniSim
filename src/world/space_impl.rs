@@ -31,7 +31,7 @@ impl Space {
         })
     }
 
-    pub(crate) fn get_random_position(&self, size: f32) -> Result<(f32, f32), String> {
+    pub(crate) fn get_random_position(&self, size: f32) -> Result<Array1<f32>, String> {
         // returns a random position in the space that is not occupied by any entity or ligand
         // size is the size of the entity or ligand
 
@@ -40,7 +40,7 @@ impl Space {
         let (x, y) = loop {
             let x = rng.random_range(size..(self.width as f32 - size));
             let y = rng.random_range(size..(self.height as f32 - size));
-            if let Collision::NoCollision = self.check_position((x, y), Some(size), None) {
+            if let Collision::NoCollision = self.check_position(Array1::from_vec(vec![x, y]), Some(size), None) {
                 break (x, y);
             }
             c += 1;
@@ -48,12 +48,12 @@ impl Space {
                 return Err(format!("Failed to find a random position in space after 10000 attempts, size: {}", size));
             }
         };
-        Ok((x, y))
+        Ok(Array1::from_vec(vec![x, y]))
 
     }
 
 
-    pub(crate) fn check_position(&self, position: (f32, f32), size: Option<f32>, id : Option<usize>) -> Collision {
+    pub(crate) fn check_position(&self, position: Array1<f32>, size: Option<f32>, id : Option<usize>) -> Collision {
         // checks if the position is valid in the space
         // position is a tuple of (x, y)
         // size is the size of the entity 
@@ -71,16 +71,16 @@ impl Space {
         // check if position is within the bounds of the space
         // returns Collision::BorderCollision if the position is out of bounds
         let (width, height) = (self.width as f32, self.height as f32);
-        if position.0 - size < 0.0 {
+        if position[0] - size < 0.0 {
             return Collision::BorderCollision(Border::Left);
         }
-        if position.0 + size >= width {
+        if position[0] + size >= width {
             return Collision::BorderCollision(Border::Right);
         }
-        if position.1 - size < 0.0 {
+        if position[1] - size < 0.0 {
             return Collision::BorderCollision(Border::Top);
         }
-        if position.1 + size >= height {
+        if position[1] + size >= height {
             return Collision::BorderCollision(Border::Bottom);
         }
 
@@ -90,8 +90,8 @@ impl Space {
 
         // iterate over the grid cells that are within the max_size range of the position
         // this is done to avoid checking every single object in the space
-        for x in (position.0 - max_size as f32).floor() as u32..(position.0 + max_size as f32).ceil() as u32 {
-            for y in (position.1 - max_size as f32).floor() as u32..(position.1 + max_size as f32).ceil() as u32 {
+        for x in (position[0] - max_size as f32).floor() as u32..(position[0] + max_size as f32).ceil() as u32 {
+            for y in (position[1] - max_size as f32).floor() as u32..(position[1] + max_size as f32).ceil() as u32 {
 
                 // get objects from the  grid
                 let objects = &self.grid[x as usize][y as usize];
@@ -110,12 +110,12 @@ impl Space {
 
                             // dist is distance between the entity and the position
                             // Use squared distance to avoid unnecessary sqrt calculation
-                            let dx = entity_ref.position.0 - position.0;
-                            let dy = entity_ref.position.1 - position.1;
+                            let dx = entity_ref.position[0] - position[0];
+                            let dy = entity_ref.position[1] - position[1];
                             let min_dist_sq = (entity_ref.size + size).powi(2);
                             let dist_sq = dx * dx + dy * dy;
                             if dist_sq < min_dist_sq {
-                                return Collision::EntityCollision(entity_ref.velocity, entity_ref.size.powi(2) * std::f32::consts::PI); // return the velocity and mass of the coll
+                                return Collision::EntityCollision(entity_ref.velocity.clone(), entity_ref.size.powi(2) * std::f32::consts::PI, entity_ref.position.clone()); // return the velocity and mass of the coll
                             }
                         }
                         _ => {}
