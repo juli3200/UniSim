@@ -14,6 +14,9 @@ impl World{
             entities: Vec::new(),
             ligands: Vec::new(),
             space: Space::empty(),
+
+            #[cfg(feature = "cuda")]
+            cuda_world: None, // CUDA world is initialized later if GPU is active
         };
         world
             .initialize()

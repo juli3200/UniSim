@@ -30,6 +30,9 @@ pub struct World {
 
     pub(crate) space: Space, // the space is used to store the entities and ligands in a 2D grid
 
+    #[cfg(feature = "cuda")]
+    pub(crate) cuda_world: Option<crate::cuda::CUDAWorld>, // the CUDA world is used to store the entities and ligands in a single array for CUDA processing
+
 
 }
 
@@ -69,7 +72,3 @@ pub struct Space {
     max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)
     grid: Vec<Vec<Vec<objects::ObjectType>>>, // 2D grid of indices of entities and ligands
 }
-/* 
-pub struct CUDAWorld {
-    pub(crate) 
-}*/

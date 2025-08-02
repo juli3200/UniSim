@@ -26,7 +26,7 @@ impl Entity {
                 let v1 = self.velocity.clone();
                 let v2 = other_velocity.clone();
 
-                let m1 = self.size.powi(2) * std::f32::consts::PI; // mass of this entity
+                let m1 = self.size.powi(2); /* * std::f32::consts::PI; */// mass of this entity
                 let m2 = *mass; // mass of the other entity
 
                 let delta_v = &v1 - &v2;
