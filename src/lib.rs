@@ -8,6 +8,7 @@
 
 pub mod world;
 mod objects;
+mod test;
 
 #[cfg(feature = "cuda")]
 mod cuda;

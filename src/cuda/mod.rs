@@ -1,10 +1,15 @@
+#![cfg(feature = "cuda")]
 use ndarray::Array1;
+
+
+pub(crate) mod cuda_bindings;
+
 
 /// CUDA-related structures and functions
 /// e.g as CUDA arrays, kernels links, etc.
 
 // if gpu is active positions, velocities, and sizes of the objects are stored in a single array
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CUDAWorld {
     pub(crate) entities_pos: Array1<f32>,
     pub(crate) entities_vel: Array1<f32>,

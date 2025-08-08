@@ -11,7 +11,6 @@ mod settings_impl;
 /// e.g. ligands, entities, etc.
 /// The interaction between these objects are handled in the world Struct
 /// World provides all the functions to run the simulation
-#[derive(Debug, Clone)]
 pub struct World {
     // settings are stored in the settings struct
     // settings are used to configure the world

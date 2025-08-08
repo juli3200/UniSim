@@ -10,3 +10,4 @@ cuda = []
 [dependencies]
 rand = "0.9.2"
 ndarray = "0.16.1"
+

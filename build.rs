@@ -3,12 +3,14 @@
 const NAMES: [&str; 1] = ["test"];
 
 fn main() {
-
-    // Link the CUDA libraries
-    println!("cargo:rustc-link-lib=static=cuda");
-    println!("cargo:rustc-link-lib=static=cudart");
-    println!("cargo:rustc-link-lib=static=cublas");
-    println!("cargo:rustc-link-lib=static=curand");
+    #[cfg(feature = "cuda")]
+    {
+        // Link the CUDA libraries
+        println!("cargo:rustc-link-lib=static=cuda");
+        println!("cargo:rustc-link-lib=static=cudart");
+        println!("cargo:rustc-link-lib=static=cublas");
+        println!("cargo:rustc-link-lib=static=curand");
+    
     // Add the path to the CUDA libraries
     // Adjust the path according to your CUDA installation
     // todo: make this dynamic
@@ -21,5 +23,7 @@ fn main() {
 
     // Search path for cuda libraries
     println!(r"cargo:rustc-link-search=.\lib");
+
+    }
     
 }
