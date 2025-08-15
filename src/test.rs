@@ -3,7 +3,7 @@
 
 mod tests {
 
-    use crate::cuda::cuda_bindings as cb;
+    use crate::cuda::cuda_bindings::tests as cb;
 
     #[cfg(feature = "cuda")]
     #[test]
@@ -15,6 +15,9 @@ mod tests {
         }
     }
 
+
+    // Test if i can store memory and access it later
+    #[cfg(feature = "cuda")]
     #[test]
     fn test_memory_allocation() {
         unsafe {

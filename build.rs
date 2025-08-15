@@ -3,6 +3,8 @@
 const NAMES: [&str; 1] = ["test"];
 
 fn main() {
+
+    // only execute if CUDA feature is enabled
     #[cfg(feature = "cuda")]
     {
         // Link the CUDA libraries

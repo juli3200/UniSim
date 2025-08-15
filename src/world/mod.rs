@@ -11,6 +11,7 @@ mod settings_impl;
 /// e.g. ligands, entities, etc.
 /// The interaction between these objects are handled in the world Struct
 /// World provides all the functions to run the simulation
+#[derive(Debug, Clone)]
 pub struct World {
     // settings are stored in the settings struct
     // settings are used to configure the world
@@ -38,14 +39,13 @@ pub struct World {
 #[derive(Debug, Clone)]
 pub struct Settings {
     // unchangeable settings
-    pub default_population: usize, // default population size of entities 
-    pub dimensions: (u32, u32), // width, height of the world
-    pub spawn_size: f32, // size of the entities when they are spawned
+    pub(crate) default_population: usize, // default population size of entities
+    pub(crate) dimensions: (u32, u32), // width, height of the world
+    pub(crate) spawn_size: f32, // size of the entities when they are spawned
 
 
     // changeable settings
-    
-
+    pub fps: f32, // frames per second of the simulation
 }
 
 
@@ -66,6 +66,7 @@ pub(crate) enum Collision {
 
 #[derive(Debug, Clone)]
 pub struct Space {
+    pub settings: Settings, // needs to be updated with changes
     pub width: u32,
     pub height: u32,
     max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)

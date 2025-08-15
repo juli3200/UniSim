@@ -1,10 +1,9 @@
 use super::*;
 
-
-impl World{
-    pub fn new(settings: Settings) -> Self {
+impl World {
+    pub fn new(settings: &Settings) -> Self {
         let mut world = Self {
-            settings,
+            settings: settings.clone(),
             time: 0.0,
             population_size: 0,
             ligands_count: 0,
@@ -25,15 +24,14 @@ impl World{
         world
     }
 
-    fn initialize(&mut self) -> Result<(), String> {
+    fn initialize(& mut self) -> Result<(), String> {
 
         // Initialize the space
         self.space = Space::new(&self.settings)?;
 
-
         // Initialize the world with default population size
         for _ in 0..self.settings.default_population {
-            let entity = objects::Entity::new(self.counter, &mut self.space, self.settings.spawn_size)?;
+            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, self.settings.spawn_size)?;
             self.entities.push(entity);
             self.counter += 1;
         }
@@ -46,6 +44,16 @@ impl World{
         Ok(())
     }
 
+
+    fn update(&mut self){
+        // clone entities because of borrowing rules
+        // and also to avoid double collision resolution (because collision would already be resolved for the original entity)
+        let temp_entities = self.entities.clone();
+
+        for entity in &mut self.entities {
+            entity.update(&mut self.space, &temp_entities);
+        }
+    }
 
     
 }

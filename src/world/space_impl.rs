@@ -1,13 +1,15 @@
 use rand::Rng;
 
 use super::*;
+use super::info::get_entity;
 
-impl Space {
+impl Space{
     // new
 
     pub(crate) fn empty() -> Self {
         // creates an empty space, only used as a placeholder
         Self {
+            settings: Settings::default(),
             width: 0,
             height: 0,
             grid: vec![],
@@ -15,7 +17,7 @@ impl Space {
         }
     }
 
-    pub(crate) fn new(settings: &Settings) -> Result<Self, String> {
+    pub(crate) fn new(settings: & Settings) -> Result<Self, String> {
         // creates a new space with the given width and height
         let (width, height) = settings.dimensions;
         let grid = vec![vec![Vec::new(); height as usize]; width as usize];
@@ -24,6 +26,7 @@ impl Space {
             return Err("Invalid space dimensions".into());
         }
         Ok(Self {
+            settings: settings.clone(),
             width,
             height,
             grid,
@@ -31,7 +34,7 @@ impl Space {
         })
     }
 
-    pub(crate) fn get_random_position(&self, size: f32) -> Result<Array1<f32>, String> {
+    pub(crate) fn get_random_position(&self, size: f32, entities: &Vec<objects::Entity>) -> Result<Array1<f32>, String> {
         // returns a random position in the space that is not occupied by any entity or ligand
         // size is the size of the entity or ligand
 
@@ -40,7 +43,7 @@ impl Space {
         let (x, y) = loop {
             let x = rng.random_range(size..(self.width as f32 - size));
             let y = rng.random_range(size..(self.height as f32 - size));
-            if let Collision::NoCollision = self.check_position(Array1::from_vec(vec![x, y]), Some(size), None) {
+            if let Collision::NoCollision = self.check_position(Array1::from_vec(vec![x, y]), Some(size), None, entities) {
                 break (x, y);
             }
             c += 1;
@@ -53,7 +56,7 @@ impl Space {
     }
 
 
-    pub(crate) fn check_position(&self, position: Array1<f32>, size: Option<f32>, id : Option<usize>) -> Collision {
+    pub(crate) fn check_position(&self, position: Array1<f32>, size: Option<f32>, id : Option<usize>, entities: &Vec<objects::Entity>) -> Collision {
         // checks if the position is valid in the space
         // position is a tuple of (x, y)
         // size is the size of the entity 
@@ -98,24 +101,27 @@ impl Space {
                 
                 for object in objects {
                     match object {
-                        objects::ObjectType::Entity(entity) => {
-                            let entity_ref = entity.borrow();
-                            
-                            
-                            if let Some(id) = id {
-                                if entity_ref.id == id {
+                        objects::ObjectType::Entity(e_id) => {
+                            let entity_ref = get_entity(entities, *e_id);
+
+                            // check if entity_ref is valid
+                            if let Some(entity) = entity_ref {
+                                if entity.id == id.unwrap_or(usize::MAX) {
                                     continue; // skip the entity with the given id, because it is itself
                                 }
-                            }
+                            
 
-                            // dist is distance between the entity and the position
-                            // Use squared distance to avoid unnecessary sqrt calculation
-                            let dx = entity_ref.position[0] - position[0];
-                            let dy = entity_ref.position[1] - position[1];
-                            let min_dist_sq = (entity_ref.size + size).powi(2);
-                            let dist_sq = dx * dx + dy * dy;
-                            if dist_sq < min_dist_sq {
-                                return Collision::EntityCollision(entity_ref.velocity.clone(), entity_ref.size.powi(2) /* std::f32::consts::PI*/, entity_ref.position.clone()); // return the velocity and mass of the coll
+                                // dist is distance between the entity and the position
+                                // Use squared distance to avoid unnecessary sqrt calculation
+                                let dx = entity.position[0] - position[0];
+                                let dy = entity.position[1] - position[1];
+                                let min_dist_sq = (entity.size + size).powi(2);
+                                let dist_sq = dx * dx + dy * dy;
+                                if dist_sq < min_dist_sq {
+                                    // I dont multiply by PI because its would be divided again later
+                                    return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone());
+                                    // return the velocity and mass of the collision
+                                }
                             }
                         }
                         _ => {}

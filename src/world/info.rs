@@ -1,6 +1,8 @@
 use super::*;
 
 impl World {
+
+
     /// Returns the current time in the simulation.
     pub fn time(&self) -> f32 {
         self.time
@@ -20,3 +22,7 @@ impl World {
     
 }
 
+
+pub fn get_entity<'a>(entities: &'a Vec<objects::Entity>, id: usize) -> Option<&'a objects::Entity> {
+    entities.iter().find(|e| e.id == id)
+}

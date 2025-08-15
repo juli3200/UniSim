@@ -1,19 +1,37 @@
 use ndarray::Array1;
-
 use super::Entity;
 use crate::world::{Border, Collision, Space};
 
 impl Entity {
-    pub fn new(id: usize, space: &mut Space, size: f32) -> Result<Self, String> {
-        
+    pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, size: f32) -> Result<Self, String> {
+
         let position = space
-            .get_random_position(size)?;
+            .get_random_position(size, entities)?;
 
         let velocity = Array1::zeros(2); // initial velocity is set to zero
-        Ok(Self { id, position, size, velocity })
+        Ok(Self { 
+            id, 
+            position, 
+            size, 
+            velocity })
     }
 
-    fn resolve_collision(&mut self, collision: &Collision) {
+    pub(crate) fn update(&mut self, space: &mut Space, entities: &Vec<Entity>) {
+        let fps = 1.0 / space.settings.fps;
+        // update the entity's position based on its velocity
+        self.position.scaled_add(fps, &self.velocity);
+
+        // check for collisions with the space boundaries
+        let collision = space.check_position(self.position.clone(), Some(self.size), Some(self.id), entities);
+        // if no collision, return early
+        if let Collision::NoCollision = collision {
+            return;
+        }
+        self.resolve_collision(collision);
+
+    }
+
+    fn resolve_collision(&mut self, collision: Collision) {
         // only called when a collision is detected
         match collision {
             Collision::EntityCollision(other_velocity, mass, other_position) => {
@@ -27,7 +45,7 @@ impl Entity {
                 let v2 = other_velocity.clone();
 
                 let m1 = self.size.powi(2); /* * std::f32::consts::PI; */// mass of this entity
-                let m2 = *mass; // mass of the other entity
+                let m2 = mass; // mass of the other entity
 
                 let delta_v = &v1 - &v2;
                 let delta_p = &self.position - other_position;
