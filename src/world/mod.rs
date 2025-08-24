@@ -5,6 +5,7 @@ mod info;
 mod global;
 mod space_impl;
 mod settings_impl;
+pub mod save;
 
 
 /// a world is a 2D space filled with objects

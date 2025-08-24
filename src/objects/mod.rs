@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use ndarray::Array1;
 
 pub mod entity;
@@ -13,6 +12,8 @@ pub(crate) enum ObjectType {
 #[derive(Debug, Clone)]
 pub(crate) struct Ligand {
     pub id: usize,
+    pub position: Array1<f32>, // position in the world
+    pub velocity: Array1<f32>, // velocity in the world
 }
 #[derive(Debug, Clone)]
 pub(crate) struct Entity {

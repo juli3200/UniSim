@@ -51,6 +51,7 @@ impl World {
         let temp_entities = self.entities.clone();
 
         for entity in &mut self.entities {
+            // giving each entity the entities as they where to avoid double resolution
             entity.update(&mut self.space, &temp_entities);
         }
     }
