@@ -1,12 +1,42 @@
-use crate::objects::{Entity, Ligand};
+use crate::{objects::{Entity, Ligand}, world::World};
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
 const LIGAND_BUF_SIZE: (usize, usize) = (8, 16);
+const WORLD_BUF_ADD: (usize, usize) = (13, 21);
+const HEADER_SIZE: usize = 29;
+
+fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
+    let mut buffer = Vec::new();
+
+    let time: u64 = SystemTime::now().duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    buffer.push(HEADER_SIZE as u8); // header size 1 byte
+    buffer.extend(&time.to_le_bytes()); // time 8 bytes
+
+    buffer.extend(&world.settings.dimensions.0.to_le_bytes()); // width 4 bytes
+    buffer.extend(&world.settings.dimensions.1.to_le_bytes()); // height 4 bytes
+    buffer.extend(&world.settings.spawn_size.to_le_bytes()); // spawn size 4 bytes
+    buffer.extend(&world.settings.fps.to_le_bytes()); // fps 4 bytes
+    // add other settings
+
+    
+    // 4 bytes
+    buffer.extend(&(ENTITY_BUF_SIZE.0 as u8).to_le_bytes());
+    buffer.extend(&(ENTITY_BUF_SIZE.1 as u8).to_le_bytes());
+    buffer.extend(&(LIGAND_BUF_SIZE.0 as u8).to_le_bytes());
+    buffer.extend(&(LIGAND_BUF_SIZE.1 as u8).to_le_bytes());
+
+    Ok(buffer)
+}
 
 pub trait Save {
-    // used to store the entity position size ... to be displayed
+    // used to store the object position size ... to be displayed
     fn serialize(&self) -> Result<Vec<u8>, String>;
-    // used store the whole entity 
+    // used store the whole object
     fn pause_serialize(&self) -> Result<Vec<u8>, String>;
 }
 
@@ -81,5 +111,61 @@ impl Save for Ligand {
         }
 
         Ok(buffer_vec)
+    }
+}
+
+
+impl Save for World {
+    fn serialize(&self) -> Result<Vec<u8>, String> {
+        let mut buffer = Vec::new();
+        buffer.push(false as u8); // not a pause file 1 byte
+
+        // time
+        buffer.extend(&self.time.to_le_bytes()); // 4 bytes
+
+
+        // entities
+        buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(self.entities.serialize()?);
+
+        // ligands
+        buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(self.ligands.serialize()?);
+
+        if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
+            self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.0 {
+                return Err("Invalid buffer length".to_string());
+        }
+
+        Ok(buffer)
+    }
+
+    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+        let mut buffer = Vec::new();
+
+        buffer.push(true as u8); // pause file 1 byte
+
+        // add changeable settings
+        buffer.extend(&self.settings.fps.to_le_bytes()); // 4 bytes
+
+        // time, counter
+        buffer.extend(&self.time.to_le_bytes()); // 4 bytes
+        buffer.extend(&self.counter.to_le_bytes()); // 4 bytes
+
+
+        // entities
+        buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(self.entities.serialize()?);
+
+        // ligands
+        buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(self.ligands.serialize()?);
+
+        if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
+            self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
+                return Err("Invalid buffer length".to_string());
+        }
+
+        Ok(buffer)
     }
 }
