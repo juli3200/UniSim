@@ -1,9 +1,11 @@
 use super::*;
 
+
 impl World {
-    pub fn new(settings: &Settings) -> Self {
+    pub fn new() -> Self {
         let mut world = Self {
-            settings: settings.clone(),
+            settings: Settings::default(),
+            path: None,
             time: 0.0,
             population_size: 0,
             ligands_count: 0,
@@ -24,7 +26,7 @@ impl World {
         world
     }
 
-    fn initialize(& mut self) -> Result<(), String> {
+    fn initialize(&mut self) -> Result<(), String> {
 
         // Initialize the space
         self.space = Space::new(&self.settings)?;
@@ -56,5 +58,37 @@ impl World {
         }
     }
 
-    
+
+}
+
+
+
+// save impl Block
+impl World{
+
+    fn save_state(&self) -> Result<(), String> {
+        // Save the current state of the world
+        Ok(())
+    }
+
+    fn save_header(&self) -> Result<(), String> {
+        
+    }
+
+    // to be accessed by user
+    // update the path where the world is saved
+    pub fn save<S>(&mut self, path: S) -> Result<(), String>
+    where
+        S: AsRef<std::path::Path>,
+    {
+        self.path = Some(path.as_ref().to_path_buf());
+        Ok(())
+    }
+
+    pub fn stop_save(&mut self) -> Result<(), String> {
+        self.path = None;
+        Ok(())
+    }
+
+
 }

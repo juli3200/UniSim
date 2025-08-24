@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::objects;
 use ndarray::Array1;
 
@@ -5,7 +7,7 @@ mod info;
 mod global;
 mod space_impl;
 mod settings_impl;
-pub mod save;
+pub mod serialize;
 
 
 /// a world is a 2D space filled with objects
@@ -17,6 +19,7 @@ pub struct World {
     // settings are stored in the settings struct
     // settings are used to configure the world
     pub settings: Settings,
+    path: Option<PathBuf>,
 
     // variables
     pub(crate) time: f32, // current time in the simulation
