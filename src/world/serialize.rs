@@ -7,7 +7,7 @@ const LIGAND_BUF_SIZE: (usize, usize) = (8, 16);
 const WORLD_BUF_ADD: (usize, usize) = (13, 21);
 const HEADER_SIZE: usize = 29;
 
-fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
+pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
 
     let time: u64 = SystemTime::now().duration_since(UNIX_EPOCH)

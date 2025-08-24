@@ -1,3 +1,5 @@
+use crate::world::serialize::Save;
+
 use super::*;
 
 
@@ -61,27 +63,57 @@ impl World {
 
 }
 
+use std::io::{self, Write};
+use std::fs::OpenOptions;
 
 
 // save impl Block
 impl World{
 
-    fn save_state(&self) -> Result<(), String> {
+    fn save_state(&self) -> io::Result<()> {
         // Save the current state of the world
+
+        match self.serialize() {
+            Ok(state) => {
+                let mut file = OpenOptions::new()
+                    .append(true)
+                    .open(self.path.as_ref().unwrap())?;
+                file.write_all(&state)?;
+            }
+            Err(e) => {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize state: {}", e)));
+            }
+        }
+
         Ok(())
     }
 
-    fn save_header(&self) -> Result<(), String> {
+    fn save_header(&self) -> io::Result<()> {
+        match serialize::serialize_header(self) {
+            Ok(header) => {
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(self.path.as_ref().unwrap())?;
+                file.write_all(&header)?;
+            }
+            Err(e) => {
+                return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize header: {}", e)));
+            }
+        };
+
         
+        Ok(())
     }
 
     // to be accessed by user
     // update the path where the world is saved
-    pub fn save<S>(&mut self, path: S) -> Result<(), String>
+    pub fn save<S>(&mut self, path: S) -> io::Result<()>
     where
         S: AsRef<std::path::Path>,
     {
         self.path = Some(path.as_ref().to_path_buf());
+        self.save_header()?;
         Ok(())
     }
 
