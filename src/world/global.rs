@@ -66,9 +66,8 @@ impl World {
 
 }
 
-use std::io::{self, Write, Seek};
-use std::fs::OpenOptions;
-use std::path::Path;
+use std::io::{self, Write, Seek, SeekFrom, Read};
+use std::fs::{File, OpenOptions};
 
 
 // save impl Block
@@ -185,34 +184,62 @@ impl World{
     }
 
 
-    fn find_location(&self) -> Option<u32> {
-        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, path: &Path) -> Option<u32> {
+    fn find_location(&self, slot: Option<usize>) -> Option<u32> {
+        // clause if table was not called
+
+        if self.iteration == 0 {
+            return Some(HEADER_SIZE as u32);
+        }
+        
+
+        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, file: &mut File) -> Option<u32> {
 
             if iteration == 1 {
                 return Some(location + saved_states % store_capacity * 4);
             }
 
-            let mut file = OpenOptions::new()
-                .read(true)
-                .open(path);
+            // opening the file at location
+            let e1 = file.seek(SeekFrom::Start(location as u64));
 
-            inversive_find(iteration-1, saved_states, store_capacity, location, path);
+            // reading the next location to the buffer
+            let mut buffer = [0u8; 4];
+            let e2 = file.read_exact(&mut buffer);
 
-            None 
+            // convert the buffer in a u32
+            let next_location = u32::from_le_bytes(buffer);
+
+            // Error handling
+            if e1.is_err() || e2.is_err() {
+                return None;
+            }
+
+            // recursive call
+            inversive_find(iteration-1, saved_states, store_capacity, next_location, file)
             
         }
 
-        if self.iteration == 0 {
-            return Some(HEADER_SIZE as u32);
-        }
-        if self.iteration == 1{
-            let mut location = HEADER_SIZE as u32;
-            location += self.saved_states as u32 * 4;
-            return Some(location);
-        }
-        else {
-            
+        let iteration;
+        let target_slot;
+
+        match slot {
+            Some(slot) => {
+                iteration = (slot as f32 / self.settings.store_capacity as f32).ceil() as u32;
+                target_slot = slot as u32;
+            }
+            None => {
+                iteration = self.iteration as u32;
+                target_slot = self.saved_states as u32;
+            }
         }
 
+        // set location to default HEADER_SIZE
+        let location = HEADER_SIZE as u32;
+
+        // Error handled by returning None in case of failure
+        if let Ok(mut file) = File::open(self.path.as_ref().unwrap()) {
+            return inversive_find(iteration, target_slot, self.settings.store_capacity as u32, location, &mut file);
+        }
+
+        None
     }
 } 
