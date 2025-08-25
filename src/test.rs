@@ -1,7 +1,27 @@
 #![cfg(test)]
 
+mod general{
+    use crate::world;
 
-mod tests {
+    #[test]
+    fn create_world(){
+        let _world = world::World::new();
+        
+    }
+}
+
+mod io_tests {
+    use crate::world;
+
+    #[test]
+    fn test_save(){
+        let mut world = world::World::new();
+        let _ = world.save("alpha.bin");
+    }
+}
+
+
+mod cuda_tests {
 
     use crate::cuda::cuda_bindings::tests as cb;
 

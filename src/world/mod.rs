@@ -27,6 +27,8 @@ pub struct World {
     pub(crate) ligands_count: usize, // current count of ligands in the world
 
     pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
+    pub(crate) byte_counter: usize, // used for jumper in save file
+    pub(crate) saved_states: usize, // number of saved states in the save file
 
     // objects in the world
     pub(crate) entities: Vec<objects::Entity>,
@@ -46,6 +48,7 @@ pub struct Settings {
     pub(crate) default_population: usize, // default population size of entities
     pub(crate) dimensions: (u32, u32), // width, height of the world
     pub(crate) spawn_size: f32, // size of the entities when they are spawned
+    pub(crate) store_capacity: usize, // capacity of the save file
 
 
     // changeable settings

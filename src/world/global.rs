@@ -12,6 +12,8 @@ impl World {
             population_size: 0,
             ligands_count: 0,
             counter: 0,
+            byte_counter: 0,
+            saved_states: 0,
 
             // the objects are filled in in the initialize function
             entities: Vec::new(),
@@ -70,25 +72,33 @@ use std::fs::OpenOptions;
 // save impl Block
 impl World{
 
-    fn save_state(&self) -> io::Result<()> {
+    fn save_state(&mut self) -> io::Result<()> {
         // Save the current state of the world
+
+        let len;
 
         match self.serialize() {
             Ok(state) => {
+                len = state.len();
                 let mut file = OpenOptions::new()
                     .append(true)
                     .open(self.path.as_ref().unwrap())?;
                 file.write_all(&state)?;
+                
             }
             Err(e) => {
                 return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize state: {}", e)));
             }
         }
 
+        self.byte_counter += len;
+        self.saved_states += 1;
+
         Ok(())
     }
 
-    fn save_header(&self) -> io::Result<()> {
+    fn save_header(&mut self) -> io::Result<()> {
+
         match serialize::serialize_header(self) {
             Ok(header) => {
                 let mut file = OpenOptions::new()
@@ -102,8 +112,29 @@ impl World{
             }
         };
 
+        self.byte_counter += serialize::HEADER_SIZE;
+
+        Ok(())
+    }
+
+    fn save_table(&mut self) -> io::Result<()> {
+        // allocates capacity for the jumper table to the file
+
+        let jumper_table_size = 4 * self.settings.store_capacity; // 4 bytes per entry -> u32
+        let mut jumper_table = Vec::with_capacity(0);
+        jumper_table.resize(jumper_table_size, 0u8);
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(self.path.as_ref().unwrap())?;
+        file.write_all(&jumper_table)?;
+
+        self.byte_counter += jumper_table_size;
         
         Ok(())
+
+
     }
 
     // to be accessed by user
@@ -114,6 +145,7 @@ impl World{
     {
         self.path = Some(path.as_ref().to_path_buf());
         self.save_header()?;
+        self.save_table()?;
         Ok(())
     }
 

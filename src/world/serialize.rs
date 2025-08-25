@@ -2,10 +2,10 @@ use crate::{objects::{Entity, Ligand}, world::World};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
-const LIGAND_BUF_SIZE: (usize, usize) = (8, 16);
-const WORLD_BUF_ADD: (usize, usize) = (13, 21);
-const HEADER_SIZE: usize = 29;
+pub const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
+pub const LIGAND_BUF_SIZE: (usize, usize) = (8, 16);
+pub const WORLD_BUF_ADD: (usize, usize) = (13, 21);
+pub const HEADER_SIZE: usize = 37;
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -15,11 +15,13 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
         .as_secs();
 
     buffer.push(HEADER_SIZE as u8); // header size 1 byte
+    buffer.extend(&[0u8; 4]); // jumper to the latest save
     buffer.extend(&time.to_le_bytes()); // time 8 bytes
 
     buffer.extend(&world.settings.dimensions.0.to_le_bytes()); // width 4 bytes
     buffer.extend(&world.settings.dimensions.1.to_le_bytes()); // height 4 bytes
     buffer.extend(&world.settings.spawn_size.to_le_bytes()); // spawn size 4 bytes
+    buffer.extend(&(world.settings.store_capacity as u32).to_le_bytes()); // store capacity 4 bytes
     buffer.extend(&world.settings.fps.to_le_bytes()); // fps 4 bytes
     // add other settings
 
