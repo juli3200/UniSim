@@ -16,7 +16,12 @@ mod io_tests {
     #[test]
     fn test_save(){
         let mut world = world::World::new();
-        let _ = world.save("alpha.bin");
+        let e = world.save("alpha.bin");
+        println!("Save result: {:?}", e);
+        for _ in 0..2000 {
+            world.update();
+        }
+
     }
 }
 

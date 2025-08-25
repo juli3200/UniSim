@@ -52,7 +52,7 @@ impl World {
     }
 
 
-    fn update(&mut self){
+    pub(crate) fn update(&mut self){
         // clone entities because of borrowing rules
         // and also to avoid double collision resolution (because collision would already be resolved for the original entity)
         let temp_entities = self.entities.clone();
@@ -60,6 +60,15 @@ impl World {
         for entity in &mut self.entities {
             // giving each entity the entities as they where to avoid double resolution
             entity.update(&mut self.space, &temp_entities);
+        }
+
+        self.time += 1.0 / self.settings.fps as f32;
+
+        // saving
+        if self.path.is_some() {
+            if let Err(e) = self.save_state() {
+                eprintln!("Failed to save state: {}", e);
+            }
         }
     }
 
@@ -81,17 +90,21 @@ impl World{
         // actual size is 1025 one slot for the next jumper
         if self.saved_states % self.settings.store_capacity == 0 && self.saved_states != 0 {
             // add new capacity
-            println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration-1));
+            println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration+1));
             println!("Saved states: {}, Population size: {}", self.saved_states, self.population_size);
             self.save_table()?;
 
         }
-        
 
-        let jumper_location = HEADER_SIZE // header
-            + self.saved_states * 4 // current jumper 
-            + (self.settings.store_capacity +1) * (self.iteration-1); // 4 bytes per entry -> u32
+        // find the byte range where to put the pointer(jumper)
+        let jumper_location = self.find_jumper_location(None);
+        // error handling
+        if jumper_location.is_none() {
+            return Err(io::Error::new(io::ErrorKind::Other, "Failed to find jumper location"));
+        }
 
+
+        let jumper_location = jumper_location.unwrap();
         let jumper_target = self.byte_counter as u32;
         
         // open file and add the jumper coordinate
@@ -184,7 +197,7 @@ impl World{
     }
 
 
-    fn find_location(&self, slot: Option<usize>) -> Option<u32> {
+    fn find_jumper_location(&self, slot: Option<usize>) -> Option<u32> {
         // clause if table was not called
 
         if self.iteration == 0 {

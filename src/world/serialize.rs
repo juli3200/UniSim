@@ -75,7 +75,7 @@ impl Save for Entity {
         };
 
         if buffer_vec.len() != ENTITY_BUF_SIZE.0 {
-            return Err("Invalid buffer length".to_string());
+            return Err("Invalid buffer length entity".to_string());
         }
 
         Ok(buffer_vec)
@@ -92,7 +92,7 @@ impl Save for Ligand {
         let buffer_vec: Vec<u8> = self.position.iter().flat_map(|x| x.to_le_bytes()).collect();
 
         if buffer_vec.len() != LIGAND_BUF_SIZE.0 {
-            return Err("Invalid buffer length".to_string());
+            return Err("Invalid buffer length ligand".to_string());
         }
 
         Ok(buffer_vec)
@@ -109,7 +109,7 @@ impl Save for Ligand {
         };
 
         if buffer_vec.len() != LIGAND_BUF_SIZE.1 {
-            return Err("Invalid buffer length".to_string());
+            return Err("Invalid buffer length ligand".to_string());
         }
 
         Ok(buffer_vec)
@@ -136,7 +136,7 @@ impl Save for World {
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.0 {
-                return Err("Invalid buffer length".to_string());
+                return Err("Invalid buffer length world".to_string());
         }
 
         Ok(buffer)
@@ -165,9 +165,11 @@ impl Save for World {
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
-                return Err("Invalid buffer length".to_string());
+                return Err("Invalid buffer length world".to_string());
         }
 
         Ok(buffer)
     }
 }
+
+// TODOOOO BYTE LENGTH AT START AND THEN CONTINUE IN world.save_state!!!!
