@@ -29,6 +29,7 @@ pub struct World {
     pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
     pub(crate) byte_counter: usize, // used for jumper in save file
     pub(crate) saved_states: usize, // number of saved states in the save file
+    pub(crate) iteration: usize, // number of iterations the store capacity has been increased
 
     // objects in the world
     pub(crate) entities: Vec<objects::Entity>,

@@ -1,4 +1,4 @@
-use crate::world::serialize::Save;
+use crate::world::serialize::{Save, HEADER_SIZE};
 
 use super::*;
 
@@ -14,6 +14,7 @@ impl World {
             counter: 0,
             byte_counter: 0,
             saved_states: 0,
+            iteration: 0,
 
             // the objects are filled in in the initialize function
             entities: Vec::new(),
@@ -65,8 +66,9 @@ impl World {
 
 }
 
-use std::io::{self, Write};
+use std::io::{self, Write, Seek};
 use std::fs::OpenOptions;
+use std::path::Path;
 
 
 // save impl Block
@@ -74,6 +76,33 @@ impl World{
 
     fn save_state(&mut self) -> io::Result<()> {
         // Save the current state of the world
+
+        // e.g. self.saved_states = 1024
+        // will activate at 1024
+        // actual size is 1025 one slot for the next jumper
+        if self.saved_states % self.settings.store_capacity == 0 && self.saved_states != 0 {
+            // add new capacity
+            println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration-1));
+            println!("Saved states: {}, Population size: {}", self.saved_states, self.population_size);
+            self.save_table()?;
+
+        }
+        
+
+        let jumper_location = HEADER_SIZE // header
+            + self.saved_states * 4 // current jumper 
+            + (self.settings.store_capacity +1) * (self.iteration-1); // 4 bytes per entry -> u32
+
+        let jumper_target = self.byte_counter as u32;
+        
+        // open file and add the jumper coordinate
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(self.path.as_ref().unwrap())?;
+        file.seek(std::io::SeekFrom::Start(jumper_location as u64))?;
+        file.write_all(&jumper_target.to_le_bytes())?;
+
+        drop(file); // close the file
 
         let len;
 
@@ -120,7 +149,7 @@ impl World{
     fn save_table(&mut self) -> io::Result<()> {
         // allocates capacity for the jumper table to the file
 
-        let jumper_table_size = 4 * self.settings.store_capacity; // 4 bytes per entry -> u32
+        let jumper_table_size = 4 * (self.settings.store_capacity + 1); // 4 bytes per entry -> u32 // 1 for pointer at next jumper
         let mut jumper_table = Vec::with_capacity(0);
         jumper_table.resize(jumper_table_size, 0u8);
 
@@ -131,7 +160,8 @@ impl World{
         file.write_all(&jumper_table)?;
 
         self.byte_counter += jumper_table_size;
-        
+        self.iteration += 1;
+
         Ok(())
 
 
@@ -155,4 +185,34 @@ impl World{
     }
 
 
-}
+    fn find_location(&self) -> Option<u32> {
+        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, path: &Path) -> Option<u32> {
+
+            if iteration == 1 {
+                return Some(location + saved_states % store_capacity * 4);
+            }
+
+            let mut file = OpenOptions::new()
+                .read(true)
+                .open(path);
+
+            inversive_find(iteration-1, saved_states, store_capacity, location, path);
+
+            None 
+            
+        }
+
+        if self.iteration == 0 {
+            return Some(HEADER_SIZE as u32);
+        }
+        if self.iteration == 1{
+            let mut location = HEADER_SIZE as u32;
+            location += self.saved_states as u32 * 4;
+            return Some(location);
+        }
+        else {
+            
+        }
+
+    }
+} 
