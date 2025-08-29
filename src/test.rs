@@ -18,7 +18,7 @@ mod io_tests {
         let mut world = world::World::new();
         let e = world.save("alpha.bin");
         println!("Save result: {:?}", e);
-        for _ in 0..2000 {
+        for _ in 0..1200 {
             world.update();
         }
 

@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
 pub const LIGAND_BUF_SIZE: (usize, usize) = (8, 16);
-pub const WORLD_BUF_ADD: (usize, usize) = (13, 21);
+pub const WORLD_BUF_ADD: (usize, usize) = (17, 25);
 pub const HEADER_SIZE: usize = 37;
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
@@ -134,10 +134,17 @@ impl Save for World {
         buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
 
+
+        // Insert the total buffer length at the beginning
+        let total_len = (buffer.len() as u32).to_le_bytes();
+        buffer.splice(0..0, total_len.iter().cloned());
+
+
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.0 {
                 return Err("Invalid buffer length world".to_string());
         }
+
 
         Ok(buffer)
     }
@@ -162,6 +169,13 @@ impl Save for World {
         // ligands
         buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
+
+        // Insert the total buffer length at the beginning
+        let total_len = (buffer.len() as u32).to_le_bytes();
+        buffer.insert(0, total_len[0]);
+        buffer.insert(1, total_len[1]);
+        buffer.insert(2, total_len[2]);
+        buffer.insert(3, total_len[3]);
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
