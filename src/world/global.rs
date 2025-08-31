@@ -59,6 +59,12 @@ impl World {
         Ok(())
     }
 
+    pub fn run(&mut self, n: usize) {
+        // Main loop for the world simulation
+        for _ in 0..n {
+            self.update();
+        }
+    }
 
     pub(crate) fn update(&mut self){
         // clone entities because of borrowing rules
