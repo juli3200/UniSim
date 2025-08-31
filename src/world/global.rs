@@ -5,12 +5,13 @@ use super::*;
 
 impl World {
 
+    // creates a new World with n = 100
     pub fn default() -> Self {
-        let settings = Settings::default(100);
+        let settings = Settings::new(100);
         Self::new(settings)
     }
 
-
+    // creates and initializes the World with specified settings
     pub fn new(settings: Settings) -> Self {
         let mut world = Self {
             settings: settings,

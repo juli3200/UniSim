@@ -30,13 +30,13 @@ impl Entity {
     }
 
     pub(crate) fn update(&mut self, space: &mut Space, entities: &Vec<Entity>) {
-        let fps = 1.0 / space.settings.fps;
+        let fps = 1.0 / space.settings.fps();
 
         // implement acceleration 
         // TODOOOO
 
         // update the entity's position based on its velocity
-        self.position.scaled_add(fps * space.settings.velocity, &self.velocity);
+        self.position.scaled_add(fps * space.settings.velocity(), &self.velocity);
 
         // check for collisions with the space boundaries
         let collision = space.check_position(self.position.clone(), Some(self.size), Some(self.id), entities);

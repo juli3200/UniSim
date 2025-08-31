@@ -1,19 +1,18 @@
 #![cfg(test)]
 
 mod general{
-    use crate::world;
+    use crate::{settings, world};
 
     #[test]
     fn create_world(){
-        let _world = world::World::new(100);
+        let _world = world::World::new(settings!(100, spawn_size = 5.0));
         
     }
 
     #[test]
     fn test_movement() {
-        let mut world = world::World::new(1);
-        world.settings.fps = 1.0;
-        world.space.settings.fps = 1.0;
+        let mut world = world::World::default();
+
 
         println!("vel: {:?}", world.entities[0].velocity);
 

@@ -45,17 +45,19 @@ pub struct World {
 
 #[derive(Debug, Clone)]
 pub struct Settings {
+    init: bool, // whether the settings have been initialized
+
     // unchangeable settings
-    pub(in crate::world) default_population: usize, // default population size of entities
-    pub(in crate::world) dimensions: (u32, u32), // width, height of the world
-    pub(in crate::world) spawn_size: f32, // size of the entities when they are spawned
-    pub(in crate::world) store_capacity: usize, // capacity of the save file
-    pub(in crate::world) give_start_vel: bool, // whether to give entities a starting velocity
+    default_population: usize, // default population size of entities
+    dimensions: (u32, u32), // width, height of the world
+    spawn_size: f32, // size of the entities when they are spawned
+    store_capacity: usize, // capacity of the save file
+    give_start_vel: bool, // whether to give entities a starting velocity
 
 
     // changeable settings
-    pub(crate) fps: f32, // frames per second of the simulation
-    pub(crate) velocity: f32, // default velocity of entities
+    fps: f32, // frames per second of the simulation
+    velocity: f32, // default velocity of entities
 }
 
 
