@@ -54,6 +54,7 @@ pub struct Settings {
 
     // changeable settings
     pub fps: f32, // frames per second of the simulation
+    pub velocity: f32, // default velocity of entities
 }
 
 

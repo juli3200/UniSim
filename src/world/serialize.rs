@@ -122,6 +122,7 @@ impl Save for World {
         let mut buffer = Vec::new();
         buffer.push(false as u8); // not a pause file 1 byte
 
+
         // time
         buffer.extend(&self.time.to_le_bytes()); // 4 bytes
 
@@ -136,8 +137,9 @@ impl Save for World {
 
 
         // Insert the total buffer length at the beginning
+        
         let total_len = (buffer.len() as u32).to_le_bytes();
-        buffer.splice(0..0, total_len.iter().cloned());
+        buffer.splice(0..0, total_len.iter().cloned()); 
 
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
@@ -170,12 +172,9 @@ impl Save for World {
         buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
 
-        // Insert the total buffer length at the beginning
-        let total_len = (buffer.len() as u32).to_le_bytes();
-        buffer.insert(0, total_len[0]);
-        buffer.insert(1, total_len[1]);
-        buffer.insert(2, total_len[2]);
-        buffer.insert(3, total_len[3]);
+        let total_len = (buffer.len() as u32 + 4).to_le_bytes();
+        buffer.splice(0..0, total_len.iter().cloned()); 
+
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
@@ -185,5 +184,3 @@ impl Save for World {
         Ok(buffer)
     }
 }
-
-// TODOOOO BYTE LENGTH AT START AND THEN CONTINUE IN world.save_state!!!!

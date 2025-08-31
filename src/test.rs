@@ -5,8 +5,23 @@ mod general{
 
     #[test]
     fn create_world(){
-        let _world = world::World::new();
+        let _world = world::World::new(100);
         
+    }
+
+    #[test]
+    fn test_movement() {
+        let mut world = world::World::new(1);
+        world.settings.fps = 1.0;
+        world.space.settings.fps = 1.0;
+
+        println!("vel: {:?}", world.entities[0].velocity);
+
+        println!("pos: {:?}", world.entities[0].position);
+        world.update();
+        println!("pos: {:?}", world.entities[0].position);
+        world.update();
+        println!("pos: {:?}", world.entities[0].position);
     }
 }
 
@@ -15,10 +30,10 @@ mod io_tests {
 
     #[test]
     fn test_save(){
-        let mut world = world::World::new();
+        let mut world = world::World::new(100);
         let e = world.save("alpha.bin");
         println!("Save result: {:?}", e);
-        for _ in 0..1200 {
+        for _ in 0..100 {
             world.update();
         }
 
