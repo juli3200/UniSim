@@ -10,5 +10,18 @@ pub mod world;
 mod objects;
 mod test;
 
+
+
+// this macro is used to edit the settings of the world AND the space
+// it also can only change changeable settings
+#[macro_export]
+macro_rules! edit_settings {
+    (&mut $world:expr, $($setting:ident = $value:expr),+) => {
+        $( $world.settings.$setting = $value; )+
+        $( $world.space.settings.$setting = $value; )+
+    };
+}
+
 #[cfg(feature = "cuda")]
 mod cuda;
+

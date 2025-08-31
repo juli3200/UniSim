@@ -46,17 +46,18 @@ pub struct World {
 #[derive(Debug, Clone)]
 pub struct Settings {
     // unchangeable settings
-    pub(crate) default_population: usize, // default population size of entities
-    pub(crate) dimensions: (u32, u32), // width, height of the world
-    pub(crate) spawn_size: f32, // size of the entities when they are spawned
-    pub(crate) store_capacity: usize, // capacity of the save file
-    pub(crate) give_start_vel: bool, // whether to give entities a starting velocity
+    default_population: usize, // default population size of entities
+    dimensions: (u32, u32), // width, height of the world
+    spawn_size: f32, // size of the entities when they are spawned
+    store_capacity: usize, // capacity of the save file
+    give_start_vel: bool, // whether to give entities a starting velocity
 
 
     // changeable settings
-    pub fps: f32, // frames per second of the simulation
-    pub velocity: f32, // default velocity of entities
+    pub(crate) fps: f32, // frames per second of the simulation
+    pub(crate) velocity: f32, // default velocity of entities
 }
+
 
 
 #[derive(Debug, Clone)]

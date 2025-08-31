@@ -27,12 +27,14 @@ mod general{
 
 mod io_tests {
     use crate::world;
+    use crate::*;
 
     #[test]
     fn test_save(){
         let n = 10000;
         let mut world = world::World::new(100);
-        world.settings.store_capacity = n;
+        edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
+
 
         let e = world.save("alpha.bin");
         println!("Save result: {:?}", e);

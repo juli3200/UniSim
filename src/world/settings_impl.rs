@@ -13,4 +13,41 @@ impl Settings {
             velocity: 3.0,
         }
     }
+
+
+    // returns default population
+    pub fn default_population(&self) -> usize {
+        self.default_population
+    }
+
+    // returns dimensions
+    pub fn dimensions(&self) -> (u32, u32) {
+        self.dimensions
+    }
+
+    // returns spawn size
+    pub fn spawn_size(&self) -> f32 {
+        self.spawn_size
+    }
+
+    // returns whether to give starting velocity
+    pub fn give_start_vel(&self) -> bool {
+        self.give_start_vel
+    }
+
+    // returns store capacity
+    pub fn store_capacity(&self) -> usize {
+        self.store_capacity
+    }
+
+    // returns frames per second
+    pub fn fps(&self) -> f32 {
+        self.fps
+    }
+
+    // returns default velocity
+    pub fn velocity(&self) -> f32 {
+        self.velocity
+    }
+    
 }
