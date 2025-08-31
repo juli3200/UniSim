@@ -10,6 +10,9 @@ pub mod world;
 mod objects;
 mod test;
 
+#[cfg(feature = "cuda")]
+mod cuda;
+
 
 
 // this macro is used to edit the settings of the world AND the space
@@ -22,6 +25,30 @@ macro_rules! edit_settings {
     };
 }
 
-#[cfg(feature = "cuda")]
-mod cuda;
+// Macro to create settings
+// declared here that it can access private fields
+#[macro_export]
+macro_rules! settings {
+    () => {
+        crate::world::Settings::default(100)
+    };
+    ( $n:expr ) => {
+        crate::world::Settings::default($n)
+    };
+    ($($setting:ident = $value:expr),+) => {
+        {
+            let mut settings = crate::world::Settings::default(100);
+            $( settings.$setting = $value; )+
+            settings
+        }
+    };
+    ($n:expr, $($setting:ident = $value:expr),+) => {
+        {
+            let mut settings = crate::world::Settings::default($n);
+            $( settings.$setting = $value; )+
+            settings
+        }
+    };
+}
+
 

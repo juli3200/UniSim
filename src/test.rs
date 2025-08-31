@@ -32,7 +32,7 @@ mod io_tests {
     #[test]
     fn test_save(){
         let n = 10000;
-        let mut world = world::World::new(100);
+        let mut world = world::World::new(settings!(100, spawn_size = 5.0));
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 

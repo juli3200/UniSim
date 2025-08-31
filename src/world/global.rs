@@ -4,9 +4,16 @@ use super::*;
 
 
 impl World {
-    pub fn new(n: usize) -> Self {
+
+    pub fn default() -> Self {
+        let settings = Settings::default(100);
+        Self::new(settings)
+    }
+
+
+    pub fn new(settings: Settings) -> Self {
         let mut world = Self {
-            settings: Settings::default(n),
+            settings: settings,
             path: None,
             time: 0.0,
             population_size: 0,

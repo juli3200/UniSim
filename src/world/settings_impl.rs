@@ -49,5 +49,5 @@ impl Settings {
     pub fn velocity(&self) -> f32 {
         self.velocity
     }
-    
+
 }
