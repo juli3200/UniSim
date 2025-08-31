@@ -1,18 +1,31 @@
+use rand::Rng;
+
 use ndarray::Array1;
 use super::Entity;
-use crate::world::{Border, Collision, Space};
+use crate::world::{Border, Collision, Settings, Space};
 
 impl Entity {
-    pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, size: f32) -> Result<Self, String> {
+    pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
 
         let position = space
-            .get_random_position(size, entities)?;
+            .get_random_position(settings.spawn_size, entities)?;
 
-        let velocity = Array1::zeros(2); // initial velocity is set to zero
-        Ok(Self { 
-            id, 
-            position, 
-            size, 
+
+        // give a random velocity if settings.give_start_vel is true
+        let velocity = if settings.give_start_vel {
+            let mut rng = rand::rng();
+            Array1::from(vec![
+                rng.random_range(-1.0..1.0),
+                rng.random_range(-1.0..1.0),
+            ])
+        } else {
+            Array1::zeros(2)
+        };
+
+        Ok(Self {
+            id,
+            position,
+            size: settings.spawn_size,
             velocity })
     }
 

@@ -38,7 +38,7 @@ impl World {
 
         // Initialize the world with default population size
         for _ in 0..self.settings.default_population {
-            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, self.settings.spawn_size)?;
+            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings)?;
             self.entities.push(entity);
             self.counter += 1;
         }

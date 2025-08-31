@@ -30,10 +30,13 @@ mod io_tests {
 
     #[test]
     fn test_save(){
+        let n = 10000;
         let mut world = world::World::new(100);
+        world.settings.store_capacity = n;
+
         let e = world.save("alpha.bin");
         println!("Save result: {:?}", e);
-        for _ in 0..100 {
+        for _ in 0..n {
             world.update();
         }
 
