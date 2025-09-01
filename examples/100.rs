@@ -7,8 +7,8 @@ use UniSim::{settings, world};
 
 
 fn main() {
-    
-    let settings: world::Settings = settings!(100, spawn_size = 5.0, give_start_vel = true);
+
+    let settings: world::Settings = settings!(100, spawn_size = 1.0, give_start_vel = true, velocity = 1.0);
     let mut world = world::World::new(settings);
 
     let e = world.save("test.bin");

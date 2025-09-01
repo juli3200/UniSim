@@ -22,6 +22,20 @@ mod general{
         world.update();
         println!("pos: {:?}", world.entities[0].position);
     }
+
+    #[test]
+    fn collision_test() {
+        let mut world = world::World::new(settings!(1, spawn_size = 1.0, give_start_vel = true, velocity = 5.0, dimensions = (10,10), fps = 30.0));
+        /*world.entities[0].position = ndarray::Array1::from(vec![1.5, 1.5]);
+        world.entities[0].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);*/
+        let e = world.save("col.bin");
+        if let Err(e) = e {
+            eprintln!("Error saving world: {}", e);
+        }
+        world.run(1000);
+
+
+    }
 }
 
 mod io_tests {

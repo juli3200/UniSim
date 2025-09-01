@@ -75,6 +75,9 @@ impl Space{
         // returns Collision::BorderCollision if the position is out of bounds
         let (width, height) = (self.width as f32, self.height as f32);
         if position[0] - size < 0.0 {
+            if id == Some(0) {
+                println!("Position x: {} - size: {} < 0.0", position[0], size);
+            }
             return Collision::BorderCollision(Border::Left);
         }
         if position[0] + size >= width {
@@ -115,7 +118,7 @@ impl Space{
                                 // Use squared distance to avoid unnecessary sqrt calculation
                                 let dx = entity.position[0] - position[0];
                                 let dy = entity.position[1] - position[1];
-                                let min_dist_sq = (entity.size + size).powi(2);
+                                let min_dist_sq = entity.size.powi(2) + size.powi(2);
                                 let dist_sq = dx * dx + dy * dy;
                                 if dist_sq < min_dist_sq {
                                     // I dont multiply by PI because its would be divided again later
