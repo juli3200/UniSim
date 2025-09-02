@@ -1,8 +1,7 @@
-use crate::world::serialize::{Save, HEADER_SIZE};
+use crate::world::serialize::Save;
 
 use super::*;
 
-const SAVE_INTERVAL: usize = 1; // Write to file every 100 updates
 
 impl World {
 
@@ -14,16 +13,18 @@ impl World {
 
     // creates and initializes the World with specified settings
     pub fn new(settings: Settings) -> Self {
+
+        let buffer = Vec::with_capacity(settings.store_capacity() * 1024); // 1 MB buffer
+
         let mut world = Self {
             settings: settings,
-            buffer: Vec::with_capacity(1024 * 1024), // 1 MB buffer
+            buffer: buffer,
             path: None,
             time: 0.0,
             population_size: 0,
             ligands_count: 0,
             counter: 0,
             byte_counter: 0,
-            saved_states: 0,
             iteration: 0,
 
             // the objects are filled in in the initialize function
@@ -80,105 +81,124 @@ impl World {
 
         self.time += 1.0 / self.settings.fps as f32;
 
-        // saving
-        if self.path.is_some() {
-            if let Err(e) = self.save_state() {
-                eprintln!("Failed to save state: {}", e);
+        // exit if saving is disabled
+        if self.path.is_none(){return;}
+
+        match self.serialize() {
+            // serialize the state
+            Ok(state) => {
+                // add it to the buffer
+                self.buffer.push(state);
+
+                if self.buffer.len() == self.settings.store_capacity {
+
+                    // save the state if the buffer is full
+                    match self.save_buffer() {
+                        Ok(_) => {
+                            // clear the buffer
+                            self.buffer.clear();
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to save state: {}", e);
+                            self.buffer.clear();
+                        }
+                    }
+                }
+
+
+            }
+            Err(e) => {
+                eprintln!("Failed to serialize state: {}", e);
             }
         }
+
+
+        
     }
 
 
 }
 
-use std::io::{self, Write, Seek, SeekFrom, Read};
-use std::fs::{File, OpenOptions};
-use std::iter;
-
+use std::io::{self, Write};
+use std::fs::OpenOptions;
 
 // save impl Block
 impl World{
 
-    fn save_state(&mut self) -> io::Result<()> {
-        // Save the current state of the world
-        // only save every SAVE_INTERVAL frames
-        // the rest is stored in the buffer
-       
-        // serialize the world
-        match self.serialize() {
-            Ok(state) => {
-                self.buffer.push(state);
-            }
-            Err(e) => {
-                return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize state: {}", e)));
-            }
-        }
+    
+    // to be accessed by user
+    // update the path where the world is saved
+    pub fn save<S>(&mut self, path: S) -> io::Result<()>
+    where
+        S: AsRef<std::path::Path>,
+    {
+        self.path = Some(path.as_ref().to_path_buf());
+        self.save_header()?;
+        Ok(())
+    }
+
+    pub fn stop_save(&mut self) -> Result<(), String> {
+        self.path = None;
+        Ok(())
+    }
+
+    fn save_buffer(&mut self) -> io::Result<()> {
+        // Save the current buffer, containing serialized states of the world
+
+        println!("Writing {} states to disk, iteration {}", self.buffer.len(), self.iteration);
+
+        // save a new jumper table
+        self.save_table()?;
+
+        let flat_buffer = self.buffer.iter().flatten().cloned().collect::<Vec<u8>>();
+
+        // write the flat buffer to disk
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(self.path.as_ref().unwrap())?;
+        file.write_all(&flat_buffer)?;
 
 
-
-        // exit early if not saving
-        if self.saved_states % SAVE_INTERVAL != 0 && self.saved_states != 0 {
-            self.saved_states += 1;
-            return Ok(());
-        }
-
-        println!("Writing {} states to disk", self.buffer.len());
-
-        let buffer = self.buffer.clone();
-
-        // go through every state and save it
-        for (i, state) in buffer.iter().enumerate() {
-            // e.g. self.saved_states = 1024
-            // will activate at 1024
-            // actual size is 1025 one slot for the next jumper
-
-            let state_index = self.saved_states - (buffer.len().min(self.saved_states)) + i;
-
-            if self.saved_states % self.settings.store_capacity == 0 && self.saved_states != 0 {
-                // add new capacity
-                println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration+1));
-                println!("Saved states: {}, Population size: {}", state_index, self.population_size);
-                self.save_table()?;
-
-            }
-
-            // find the byte range where to put the pointer(jumper)
-            let jumper_location = self.find_location(SaveSlot::Jumper(state_index));
-            // error handling
-            if jumper_location.is_none() {
-                return Err(io::Error::new(io::ErrorKind::Other, "Failed to find jumper location"));
-            }
-
-
-            let jumper_location = jumper_location.unwrap();
-            let jumper_target = self.byte_counter as u32;
-            
-            // open file and add the jumper coordinate
-            let mut file = OpenOptions::new()
-                .write(true)
-                .open(self.path.as_ref().unwrap())?;
-            file.seek(std::io::SeekFrom::Start(jumper_location as u64))?;
-            file.write_all(&jumper_target.to_le_bytes())?;
-
-            drop(file); // close the file
-
-            let len = state.len();
-            let mut file = OpenOptions::new()
-                .append(true)
-                .open(self.path.as_ref().unwrap())?;
-            file.write_all(&state)?;
-            
-            
-
-            
-
-            self.byte_counter += len;
-        }
-
-        self.saved_states += 1;
         println!("State saved successfully");
 
         Ok(())
+    }
+
+
+    fn save_table(&mut self) -> io::Result<()> {
+        // allocates capacity for the jumper table to the file
+
+        // copy the bytes written to this number for the jumper locations
+        let mut bytes_written = self.byte_counter + (self.settings.store_capacity+ 1) * 4; // add space for all the jumpers and the jumper for the next jumper
+
+        let mut jumper_table = Vec::with_capacity((self.settings.store_capacity + 1)* 4); // 4 bytes per entry -> u32 + 4 bytes for next jumper table
+
+        // fill the jumper_table with the addresses for the jumper
+        for i in 0..self.settings.store_capacity{
+            let state_size = self.buffer[i].len();
+            jumper_table.extend((bytes_written as u32).to_le_bytes());
+            bytes_written += state_size;
+        }
+
+        // jumper to the next jumper table
+        jumper_table.extend((bytes_written as u32).to_le_bytes());
+
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(self.path.as_ref().unwrap())?;
+        file.write_all(&jumper_table)?;
+
+        // Assert that the bytes_written matches the expected file length after writing the jumper table
+        let file_len = file.metadata()?.len();
+        assert_eq!(bytes_written as u64, file_len, "File length mismatch: expected {}, got {}", bytes_written, file_len);
+        self.iteration += 1;
+
+        Ok(())
+
+
     }
 
     fn save_header(&mut self) -> io::Result<()> {
@@ -201,134 +221,4 @@ impl World{
         Ok(())
     }
 
-    fn save_table(&mut self) -> io::Result<()> {
-        // allocates capacity for the jumper table to the file
-
-        let jumper_table_size = 4 * (self.settings.store_capacity + 1); // 4 bytes per entry -> u32 // 1 for pointer at next jumper
-        let mut jumper_table = Vec::with_capacity(0);
-        jumper_table.resize(jumper_table_size, 0u8);
-
-        let mut file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .open(self.path.as_ref().unwrap())?;
-        file.write_all(&jumper_table)?;
-
-        self.byte_counter += jumper_table_size;
-        self.iteration += 1;
-
-        Ok(())
-
-
-    }
-
-    // to be accessed by user
-    // update the path where the world is saved
-    pub fn save<S>(&mut self, path: S) -> io::Result<()>
-    where
-        S: AsRef<std::path::Path>,
-    {
-        self.path = Some(path.as_ref().to_path_buf());
-        self.save_header()?;
-        self.save_table()?;
-        Ok(())
-    }
-
-    pub fn stop_save(&mut self) -> Result<(), String> {
-        self.path = None;
-        Ok(())
-    }
-
-
-    fn find_location(&self, slot: SaveSlot) -> Option<u32> {
-        // clause if table was not called
-
-        if self.iteration == 0 {
-            return Some(HEADER_SIZE as u32);
-        }
-        
-
-        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, file: &mut File, jumper: bool) -> Option<u32> {
-
-            if iteration == 1 {
-
-                let jumper_address = location + saved_states % store_capacity * 4;
-                // the jumper address is seeked return jumper
-                if jumper { return Some(jumper_address); }
-
-                let e1 = file.seek(SeekFrom::Start(jumper_address as u64));
-
-                let mut buffer = [0u8; 4];
-                let e2 = file.read_exact(&mut buffer);
-
-                let state_location = u32::from_le_bytes(buffer);
-                // the state location is seeked return state
-                
-                if e1.is_err() || e2.is_err() {
-                    return None;
-                }
-
-                return Some(state_location);
-            }
-
-            let next_location;
-            // use a block to delete variables(prevent stack overflow)
-            {
-                // opening the file at location
-                let e1 = file.seek(SeekFrom::Start(location as u64));
-
-                // reading the next location to the buffer
-                let mut buffer = [0u8; 4];
-                let e2 = file.read_exact(&mut buffer);
-
-                // convert the buffer in a u32
-                next_location = u32::from_le_bytes(buffer);
-
-                // Error handling
-                if e1.is_err() || e2.is_err() {
-                    return None;
-                }
-            }   
-
-            // recursive call
-            inversive_find(iteration-1, saved_states, store_capacity, next_location, file, jumper)
-            
-        }
-
-        let mut iteration;
-        let target_slot;
-
-        // jumper decides whether to look for a jumper or a state address
-        let jumper;
-
-        match slot {
-            SaveSlot::Jumper(slot) => {
-                iteration = (slot as f32 / self.settings.store_capacity as f32).ceil() as u32;
-                target_slot = slot as u32;
-                jumper = true;
-            }
-            SaveSlot::State(slot) => {
-                iteration = (slot as f32 / self.settings.store_capacity as f32).ceil() as u32;
-                target_slot = slot as u32;
-                jumper = false;
-            }
-            SaveSlot::None => {
-                iteration = self.iteration as u32;
-                target_slot = self.saved_states as u32;
-                jumper = true;
-            }
-        }
-
-        if iteration == 0 {iteration = 1;} 
-
-        // set location to default HEADER_SIZE
-        let location = HEADER_SIZE as u32;
-
-        // Error handled by returning None in case of failure
-        if let Ok(mut file) = File::open(self.path.as_ref().unwrap()) {
-            return inversive_find(iteration, target_slot, self.settings.store_capacity as u32, location, &mut file, jumper);
-        }
-
-        None
-    }
 } 

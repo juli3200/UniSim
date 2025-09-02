@@ -29,7 +29,6 @@ pub struct World {
 
     pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
     pub(crate) byte_counter: usize, // used for jumper in save file
-    pub(crate) saved_states: usize, // number of saved states in the save file
     pub(crate) iteration: usize, // number of iterations the store capacity has been increased
 
     // objects in the world
@@ -61,12 +60,6 @@ pub struct Settings {
     velocity: f32, // default velocity of entities
 }
 
-#[derive(Debug, Clone)]
-pub(crate) enum SaveSlot{
-    Jumper(usize),
-    State(usize),
-    None
-}
 
 #[derive(Debug, Clone)]
 pub(crate) enum Border {
