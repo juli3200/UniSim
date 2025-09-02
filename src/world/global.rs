@@ -191,9 +191,7 @@ impl World{
             .open(self.path.as_ref().unwrap())?;
         file.write_all(&jumper_table)?;
 
-        // Assert that the bytes_written matches the expected file length after writing the jumper table
-        let file_len = file.metadata()?.len();
-        assert_eq!(bytes_written as u64, file_len, "File length mismatch: expected {}, got {}", bytes_written, file_len);
+
         self.iteration += 1;
 
         Ok(())

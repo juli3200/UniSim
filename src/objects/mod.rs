@@ -24,4 +24,6 @@ pub(crate) struct Entity {
     
     pub(crate) velocity: Array1<f32>, // velocity of the entity
 
+    pub(crate) last_collision: Option<(usize, usize)>, // id of the last collided entity and when it happened
+
 }

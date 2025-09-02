@@ -34,6 +34,32 @@ impl Space{
         })
     }
 
+    pub(crate) fn update_entity_position(&mut self, id: usize, old_position: Array1<f32>, new_position: Array1<f32>) {
+
+        // first, remove the entity from the old position in the grid
+        let old_x = old_position[0].floor() as usize;
+        let old_y = old_position[1].floor() as usize;
+
+        // delete the entity from the old position in the grid
+        self.grid[old_x][old_y].retain(|obj| match obj {
+            objects::ObjectType::Entity(e_id) => *e_id != id,
+            _ => true,
+        });
+        
+
+        // then, add the entity to the new position in the grid
+        self.add_entity(id, new_position);
+    }
+
+    pub(crate) fn add_entity(&mut self, id: usize, position: Array1<f32>) {
+        // adds an entity to the space at the given position
+        let x = position[0].floor() as usize;
+        let y = position[1].floor() as usize;
+        if x < self.width as usize && y < self.height as usize {
+            self.grid[x][y].push(objects::ObjectType::Entity(id));
+        }
+    }
+
     pub(crate) fn get_random_position(&self, size: f32, entities: &Vec<objects::Entity>) -> Result<Array1<f32>, String> {
         // returns a random position in the space that is not occupied by any entity or ligand
         // size is the size of the entity or ligand
@@ -96,8 +122,14 @@ impl Space{
 
         // iterate over the grid cells that are within the max_size range of the position
         // this is done to avoid checking every single object in the space
-        for x in (position[0] - max_size as f32).floor() as u32..(position[0] + max_size as f32).ceil() as u32 {
-            for y in (position[1] - max_size as f32).floor() as u32..(position[1] + max_size as f32).ceil() as u32 {
+        for x in (position[0] - max_size as f32).floor() as i32..(position[0] + max_size as f32).ceil() as i32 {
+            if x < 0 || x >= self.width as i32 {
+                continue;
+            }
+            for y in (position[1] - max_size as f32).floor() as i32..(position[1] + max_size as f32).ceil() as i32 {
+                if y < 0 || y >= self.height as i32 {
+                    continue;
+                }
 
                 // get objects from the  grid
                 let objects = &self.grid[x as usize][y as usize];
@@ -121,8 +153,9 @@ impl Space{
                                 let min_dist_sq = entity.size.powi(2) + size.powi(2);
                                 let dist_sq = dx * dx + dy * dy;
                                 if dist_sq < min_dist_sq {
+                                    println!("Collision detected at position: {:?} with entity id: {}, entity position: {:?}, entity size: {}, size: {}, dist_sq: {}, min_dist_sq: {}", position, entity.id, entity.position, entity.size, size, dist_sq, min_dist_sq);
                                     // I dont multiply by PI because its would be divided again later
-                                    return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone());
+                                    return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone(), entity.id);
                                     // return the velocity and mass of the collision
                                 }
                             }

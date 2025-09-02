@@ -5,8 +5,8 @@ use ndarray::Array1;
 
 mod info;
 mod global;
-mod space_impl;
-mod settings_impl;
+mod space;
+mod settings;
 pub mod serialize;
 
 
@@ -73,7 +73,7 @@ pub(crate) enum Border {
 pub(crate) enum Collision {
     NoCollision,
     BorderCollision(Border),
-    EntityCollision(Array1<f32>, f32, Array1<f32>), // velocity and mass of the colliding entity, position
+    EntityCollision(Array1<f32>, f32, Array1<f32>, usize), // velocity and mass of the colliding entity, position, id
 }
 
 #[derive(Debug, Clone)]
