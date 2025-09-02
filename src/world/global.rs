@@ -2,6 +2,7 @@ use crate::world::serialize::{Save, HEADER_SIZE};
 
 use super::*;
 
+const SAVE_INTERVAL: usize = 1; // Write to file every 100 updates
 
 impl World {
 
@@ -15,6 +16,7 @@ impl World {
     pub fn new(settings: Settings) -> Self {
         let mut world = Self {
             settings: settings,
+            buffer: Vec::with_capacity(1024 * 1024), // 1 MB buffer
             path: None,
             time: 0.0,
             population_size: 0,
@@ -91,6 +93,7 @@ impl World {
 
 use std::io::{self, Write, Seek, SeekFrom, Read};
 use std::fs::{File, OpenOptions};
+use std::iter;
 
 
 // save impl Block
@@ -98,56 +101,82 @@ impl World{
 
     fn save_state(&mut self) -> io::Result<()> {
         // Save the current state of the world
-
-        // e.g. self.saved_states = 1024
-        // will activate at 1024
-        // actual size is 1025 one slot for the next jumper
-        if self.saved_states % self.settings.store_capacity == 0 && self.saved_states != 0 {
-            // add new capacity
-            println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration+1));
-            println!("Saved states: {}, Population size: {}", self.saved_states, self.population_size);
-            self.save_table()?;
-
-        }
-
-        // find the byte range where to put the pointer(jumper)
-        let jumper_location = self.find_jumper_location(None);
-        // error handling
-        if jumper_location.is_none() {
-            return Err(io::Error::new(io::ErrorKind::Other, "Failed to find jumper location"));
-        }
-
-
-        let jumper_location = jumper_location.unwrap();
-        let jumper_target = self.byte_counter as u32;
-        
-        // open file and add the jumper coordinate
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(self.path.as_ref().unwrap())?;
-        file.seek(std::io::SeekFrom::Start(jumper_location as u64))?;
-        file.write_all(&jumper_target.to_le_bytes())?;
-
-        drop(file); // close the file
-
-        let len;
-
+        // only save every SAVE_INTERVAL frames
+        // the rest is stored in the buffer
+       
+        // serialize the world
         match self.serialize() {
             Ok(state) => {
-                len = state.len();
-                let mut file = OpenOptions::new()
-                    .append(true)
-                    .open(self.path.as_ref().unwrap())?;
-                file.write_all(&state)?;
-                
+                self.buffer.push(state);
             }
             Err(e) => {
                 return Err(io::Error::new(io::ErrorKind::Other, format!("Failed to serialize state: {}", e)));
             }
         }
 
-        self.byte_counter += len;
+
+
+        // exit early if not saving
+        if self.saved_states % SAVE_INTERVAL != 0 && self.saved_states != 0 {
+            self.saved_states += 1;
+            return Ok(());
+        }
+
+        println!("Writing {} states to disk", self.buffer.len());
+
+        let buffer = self.buffer.clone();
+
+        // go through every state and save it
+        for (i, state) in buffer.iter().enumerate() {
+            // e.g. self.saved_states = 1024
+            // will activate at 1024
+            // actual size is 1025 one slot for the next jumper
+
+            let state_index = self.saved_states - (buffer.len().min(self.saved_states)) + i;
+
+            if self.saved_states % self.settings.store_capacity == 0 && self.saved_states != 0 {
+                // add new capacity
+                println!("Increasing save capacity to {}", self.settings.store_capacity * (self.iteration+1));
+                println!("Saved states: {}, Population size: {}", state_index, self.population_size);
+                self.save_table()?;
+
+            }
+
+            // find the byte range where to put the pointer(jumper)
+            let jumper_location = self.find_location(SaveSlot::Jumper(state_index));
+            // error handling
+            if jumper_location.is_none() {
+                return Err(io::Error::new(io::ErrorKind::Other, "Failed to find jumper location"));
+            }
+
+
+            let jumper_location = jumper_location.unwrap();
+            let jumper_target = self.byte_counter as u32;
+            
+            // open file and add the jumper coordinate
+            let mut file = OpenOptions::new()
+                .write(true)
+                .open(self.path.as_ref().unwrap())?;
+            file.seek(std::io::SeekFrom::Start(jumper_location as u64))?;
+            file.write_all(&jumper_target.to_le_bytes())?;
+
+            drop(file); // close the file
+
+            let len = state.len();
+            let mut file = OpenOptions::new()
+                .append(true)
+                .open(self.path.as_ref().unwrap())?;
+            file.write_all(&state)?;
+            
+            
+
+            
+
+            self.byte_counter += len;
+        }
+
         self.saved_states += 1;
+        println!("State saved successfully");
 
         Ok(())
     }
@@ -211,7 +240,7 @@ impl World{
     }
 
 
-    fn find_jumper_location(&self, slot: Option<usize>) -> Option<u32> {
+    fn find_location(&self, slot: SaveSlot) -> Option<u32> {
         // clause if table was not called
 
         if self.iteration == 0 {
@@ -219,52 +248,85 @@ impl World{
         }
         
 
-        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, file: &mut File) -> Option<u32> {
+        fn inversive_find(iteration: u32, saved_states: u32, store_capacity: u32, location: u32, file: &mut File, jumper: bool) -> Option<u32> {
 
             if iteration == 1 {
-                return Some(location + saved_states % store_capacity * 4);
+
+                let jumper_address = location + saved_states % store_capacity * 4;
+                // the jumper address is seeked return jumper
+                if jumper { return Some(jumper_address); }
+
+                let e1 = file.seek(SeekFrom::Start(jumper_address as u64));
+
+                let mut buffer = [0u8; 4];
+                let e2 = file.read_exact(&mut buffer);
+
+                let state_location = u32::from_le_bytes(buffer);
+                // the state location is seeked return state
+                
+                if e1.is_err() || e2.is_err() {
+                    return None;
+                }
+
+                return Some(state_location);
             }
 
-            // opening the file at location
-            let e1 = file.seek(SeekFrom::Start(location as u64));
+            let next_location;
+            // use a block to delete variables(prevent stack overflow)
+            {
+                // opening the file at location
+                let e1 = file.seek(SeekFrom::Start(location as u64));
 
-            // reading the next location to the buffer
-            let mut buffer = [0u8; 4];
-            let e2 = file.read_exact(&mut buffer);
+                // reading the next location to the buffer
+                let mut buffer = [0u8; 4];
+                let e2 = file.read_exact(&mut buffer);
 
-            // convert the buffer in a u32
-            let next_location = u32::from_le_bytes(buffer);
+                // convert the buffer in a u32
+                next_location = u32::from_le_bytes(buffer);
 
-            // Error handling
-            if e1.is_err() || e2.is_err() {
-                return None;
-            }
+                // Error handling
+                if e1.is_err() || e2.is_err() {
+                    return None;
+                }
+            }   
 
             // recursive call
-            inversive_find(iteration-1, saved_states, store_capacity, next_location, file)
+            inversive_find(iteration-1, saved_states, store_capacity, next_location, file, jumper)
             
         }
 
-        let iteration;
+        let mut iteration;
         let target_slot;
 
+        // jumper decides whether to look for a jumper or a state address
+        let jumper;
+
         match slot {
-            Some(slot) => {
+            SaveSlot::Jumper(slot) => {
                 iteration = (slot as f32 / self.settings.store_capacity as f32).ceil() as u32;
                 target_slot = slot as u32;
+                jumper = true;
             }
-            None => {
+            SaveSlot::State(slot) => {
+                iteration = (slot as f32 / self.settings.store_capacity as f32).ceil() as u32;
+                target_slot = slot as u32;
+                jumper = false;
+            }
+            SaveSlot::None => {
                 iteration = self.iteration as u32;
                 target_slot = self.saved_states as u32;
+                jumper = true;
             }
         }
+
+        if iteration == 0 {iteration = 1;} 
 
         // set location to default HEADER_SIZE
         let location = HEADER_SIZE as u32;
 
         // Error handled by returning None in case of failure
         if let Ok(mut file) = File::open(self.path.as_ref().unwrap()) {
-            return inversive_find(iteration, target_slot, self.settings.store_capacity as u32, location, &mut file);
+            return inversive_find(iteration, target_slot, self.settings.store_capacity as u32, location, &mut file, jumper);
         }
 
         None

@@ -18,7 +18,8 @@ pub mod serialize;
 pub struct World {
     // settings are stored in the settings struct
     // settings are used to configure the world
-    pub settings: Settings,
+    pub(crate) settings: Settings,
+    buffer: Vec<Vec<u8>>,  // Buffer for saving to reduce I/O time
     path: Option<PathBuf>,
 
     // variables
@@ -60,6 +61,12 @@ pub struct Settings {
     velocity: f32, // default velocity of entities
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum SaveSlot{
+    Jumper(usize),
+    State(usize),
+    None
+}
 
 #[derive(Debug, Clone)]
 pub(crate) enum Border {
