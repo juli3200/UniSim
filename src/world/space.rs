@@ -14,6 +14,7 @@ impl Space{
             height: 0,
             grid: vec![],
             max_size: 0.0, // no entities or ligands, so max_size is 0
+            hit: false
         }
     }
 
@@ -30,7 +31,8 @@ impl Space{
             width,
             height,
             grid,
-            max_size
+            max_size,
+            hit: false
         })
     }
 
@@ -122,11 +124,11 @@ impl Space{
 
         // iterate over the grid cells that are within the max_size range of the position
         // this is done to avoid checking every single object in the space
-        for x in (position[0] - max_size as f32).floor() as i32..(position[0] + max_size as f32).ceil() as i32 {
+        for x in (position[0] - 2.0 * max_size).floor() as i32..(position[0] + 2.0 * max_size).ceil() as i32 {
             if x < 0 || x >= self.width as i32 {
                 continue;
             }
-            for y in (position[1] - max_size as f32).floor() as i32..(position[1] + max_size as f32).ceil() as i32 {
+            for y in (position[1] - 2.0 *  max_size).floor() as i32..(position[1] + 2.0 * max_size).ceil() as i32 {
                 if y < 0 || y >= self.height as i32 {
                     continue;
                 }
@@ -139,26 +141,30 @@ impl Space{
                         objects::ObjectType::Entity(e_id) => {
                             let entity_ref = get_entity(entities, *e_id);
 
-                            // check if entity_ref is valid
-                            if let Some(entity) = entity_ref {
-                                if entity.id == id.unwrap_or(usize::MAX) {
-                                    continue; // skip the entity with the given id, because it is itself
-                                }
-                            
-
-                                // dist is distance between the entity and the position
-                                // Use squared distance to avoid unnecessary sqrt calculation
-                                let dx = entity.position[0] - position[0];
-                                let dy = entity.position[1] - position[1];
-                                let min_dist_sq = entity.size.powi(2) + size.powi(2);
-                                let dist_sq = dx * dx + dy * dy;
-                                if dist_sq < min_dist_sq {
-                                    println!("Collision detected at position: {:?} with entity id: {}, entity position: {:?}, entity size: {}, size: {}, dist_sq: {}, min_dist_sq: {}", position, entity.id, entity.position, entity.size, size, dist_sq, min_dist_sq);
-                                    // I dont multiply by PI because its would be divided again later
-                                    return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone(), entity.id);
-                                    // return the velocity and mass of the collision
-                                }
+                            // check if entity_ref is None
+                            if entity_ref.is_none() {
+                                continue;
                             }
+
+                            let entity = entity_ref.unwrap();
+
+                            if entity.id == id.unwrap_or(usize::MAX){
+                                continue;
+                            }
+
+                            let dx = entity.position[0] - position[0];
+                            let dy = entity.position[1] - position[1];
+
+                            let check_size = size + entity.size;
+
+                            if dx.abs() > check_size || dy.abs() > check_size {
+                                continue; // skip if the distance is greater than check_size
+                            }
+
+                            // I dont multiply by PI because its would be divided again later
+                            return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone(), entity.id);
+                            // return the velocity and mass of the collision
+
                         }
                         _ => {}
                     }

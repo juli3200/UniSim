@@ -25,10 +25,11 @@ mod general{
 
     #[test]
     fn collision_test() {
-        let mut world = world::World::new(settings!(2, spawn_size = 1.0, give_start_vel = false, velocity = 2.0, dimensions = (10,10), fps = 30.0));
-        world.entities[0].position = ndarray::Array1::from(vec![1.5, 1.5]);
-        world.entities[0].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);
-        world.entities[1].position = ndarray::Array1::from(vec![8.5, 1.5]);
+        let mut world = world::World::new(settings!(2, spawn_size = 0.5, give_start_vel = false, velocity = 1.0, dimensions = (10,10), fps = 30.0));
+        world.entities[0].position = ndarray::Array1::from(vec![1.0, 1.0]);
+        world.entities[0].velocity = ndarray::Array1::from(vec![0.0, 0.0]);
+        world.entities[1].position = ndarray::Array1::from(vec![8.0, 1.0]);
+        world.entities[1].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);
 
         let e = world.save("col.bin");
         if let Err(e) = e {
@@ -63,6 +64,7 @@ mod io_tests {
 
 mod cuda_tests {
 
+    #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests as cb;
 
     #[cfg(feature = "cuda")]

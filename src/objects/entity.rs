@@ -4,7 +4,7 @@ use ndarray::Array1;
 use super::Entity;
 use crate::world::{Border, Collision, Settings, Space};
 
-const IDLE_COLLISION_TIMER: usize = 10; // number of updates to ignore collisions after a collision
+const IDLE_COLLISION_TIMER: usize = 2; // number of updates to ignore collisions after a collision
 
 impl Entity {
     pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
@@ -36,7 +36,7 @@ impl Entity {
         })
     }
 
-    pub(crate) fn update(&mut self, space: &mut Space, entities: &Vec<Entity>) {
+    pub(crate) fn update(&mut self, space: &mut Space) {
 
         // update last_collision timer
         // timer is set by constant: IDLE_COLLISION_TIMER
@@ -54,22 +54,16 @@ impl Entity {
         // update the entity's position based on its velocity
         self.position.scaled_add(fps * space.settings.velocity(), &self.velocity);
 
-        // check for collisions with the space boundaries
-        let collision = space.check_position(self.position.clone(), Some(self.size), Some(self.id), entities);
-
         space.update_entity_position(self.id, old_position, self.position.clone());
-
-        // if no collision, return early
-        if let Collision::NoCollision = collision {
-            return;
-        }
-
-        self.resolve_collision(collision);
 
     }
 
-    fn resolve_collision(&mut self, collision: Collision) {
-        // only called when a collision is detected
+    pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) {
+
+        // check for collisions with the space boundaries
+        let collision = space.check_position(self.position.clone(), Some(self.size), Some(self.id), entities);
+
+        
         match collision {
             Collision::EntityCollision(other_velocity, mass, other_position, id) => {
                 // check if the colliding entity is the last collided entity
@@ -77,7 +71,6 @@ impl Entity {
                 if let Some((last_id, last_time)) = self.last_collision {
                     if last_id == id && last_time > 0 {
                         // skip update if the entity just collided with the same entity
-                        println!("Skipping update for entity {}: collided with itself", id);
                         return;
                     }
                 }
@@ -97,6 +90,8 @@ impl Entity {
                 let delta_v = &v1 - &v2;
                 let delta_p = &self.position - other_position;
 
+                
+                println!("delta_v: {:?}, delta_p: {:?}, m1: {}, m2: {}", delta_v, delta_p, m1, m2);
 
                 let new_v1: Array1<f32> = v1 - (2.0 * m2 / (m1 + m2)) *
                  (delta_v.dot(&delta_p) / delta_p.dot(&delta_p)) * delta_p;
@@ -104,6 +99,9 @@ impl Entity {
                 
                 assert!(new_v1.len() == 2, "Velocity should be a 2D vector");
                 self.velocity = new_v1;
+                if self.velocity[0].is_nan() || self.velocity[1].is_nan() {
+                    panic!("NaN velocity detected after collision resolution");
+                }
 
                 self.last_collision = Some((id, IDLE_COLLISION_TIMER));
 

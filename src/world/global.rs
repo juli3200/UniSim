@@ -70,14 +70,20 @@ impl World {
     }
 
     pub(crate) fn update(&mut self){
-        // clone entities because of borrowing rules
-        // and also to avoid double collision resolution (because collision would already be resolved for the original entity)
-        let temp_entities = self.entities.clone();
 
+        // update all entities positions
         for entity in &mut self.entities {
-            // giving each entity the entities as they where to avoid double resolution
-            entity.update(&mut self.space, &temp_entities);
+            entity.update(&mut self.space);
         }
+
+        let entities_clone = self.entities.clone();
+
+        // check for collisions
+        for i in 0..self.entities.len() {
+            self.entities[i].resolve_collision(&mut self.space, &entities_clone);
+        }
+
+
 
         self.time += 1.0 / self.settings.fps as f32;
 
