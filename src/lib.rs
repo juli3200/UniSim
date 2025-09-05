@@ -75,6 +75,8 @@ macro_rules! settings {
     };
     ($n:expr, $($setting:ident = $value:expr),+) => {
         {
+            
+            use crate::Settings; // compiler got issues idk
             let mut settings = Settings::blueprint($n);
             $( settings.${concat(set_, $setting)}($value); )+
             settings.init();
