@@ -14,11 +14,13 @@
 pub mod world;
 mod objects;
 mod test;
+mod settings_;
 
 #[cfg(feature = "cuda")]
 mod cuda;
 
 
+pub use settings_::Settings;
 
 
 // ******************************************************** MACROS ***********************************************************
@@ -41,6 +43,12 @@ macro_rules! edit_settings {
 
         $( $world.settings.${concat(set_, $setting)}($value); )+
         $( $world.space.settings.${concat(set_, $setting)}($value); )+
+        #[cfg(feature = "cuda")]
+        {
+            if $world.cuda_world.is_some() {
+                $($world.cuda_world.as_mut().unwrap().settings.${concat(set_, $setting)}($value);)+
+            }
+        }
     };
 }
 
@@ -49,17 +57,17 @@ macro_rules! edit_settings {
 #[macro_export]
 macro_rules! settings {
     () => {
-        crate::world::Settings::new(100)
+        crate::Settings::new(100)
     };
     ( $n:expr ) => {
-        crate::world::Settings::new($n)
+        Settings::new($n)
     };
     ($($setting:ident = $value:expr),+) => {
 
         // same logic as in the edit settings macro
 
         {
-            let mut settings = crate::world::Settings::blueprint(100);
+            let mut settings = Settings::blueprint(100);
             $( settings.${concat(set_, $setting)}($value); )+
             settings.init();
             settings
@@ -67,7 +75,7 @@ macro_rules! settings {
     };
     ($n:expr, $($setting:ident = $value:expr),+) => {
         {
-            let mut settings = crate::world::Settings::blueprint($n);
+            let mut settings = Settings::blueprint($n);
             $( settings.${concat(set_, $setting)}($value); )+
             settings.init();
             settings

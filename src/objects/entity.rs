@@ -2,7 +2,8 @@ use rand::Rng;
 
 use ndarray::Array1;
 use super::Entity;
-use crate::world::{Border, Collision, Settings, Space};
+use crate::settings_::Settings;
+use crate::world::{Border, Collision, Space};
 
 const IDLE_COLLISION_TIMER: usize = 2; // number of updates to ignore collisions after a collision
 

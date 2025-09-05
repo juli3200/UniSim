@@ -1,4 +1,25 @@
-use crate::world::Settings;
+
+
+#[derive(Debug, Clone)]
+pub struct Settings {
+    init: bool, // whether the settings have been initialized
+
+    // unchangeable settings
+    default_population: usize, // default population size of entities
+    dimensions: (u32, u32), // width, height of the world
+    spawn_size: f32, // size of the entities when they are spawned
+    store_capacity: usize, // capacity of the save file
+    give_start_vel: bool, // whether to give entities a starting velocity
+
+
+    // changeable settings
+    fps: f32, // frames per second of the simulation
+    velocity: f32, // default velocity of entities
+
+    // cuda settings
+    #[cfg(feature = "cuda")]
+    pub(crate) cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
+}
 
 
 impl Settings {
@@ -20,6 +41,8 @@ impl Settings {
             store_capacity: 1024,
             fps: 60.0,
             velocity: 3.0,
+            #[cfg(feature = "cuda")]
+            cuda_slots_per_cell: 10,
         }
     }
 
@@ -68,6 +91,11 @@ impl Settings {
         self.velocity
     }
 
+    #[cfg(feature = "cuda")]
+    pub fn cuda_slots_per_cell(&self) -> usize {
+        self.cuda_slots_per_cell
+    }
+
     //
     //
     // setter fn
@@ -76,35 +104,40 @@ impl Settings {
 
     pub fn set_default_population(&mut self, population: usize) {
         if self.init {
-            panic!("Cannot change default population after initialization");
+            eprint!("Cannot change default population after initialization");
+            return;
         }
         self.default_population = population;
     }
 
     pub fn set_dimensions(&mut self, dimensions: (u32, u32)) {
         if self.init {
-            panic!("Cannot change dimensions after initialization");
+            eprint!("Cannot change dimensions after initialization");
+            return;
         }
         self.dimensions = dimensions;
     }
 
     pub fn set_spawn_size(&mut self, spawn_size: f32) {
         if self.init {
-            panic!("Cannot change spawn size after initialization");
+            eprint!("Cannot change spawn size after initialization");
+            return;
         }
         self.spawn_size = spawn_size;
     }
 
     pub fn set_give_start_vel(&mut self, give_start_vel: bool) {
         if self.init {
-            panic!("Cannot change give_start_vel after initialization");
+            eprint!("Cannot change give_start_vel after initialization");
+            return;
         }
         self.give_start_vel = give_start_vel;
     }
 
     pub fn set_store_capacity(&mut self, store_capacity: usize) {
         if self.init {
-            panic!("Cannot change store_capacity after initialization");
+            eprint!("Cannot change store_capacity after initialization");
+            return;
         }
         self.store_capacity = store_capacity;
     }
@@ -116,6 +149,11 @@ impl Settings {
 
     pub fn set_velocity(&mut self, velocity: f32) {
         self.velocity = velocity;
+    }
+
+    #[cfg(feature = "cuda")]
+    pub fn set_cuda_slots_per_cell(&mut self, slots: usize) {
+        self.cuda_slots_per_cell = slots;
     }
 
 }

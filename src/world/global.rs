@@ -48,13 +48,13 @@ impl World {
         self.space = Space::new(&self.settings)?;
 
         // Initialize the world with default population size
-        for _ in 0..self.settings.default_population {
+        for _ in 0..self.settings.default_population() {
             let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings)?;
             self.entities.push(entity);
             self.counter += 1;
         }
 
-        self.population_size = self.settings.default_population;
+        self.population_size = self.settings.default_population();
 
 
 
@@ -85,7 +85,7 @@ impl World {
 
 
 
-        self.time += 1.0 / self.settings.fps as f32;
+        self.time += 1.0 / self.settings.fps() as f32;
 
         // exit if saving is disabled
         if self.path.is_none(){return;}
@@ -96,7 +96,7 @@ impl World {
                 // add it to the buffer
                 self.buffer.push(state);
 
-                if self.buffer.len() == self.settings.store_capacity {
+                if self.buffer.len() == self.settings.store_capacity() {
 
                     // save the state if the buffer is full
                     match self.save_buffer() {
@@ -176,12 +176,12 @@ impl World{
         // allocates capacity for the jumper table to the file
 
         // copy the bytes written to this number for the jumper locations
-        let mut bytes_written = self.byte_counter + (self.settings.store_capacity+ 1) * 4; // add space for all the jumpers and the jumper for the next jumper
+        let mut bytes_written = self.byte_counter + (self.settings.store_capacity()+ 1) * 4; // add space for all the jumpers and the jumper for the next jumper
 
-        let mut jumper_table = Vec::with_capacity((self.settings.store_capacity + 1)* 4); // 4 bytes per entry -> u32 + 4 bytes for next jumper table
+        let mut jumper_table = Vec::with_capacity((self.settings.store_capacity() + 1)* 4); // 4 bytes per entry -> u32 + 4 bytes for next jumper table
 
         // fill the jumper_table with the addresses for the jumper
-        for i in 0..self.settings.store_capacity{
+        for i in 0..self.settings.store_capacity(){
             let state_size = self.buffer[i].len();
             jumper_table.extend((bytes_written as u32).to_le_bytes());
             bytes_written += state_size;

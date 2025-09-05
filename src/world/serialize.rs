@@ -18,11 +18,11 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&[0u8; 4]); // jumper to the latest save
     buffer.extend(&time.to_le_bytes()); // time 8 bytes
 
-    buffer.extend(&world.settings.dimensions.0.to_le_bytes()); // width 4 bytes
-    buffer.extend(&world.settings.dimensions.1.to_le_bytes()); // height 4 bytes
-    buffer.extend(&world.settings.spawn_size.to_le_bytes()); // spawn size 4 bytes
-    buffer.extend(&(world.settings.store_capacity as u32).to_le_bytes()); // store capacity 4 bytes
-    buffer.extend(&world.settings.fps.to_le_bytes()); // fps 4 bytes
+    buffer.extend(&world.settings.dimensions().0.to_le_bytes()); // width 4 bytes
+    buffer.extend(&world.settings.dimensions().1.to_le_bytes()); // height 4 bytes
+    buffer.extend(&world.settings.spawn_size().to_le_bytes()); // spawn size 4 bytes
+    buffer.extend(&(world.settings.store_capacity() as u32).to_le_bytes()); // store capacity 4 bytes
+    buffer.extend(&world.settings.fps().to_le_bytes()); // fps 4 bytes
     // add other settings
 
     
@@ -157,7 +157,7 @@ impl Save for World {
         buffer.push(true as u8); // pause file 1 byte
 
         // add changeable settings
-        buffer.extend(&self.settings.fps.to_le_bytes()); // 4 bytes
+        buffer.extend(&self.settings.fps().to_le_bytes()); // 4 bytes
 
         // time, counter
         buffer.extend(&self.time.to_le_bytes()); // 4 bytes

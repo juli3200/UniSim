@@ -20,9 +20,10 @@ impl Space{
 
     pub(crate) fn new(settings: & Settings) -> Result<Self, String> {
         // creates a new space with the given width and height
-        let (width, height) = settings.dimensions;
+        let (width, height) = settings.dimensions();
         let grid = vec![vec![Vec::new(); height as usize]; width as usize];
-        let max_size = settings.spawn_size; // set max_size to the spawn size of entities
+        let max_size = settings.spawn_size(); // set max_size to the spawn size of entities
+        
         if width == 0 || height == 0 {
             return Err("Invalid space dimensions".into());
         }

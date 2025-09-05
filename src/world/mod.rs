@@ -2,11 +2,11 @@ use std::path::PathBuf;
 
 use crate::objects;
 use ndarray::Array1;
+use crate::settings_::Settings;
 
 mod info;
 mod global;
 mod space;
-mod settings;
 pub mod serialize;
 
 
@@ -43,22 +43,6 @@ pub struct World {
 
 }
 
-#[derive(Debug, Clone)]
-pub struct Settings {
-    init: bool, // whether the settings have been initialized
-
-    // unchangeable settings
-    default_population: usize, // default population size of entities
-    dimensions: (u32, u32), // width, height of the world
-    spawn_size: f32, // size of the entities when they are spawned
-    store_capacity: usize, // capacity of the save file
-    give_start_vel: bool, // whether to give entities a starting velocity
-
-
-    // changeable settings
-    fps: f32, // frames per second of the simulation
-    velocity: f32, // default velocity of entities
-}
 
 
 #[derive(Debug, Clone)]
@@ -81,7 +65,7 @@ pub struct Space {
     pub settings: Settings, // needs to be updated with changes
     pub width: u32,
     pub height: u32,
-    max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)
+    pub max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)
     grid: Vec<Vec<Vec<objects::ObjectType>>>, // 2D grid of indices of entities and ligands
     hit: bool,
 }
