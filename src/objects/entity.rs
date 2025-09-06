@@ -91,8 +91,6 @@ impl Entity {
                 let delta_v = &v1 - &v2;
                 let delta_p = &self.position - other_position;
 
-                
-                println!("delta_v: {:?}, delta_p: {:?}, m1: {}, m2: {}", delta_v, delta_p, m1, m2);
 
                 let new_v1: Array1<f32> = v1 - (2.0 * m2 / (m1 + m2)) *
                  (delta_v.dot(&delta_p) / delta_p.dot(&delta_p)) * delta_p;

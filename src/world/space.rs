@@ -39,9 +39,11 @@ impl Space{
 
     pub(crate) fn update_entity_position(&mut self, id: usize, old_position: Array1<f32>, new_position: Array1<f32>) {
 
+
         // first, remove the entity from the old position in the grid
-        let old_x = old_position[0].floor() as usize;
-        let old_y = old_position[1].floor() as usize;
+        // ensure old_position is within bounds
+        let old_x = old_position[0].floor().max(0.0).min(self.width as f32 - 1.0) as usize;
+        let old_y = old_position[1].floor().max(0.0).min(self.height as f32 - 1.0) as usize;
 
         // delete the entity from the old position in the grid
         self.grid[old_x][old_y].retain(|obj| match obj {
@@ -56,8 +58,9 @@ impl Space{
 
     pub(crate) fn add_entity(&mut self, id: usize, position: Array1<f32>) {
         // adds an entity to the space at the given position
-        let x = position[0].floor() as usize;
-        let y = position[1].floor() as usize;
+        // ensure position is within bounds
+        let x = position[0].floor().max(0.0).min(self.width as f32 - 1.0) as usize;
+        let y = position[1].floor().max(0.0).min(self.height as f32 - 1.0) as usize;
         if x < self.width as usize && y < self.height as usize {
             self.grid[x][y].push(objects::ObjectType::Entity(id));
         }
@@ -104,9 +107,6 @@ impl Space{
         // returns Collision::BorderCollision if the position is out of bounds
         let (width, height) = (self.width as f32, self.height as f32);
         if position[0] - size < 0.0 {
-            if id == Some(0) {
-                println!("Position x: {} - size: {} < 0.0", position[0], size);
-            }
             return Collision::BorderCollision(Border::Left);
         }
         if position[0] + size >= width {
