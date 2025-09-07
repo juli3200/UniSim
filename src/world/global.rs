@@ -62,6 +62,19 @@ impl World {
         Ok(())
     }
 
+    #[cfg(feature = "cuda")]
+    pub fn cuda_initialize(&mut self) -> Result<(), String> {
+        // Initialize the CUDA world and activate GPU processing
+        if self.cuda_world.is_some() {
+            return Err("CUDA world is already initialized".to_string());
+        }
+        
+        let cuda_world = crate::cuda::CUDAWorld::new(&self.settings);
+        self.cuda_world = Some(cuda_world);
+
+        Ok(())
+    }
+
     pub fn run(&mut self, n: usize) {
         // Main loop for the world simulation
         for _ in 0..n {

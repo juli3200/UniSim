@@ -1,9 +1,14 @@
 #include <iostream>
 #include <cuda_runtime.h>
+#include <string>
+
+#define u_int unsigned int
 
 extern "C"{
+    // ----------------float memory management functions----------------
+
     // allocates memory on the GPU and returns a pointer to it
-    float* alloc_float(float* i, int size){
+    float* alloc_f(float* i, int size){
         float* d_ptr;
         cudaMalloc((void**)&d_ptr, size * sizeof(float));
 
@@ -11,17 +16,67 @@ extern "C"{
     }
 
     // frees memory on the GPU
-    void free_float(float* d_ptr){
+    void free_f(float* d_ptr){
         cudaFree(d_ptr);
     }
 
     // copies memory from host to device
-    void copy_HtoD(float* d_ptr, float* h_ptr, int size){
+    void copy_HtoD_f(float* d_ptr, float* h_ptr, int size){
         cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
     }
 
     // copies memory from device to host
-    void copy_DtoH(float* h_ptr, float* d_ptr, int size){
+    void copy_DtoH_f(float* h_ptr, float* d_ptr, int size){
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
+
+    // ----------------u_int memory management functions----------------
+
+    // allocates memory on the GPU and returns a pointer to it
+    u_int* alloc_u(u_int* i, int size){
+        u_int* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(u_int));
+
+        return d_ptr;
+    }
+
+    // frees memory on the GPU
+    void free_u(u_int* d_ptr){
+        cudaFree(d_ptr);
+    }
+
+    // copies memory from host to device
+    void copy_HtoD_u(u_int* d_ptr, u_int* h_ptr, int size){
+        cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
+    }
+
+    // copies memory from device to host
+    void copy_DtoH_u(u_int* h_ptr, u_int* d_ptr, int size){
+        cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    }
+
+    // ----------------char memory management functions----------------
+    // allocates memory on the GPU and returns a pointer to it
+    char* alloc_c(char* i, int size){
+        char* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(char));
+
+        return d_ptr;
+    }
+
+    // frees memory on the GPU
+    void free_c(char* d_ptr){
+        cudaFree(d_ptr);
+    }
+
+    // copies memory from host to device
+    void copy_HtoD_c(char* d_ptr, char* h_ptr, int size){
+        cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
+    }
+
+    // copies memory from device to host
+    void copy_DtoH_c(char* h_ptr, char* d_ptr, int size){
+        cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    }
+
 }

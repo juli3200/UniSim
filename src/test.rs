@@ -56,9 +56,7 @@ mod io_tests {
 
         let e = world.save("alpha.bin");
         println!("Save result: {:?}", e);
-        for _ in 0..n {
-            world.update();
-        }
+        world.run(n);
 
     }
 }
@@ -67,7 +65,7 @@ mod io_tests {
 mod cuda_tests {
 
     #[cfg(feature = "cuda")]
-    use crate::cuda::cuda_bindings::tests as cb;
+    use crate::cuda::cuda_bindings::tests_gpu as cb;
 
     #[cfg(feature = "cuda")]
     #[test]
