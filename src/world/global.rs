@@ -68,8 +68,13 @@ impl World {
         if self.cuda_world.is_some() {
             return Err("CUDA world is already initialized".to_string());
         }
+
+        // test if gpu is available
+        if unsafe{crate::cuda::cuda_bindings::tests_gpu::cuda_test() != 0} {
+            return Err("CUDA is not available on this system".to_string());
+        }
         
-        let cuda_world = crate::cuda::CUDAWorld::new(&self.settings);
+        let cuda_world = crate::cuda::CUDAWorld::new(&self.settings, &self.entities, &self.ligands);
         self.cuda_world = Some(cuda_world);
 
         Ok(())

@@ -33,6 +33,7 @@ impl Entity {
             position,
             size: settings.spawn_size(),
             velocity,
+            acceleration: Array1::zeros(2),
             last_collision: None,
         })
     }
