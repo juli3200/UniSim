@@ -99,7 +99,6 @@ impl CUDAWorld {
 
         // import cuda bindings with shorter names
         use cuda_bindings::memory_gpu as cu_mem;
-        use cuda_bindings::grid_gpu as cu_grid;
 
         // define device pointers so they can be used in unsafe block and still be accessible later
         let grid_d: *mut u32; 
@@ -123,12 +122,13 @@ impl CUDAWorld {
 
             // allocate grid and set to zero
             grid_d = cu_mem::alloc_u(grid_size);
-            cu_grid::clear_grid(grid_d, grid_size);
+            cu_mem::clear_u(grid_d, grid_size);
 
 
             // ----------------- save buffer -----------------
             // allocate save buffer and set to zero
             save_buffer_d = cu_mem::alloc_c(BUFFER_SIZE as u32);
+            cu_mem::clear_c(save_buffer_d, BUFFER_SIZE as u32);
             cu_mem::copy_HtoD_c(save_buffer_d, vec![0u8; BUFFER_SIZE].as_mut_ptr(), BUFFER_SIZE as u32);
 
 
@@ -137,26 +137,32 @@ impl CUDAWorld {
 
             // positions, allocate double the space for x and y of capacity
             entities_pos_d = cu_mem::alloc_f(entity_cap * 2);
+            cu_mem::clear_f(entities_pos_d, entity_cap * 2);
             cu_mem::copy_HtoD_f(entities_pos_d, entities_pos_h.as_mut_ptr(), size_entity); // data size is number of entities * 2, so there is space for more
 
             // velocities
             entities_vel_d = cu_mem::alloc_f(entity_cap * 2);
+            cu_mem::clear_f(entities_vel_d, entity_cap * 2);
             cu_mem::copy_HtoD_f(entities_vel_d, entities_vel_h.as_mut_ptr(), size_entity);
 
             // accelerations
             entities_acc_d = cu_mem::alloc_f(entity_cap * 2);
+            cu_mem::clear_f(entities_acc_d, entity_cap * 2);
             cu_mem::copy_HtoD_f(entities_acc_d, entities_acc_h.as_mut_ptr(), size_entity);
 
             // sizes
             entities_size_d = cu_mem::alloc_f(entity_cap);
+            cu_mem::clear_f(entities_size_d, entity_cap);
             cu_mem::copy_HtoD_f(entities_size_d, entities_size_h.as_mut_ptr(), size_entity / 2);
 
             // ids
             entities_id_d = cu_mem::alloc_u(entity_cap);
+            cu_mem::clear_u(entities_id_d, entity_cap);
             cu_mem::copy_HtoD_u(entities_id_d, entities_id_h.as_mut_ptr(), size_entity / 2);
 
             // cell positions
             entities_cell_d = cu_mem::alloc_u(entity_cap);
+            cu_mem::clear_u(entities_cell_d, entity_cap);
             cu_mem::copy_HtoD_u(entities_cell_d, entities_cell_h.as_mut_ptr(), size_entity / 2);
 
 
@@ -166,14 +172,17 @@ impl CUDAWorld {
 
             // positions
             ligands_pos_d = cu_mem::alloc_f(ligand_cap * 2);
+            cu_mem::clear_f(ligands_pos_d, ligand_cap * 2);
             cu_mem::copy_HtoD_f(ligands_pos_d, ligands_pos_h.as_mut_ptr(), size_ligand);
 
             // velocities
             ligands_vel_d = cu_mem::alloc_f(ligand_cap * 2);
+            cu_mem::clear_f(ligands_vel_d, ligand_cap * 2);
             cu_mem::copy_HtoD_f(ligands_vel_d, ligands_vel_h.as_mut_ptr(), size_ligand);
 
             // contents, not yet implemented
             ligands_content_d = cu_mem::alloc_u(ligand_cap);
+            cu_mem::clear_u(ligands_content_d, ligand_cap);
             cu_mem::copy_HtoD_u(ligands_content_d, ligands_content_h.as_mut_ptr(), size_ligand / 2);
 
         }
@@ -323,36 +332,42 @@ impl CUDAWorld {
                 
                 // positions
                 let new_entities_pos = cu_mem::alloc_f(new_cap * 2);
+                cu_mem::clear_f(new_entities_pos, new_cap * 2);
                 cu_mem::copy_DtoD_f(new_entities_pos, self.entities_pos, self.entity_n * 2);
                 cu_mem::free_f(self.entities_pos);
                 self.entities_pos = new_entities_pos;
 
                 // velocities
                 let new_entities_vel = cu_mem::alloc_f(new_cap * 2);
+                cu_mem::clear_f(new_entities_vel, new_cap * 2);
                 cu_mem::copy_DtoD_f(new_entities_vel, self.entities_vel, self.entity_n * 2);
                 cu_mem::free_f(self.entities_vel);
                 self.entities_vel = new_entities_vel;
 
                 // accelerations
                 let new_entities_acc = cu_mem::alloc_f(new_cap * 2);
+                cu_mem::clear_f(new_entities_acc, new_cap * 2);
                 cu_mem::copy_DtoD_f(new_entities_acc, self.entities_acc, self.entity_n * 2);
                 cu_mem::free_f(self.entities_acc);
                 self.entities_acc = new_entities_acc;
 
                 // sizes
                 let new_entities_size = cu_mem::alloc_f(new_cap);
+                cu_mem::clear_f(new_entities_size, new_cap);
                 cu_mem::copy_DtoD_f(new_entities_size, self.entities_size, self.entity_n);
                 cu_mem::free_f(self.entities_size);
                 self.entities_size = new_entities_size;
 
                 // ids
                 let new_entities_id = cu_mem::alloc_u(new_cap);
+                cu_mem::clear_u(new_entities_id, new_cap);
                 cu_mem::copy_DtoD_u(new_entities_id, self.entities_id, self.entity_n);
                 cu_mem::free_u(self.entities_id);
                 self.entities_id = new_entities_id;
 
                 // cell positions
                 let new_entities_cell = cu_mem::alloc_u(new_cap);
+                cu_mem::clear_u(new_entities_cell, new_cap);
                 cu_mem::copy_DtoD_u(new_entities_cell, self.entities_cell, self.entity_n);
                 cu_mem::free_u(self.entities_cell);
                 self.entities_cell = new_entities_cell;

@@ -3,6 +3,29 @@
 #include <string>
 
 #define u_int unsigned int
+#define ThreadsPerBlock 256
+
+template <typename T>
+__global__ void clear_kernel(T* ptr, int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        ptr[i] = 0;
+    }
+}
+
+
+template <typename T>
+void clear_grid(T* grid, u_int size) {
+
+    // define block sizes
+    u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+
+    // launch kernel
+    clear_kernel<<<blockN, ThreadsPerBlock>>>(grid, size);
+    // cudaDeviceSynchronize(); waiting here not necessary
+
+}
+
 
 extern "C"{
     // ----------------float memory management functions----------------
@@ -30,8 +53,14 @@ extern "C"{
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
 
+    // copies memory from device to device
     void copy_DtoD_f(float* target, float* origin, u_int size){
         cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    }
+
+    // clears memory on the device by setting all bytes to 0
+    void clear_f(float* d_ptr, u_int size){
+        clear_grid(d_ptr, size);
     }
 
     // ----------------u_int memory management functions----------------
@@ -59,8 +88,14 @@ extern "C"{
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
 
+    // copies memory from device to device
     void copy_DtoD_u(u_int* target, u_int* origin, u_int size){
         cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    }
+
+    // clears memory on the device by setting all bytes to 0
+    void clear_u(u_int* d_ptr, u_int size){
+        clear_grid(d_ptr, size);
     }
 
     // ----------------char memory management functions----------------
@@ -87,8 +122,14 @@ extern "C"{
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
 
+    // copies memory from device to device
     void copy_DtoD_c(char* target, char* origin, u_int size){
         cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    }
+
+    // clears memory on the device by setting all bytes to 0
+    void clear_c(char* d_ptr, u_int size){
+        clear_grid(d_ptr, size);
     }
 
 }

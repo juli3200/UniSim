@@ -15,6 +15,7 @@ pub(crate) mod memory_gpu{
         pub(crate) fn copy_HtoD_f(d_ptr: *mut f32, h_ptr: *mut f32, size: u32);
         pub(crate) fn copy_DtoH_f(h_ptr: *mut f32, d_ptr: *mut f32, size: u32);
         pub(crate) fn copy_DtoD_f(target: *mut f32, origin: *mut f32, size: u32);
+        pub(crate) fn clear_f(d_ptr: *mut f32, size: u32);
 
         // uint32 memory management functions
         pub(crate) fn alloc_u(size: u32) -> *mut u32;
@@ -22,6 +23,7 @@ pub(crate) mod memory_gpu{
         pub(crate) fn copy_HtoD_u(d_ptr: *mut u32, h_ptr: *mut u32, size: u32);
         pub(crate) fn copy_DtoH_u(h_ptr: *mut u32, d_ptr: *mut u32, size: u32);
         pub(crate) fn copy_DtoD_u(target: *mut u32, origin: *mut u32, size: u32);
+        pub(crate) fn clear_u(d_ptr: *mut u32, size: u32);
 
         // char memory management functions
         pub(crate) fn alloc_c(size: u32) -> *mut u8;
@@ -29,12 +31,12 @@ pub(crate) mod memory_gpu{
         pub(crate) fn copy_HtoD_c(d_ptr: *mut u8, h_ptr: *mut u8, size: u32);
         pub(crate) fn copy_DtoH_c(h_ptr: *mut u8, d_ptr: *mut u8, size: u32);   
         pub(crate) fn copy_DtoD_c(target: *mut u8, origin: *mut u8, size: u32);
+        pub(crate) fn clear_c(d_ptr: *mut u8, size: u32);
     }
 }
 
 pub(crate) mod grid_gpu{
     unsafe extern "C" {
-        pub(crate) fn clear_grid(grid: *mut u32, size: u32);
         pub(crate) fn fill_grid(
             size: u32,
             dim: *mut u32,

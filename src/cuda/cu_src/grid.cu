@@ -4,6 +4,29 @@
 #define u_int unsigned int
 #define ThreadsPerBlock 256
 
+struct LigandArrays{
+    float* pos_ligand; // 2 floats per ligand
+    float* vel_ligand; // 2 floats per ligand
+    u_int* message_ligand; // 1 u_int per ligand
+};
+
+struct EntityArrays{
+    float* pos_entity; // 2 floats per entity
+    float* vel_entity; // 2 floats per entity
+    float* acc_entity; // 2 floats per entity
+    float* size_entity; // 2 floats per entity
+    u_int* id_entity;  // 1 int per entity
+
+};
+
+struct CollisionArrays{
+    u_int* collided_message; // stores messages of collided ligands
+    float* collided_pos; // stores velocities of ligands
+    u_int* collided_entities; // stores ids of collided entities
+    u_int* counter; // counts number of collisions
+};
+
+
 
 __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -39,25 +62,54 @@ __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos
     }
 }
 
-__global__ void clear_grid_kernel(u_int* grid, int size) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < size) {
-        grid[i] = 0;
+__device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_int dim_y) {
+    float x = l_arrays.pos_ligand[i * 2];
+    float y = l_arrays.pos_ligand[i * 2 + 1];
+    float vx = l_arrays.vel_ligand[i * 2];
+    float vy = l_arrays.vel_ligand[i * 2 + 1];
+
+    // check for border collisions and reflect velocity if necessary
+    if (x < 0.0f) {
+        l_arrays.pos_ligand[i * 2] = 0.0f;
+        l_arrays.vel_ligand[i * 2] = -vx;
+    } else if (x >= dim_x) {
+        l_arrays.pos_ligand[i * 2] = dim_x;
+        l_arrays.vel_ligand[i * 2] = -vx;
+    }
+
+    if (y < 0.0f) {
+        l_arrays.pos_ligand[i * 2 + 1] = 0.0f;
+        l_arrays.vel_ligand[i * 2 + 1] = -vy;
+    } else if (y >= dim_y) {
+        l_arrays.pos_ligand[i * 2 + 1] = dim_y;
+        l_arrays.vel_ligand[i * 2 + 1] = -vy;
     }
 }
 
-__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, float* pos_ligand, float* pos_entity, u_int* entity_id, u_int* collided, u_int* counter) {
+
+__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArrays col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < size) {
+
+        if (l_arrays.message_ligand[i] == 0) {
+            // skip if ligand is already collided
+            return;
+        }
+
+
         u_int dim_x = dim[0];
         u_int dim_y = dim[1];
         u_int depth = dim[2];
 
+
+        // check for collisions with borders and reflect velocity if necessary
+        border_collision(l_arrays, i, dim_x, dim_y);
+
         // casting float positions to int for indexing
         // flooring is handled by the cast
-        float x = pos_ligand[i * 2];
-        float y = pos_ligand[i * 2 + 1];
+        float x = l_arrays.pos_ligand[i * 2];
+        float y = l_arrays.pos_ligand[i * 2 + 1];
 
         // iterate over search area
         for (int dx = -search_radius; dx <= search_radius; dx++) {
@@ -80,16 +132,22 @@ __global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* 
                     u_int entity_index = grid[index + slot];
                     if (entity_index != 0) {
                         // compute distance
-                        float ex = pos_entity[entity_index * 2];
-                        float ey = pos_entity[entity_index * 2 + 1];
-                        float dist_sq = (ex - x) * (ex - x) + (ey - y) * (ey - y);
+                        float dx = e_arrays.pos_entity[entity_index * 2] - x;
+                        float dy = e_arrays.pos_entity[entity_index * 2 + 1] - y;
+                        float dist_sq = dx * dx + dy * dy;
 
                         // check if collided
                         if (dist_sq <= search_radius * search_radius) {
                             // register collision
-                            collided[*counter] = entity_id[entity_index];
-                            collided[*counter + 1] = TODOOO
-                            atomicAdd(counter, 2);
+                            int old_val = atomicAdd(col_arrays.counter, 1);
+                            col_arrays.collided_entities[old_val] = e_arrays.id_entity[entity_index];
+                            col_arrays.collided_pos[old_val * 2] = x;
+                            col_arrays.collided_pos[old_val * 2 + 1] = y;
+                            col_arrays.collided_message[old_val] = l_arrays.message_ligand[i];
+
+                            // delete ligand by setting its message to 0
+                            l_arrays.message_ligand[i] = 0;
+
                         }
                     }
                 }
@@ -141,16 +199,9 @@ extern "C" {
         return h_overflow;
     }
 
-    // clears a 3D grid by setting all values to 0
-    void clear_grid(u_int* grid, u_int size) {
+    // performs collision detection for ligands against entities in a grid
+    // pointers are already device pointers
+    
 
-        // define block sizes
-        u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
-
-        // launch kernel
-        clear_grid_kernel<<<blockN, ThreadsPerBlock>>>(grid, size);
-        cudaDeviceSynchronize(); // wait for kernel to finish
-
-    }
 
 }
