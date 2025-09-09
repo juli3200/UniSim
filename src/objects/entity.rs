@@ -1,7 +1,7 @@
 use rand::Rng;
 
 use ndarray::Array1;
-use super::Entity;
+use super::{Entity, Ligand};
 use crate::settings_::Settings;
 use crate::world::{Border, Collision, Space};
 
@@ -30,6 +30,11 @@ impl Entity {
 
         Ok(Self {
             id,
+            energy: 0.0,
+            dna: vec![],
+            age: 0,
+            reproduction_rate: 0.0,
+
             position,
             size: settings.spawn_size(),
             velocity,
@@ -58,6 +63,12 @@ impl Entity {
 
         space.update_entity_position(self.id, old_position, self.position.clone());
 
+    }
+
+    // TODOOOOOOOOO ligand function
+    pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
+        // Take the ligands from the entity and return them
+        vec![]
     }
 
     pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) {

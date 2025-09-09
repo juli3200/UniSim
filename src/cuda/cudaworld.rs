@@ -43,7 +43,7 @@ impl CUDAWorld {
             ligands_vel_h.push(ligand.velocity[1]);
 
             // --------------------------------------------------------------------------- not yet implemented ---------------------------------------------------------------------------
-            ligands_content_h.push(0u32);
+            ligands_content_h.push(ligand.message);
         }
 
         // import cuda bindings with shorter names

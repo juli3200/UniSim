@@ -89,6 +89,34 @@ impl World {
 
     pub(crate) fn update(&mut self){
 
+        #[cfg(feature = "cuda")]
+        {
+        if self.cuda_world.is_some() {
+            match self.gpu_update() {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("GPU update failed: {}, switching to CPU", e);
+                    self.cuda_world = None; // disable GPU processing on error
+                    self.cpu_update();
+                }
+            }
+        } else {
+            self.cpu_update();
+        }
+        }
+
+        #[cfg(not(feature = "cuda"))]
+        {
+            self.cpu_update();
+        }
+
+        
+        self.time += 1.0 / self.settings.fps() as f32;
+
+    }
+
+    fn cpu_update(&mut self) {
+        // Update the world using CPU processing
         // update all entities positions
         for entity in &mut self.entities {
             entity.update(&mut self.space);
@@ -100,10 +128,6 @@ impl World {
         for i in 0..self.entities.len() {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
-
-
-
-        self.time += 1.0 / self.settings.fps() as f32;
 
         // exit if saving is disabled
         if self.path.is_none(){return;}
@@ -136,8 +160,69 @@ impl World {
             }
         }
 
+    }
+
+    #[cfg(feature = "cuda")]
+    fn gpu_update(&mut self) -> Result<(), String> {
+
+        let cuda_world = self.cuda_world.as_mut().ok_or("CUDA world is not initialized")?;
+
+        // Update the world using GPU processing
+
+        // entities are updated on CPU
+        // update all entities positions and receive Ligands
+
+        let mut new_ligands = Vec::new();
+
+        for entity in &mut self.entities {
+            entity.update(&mut self.space);
+            new_ligands.extend(entity.emit_ligands()); // not yet implemented
+        }
+
+        let entities_clone = self.entities.clone();
+
+        // check for collisions
+        for i in 0..self.entities.len() {
+            self.entities[i].resolve_collision(&mut self.space, &entities_clone);
+        }
+
+        // ligands are updated on GPU
+
+        // please improve this code
+        let mut ligands_pos: Vec<f32> = self.ligands.iter()
+            .flat_map(|l| l.position.iter())
+            .cloned()
+            .collect();
+        let mut ligands_vel: Vec<f32> = self.ligands.iter()
+            .flat_map(|l| l.velocity.iter())
+            .cloned()
+            .collect();
+        let mut ligands_content: Vec<u32> = self.ligands.iter()
+            .map(|l| l.message) 
+            .collect();
+
+        let err = cuda_world.add_ligands(&mut ligands_pos, &mut ligands_vel, &mut ligands_content);
 
         
+        if let Err(e) = err {
+            if e == -1 {
+                return Err("Input ligand vectors have incorrect sizes".to_string());
+            } else {
+                // increase capacity 
+                cuda_world.increase_cap(objects::ObjectType::Ligand(0));
+            }
+        }
+
+        // get the received ligands from the entities
+        let received_ligands = cuda_world.update()?;
+
+        // add the ligands to entities and edit concentrations
+
+        // TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+        
+
+        Ok(())
     }
 
 
