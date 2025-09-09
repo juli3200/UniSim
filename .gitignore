@@ -5,3 +5,4 @@
 *.bin
 /.idea
 /lib/*
+scripsts/__pycache__
