@@ -1,6 +1,5 @@
 #include <iostream>
 #include <cuda_runtime.h>
-#include <math_functions.h>
 
 #define u_int unsigned int
 #define ThreadsPerBlock 256
@@ -40,10 +39,67 @@ __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos
     }
 }
 
-__global__ void clear_grid_kernel(unsigned int* grid, int size) {
+__global__ void clear_grid_kernel(u_int* grid, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
         grid[i] = 0;
+    }
+}
+
+__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, float* pos_ligand, float* pos_entity, u_int* entity_id, u_int* collided, u_int* counter) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < size) {
+        u_int dim_x = dim[0];
+        u_int dim_y = dim[1];
+        u_int depth = dim[2];
+
+        // casting float positions to int for indexing
+        // flooring is handled by the cast
+        float x = pos_ligand[i * 2];
+        float y = pos_ligand[i * 2 + 1];
+
+        // iterate over search area
+        for (int dx = -search_radius; dx <= search_radius; dx++) {
+            // skip if out of bounds
+            if ((int)x + dx < 0 || (int)x + dx >= (int)dim_x) {
+                continue;
+            }
+            for (int dy = -search_radius; dy <= search_radius; dy ++){
+                // skip if out of bounds
+                if ((int)y + dy < 0 || (int)y + dy >= (int)dim_y) {
+                    continue;
+                }
+
+                // compute grid index: (y * dim_x + x) * depth
+                int index = (((int)y + dy) * dim_x + (int)x + dx) * depth;
+
+                // check collisions in this cell
+                // iterate over depth
+                for (int slot = 0; slot < depth; slot++) {
+                    u_int entity_index = grid[index + slot];
+                    if (entity_index != 0) {
+                        // compute distance
+                        float ex = pos_entity[entity_index * 2];
+                        float ey = pos_entity[entity_index * 2 + 1];
+                        float dist_sq = (ex - x) * (ex - x) + (ey - y) * (ey - y);
+
+                        // check if collided
+                        if (dist_sq <= search_radius * search_radius) {
+                            // register collision
+                            collided[*counter] = entity_id[entity_index];
+                            collided[*counter + 1] = TODOOO
+                            atomicAdd(counter, 2);
+                        }
+                    }
+                }
+
+            }
+        }
+
+
+
+
     }
 }
 

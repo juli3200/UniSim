@@ -1,6 +1,6 @@
 // build file is used to link all cuda libs
 
-const NAMES: [&str; 1] = ["test"];
+const NAMES: [&str; 3] = ["test", "memory", "grid"];
 
 fn main() {
 

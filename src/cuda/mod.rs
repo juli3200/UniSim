@@ -283,7 +283,7 @@ impl CUDAWorld {
 
     }
 
-    pub(crate) fn add_to_grid(&mut self, start_index: u32, end_index: u32) -> i32{
+    pub(crate) fn add_to_grid(&self, start_index: u32, end_index: u32) -> i32{
         use cuda_bindings::grid_gpu as cu_grid;
         use cuda_bindings::memory_gpu as cu_mem;
 
