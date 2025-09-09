@@ -44,6 +44,7 @@ pub(crate) mod grid_gpu{
             pos: *mut f32,
             cell: *mut u32,
         ) -> i32;
+        
 
     }
 }

@@ -1,13 +1,10 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
-#include "src/cuda/cu_src/helper.hpp"
+#include "helper.hpp"
 
 #define u_int unsigned int
 #define ThreadsPerBlock 256
-
-
-
 
 
 __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
@@ -69,7 +66,7 @@ __device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_in
 }
 
 
-__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArrays col_arrays) {
+__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < size) {
@@ -183,7 +180,10 @@ extern "C" {
 
     // performs collision detection for ligands against entities in a grid
     // pointers are already device pointers
-    
+    CollisionArraysHost ligand_collision(u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
+
+        
+    }
 
 
 }

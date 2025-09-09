@@ -8,40 +8,37 @@
 
 #define u_int unsigned int
 
-struct LigandArrays{
-    float* pos_ligand; // 2 floats per ligand
-    float* vel_ligand; // 2 floats per ligand
-    u_int* message_ligand; // 1 u_int per ligand
-};
+typedef struct{
+    float* pos; // 2 floats per ligand
+    float* vel; // 2 floats per ligand
+    u_int* message; // 1 u_int per ligand
+    size_t num_ligands; // number of ligands
+} LigandArrays;
 
-struct EntityArrays{
-    float* pos_entity; // 2 floats per entity
-    float* vel_entity; // 2 floats per entity
-    float* acc_entity; // 2 floats per entity
-    float* size_entity; // 2 floats per entity
-    u_int* id_entity;  // 1 int per entity
+typedef struct{
+    float* pos; // 2 floats per entity
+    float* vel; // 2 floats per entity
+    float* acc; // 2 floats per entity
+    float* size; // 2 floats per entity
+    u_int* id;  // 1 int per entity
 
-};
+    size_t num_entities; // number of entities
 
-struct CollisionArrays{
+} EntityArrays;
+
+typedef struct{
     u_int* collided_message; // stores messages of collided ligands
     float* collided_pos; // stores velocities of ligands
     u_int* collided_entities; // stores ids of collided entities
-    u_int* counter; // counts number of collisions
-};
+    u_int* counter; // number of collisions
+} CollisionArraysDevice;
 
-// Hosting array structures to give back to Rust
-struct FloatArray{
-    float* data;
-    u_int size;
-};
+// ------------------------------------ Hosting array structures to give back to Rust ------------------------------------
+    
+typedef struct{
+    u_int* collided_message;
+    float* collided_pos;
+    u_int* collided_entities;
+    u_int counter;
+}CollisionArraysHost;
 
-struct UIntArray{
-    u_int* data;
-    u_int size;
-};
-
-struct CharArray{
-    char* data;
-    u_int size;
-};
