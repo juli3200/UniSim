@@ -6,7 +6,7 @@
 #define ThreadsPerBlock 256
 
 
-__global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* posx, float* posy, u_int* cell, u_int* overflow) {
+__global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
 
@@ -15,8 +15,8 @@ __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos
 
         // casting float positions to int for indexing
         // flooring is handled by the cast
-        int x = (int)posx[i];
-        int y = (int)posy[i];
+        int x = (int)pos[i * 2];
+        int y = (int)pos[i * 2 + 1];
 
         int index = (x + y * dim_x) * depth;
         int slot;
@@ -51,7 +51,7 @@ extern "C" {
     
     // fills a 3D grid with a specified value
     // pointers are already device pointers
-    int fill_grid(u_int size, u_int* dim, u_int* grid, float* posx, float* posy, u_int* cell) {
+    int fill_grid(u_int size, u_int* dim, u_int* grid, float* pos, u_int* cell) {
 
         bool error = false;
 
@@ -64,7 +64,7 @@ extern "C" {
         u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
         // launch kernel
-        fill_grid_kernel<<<blockN, ThreadsPerBlock>>>(grid, dim, size, posx, posy, cell, d_overflow);
+        fill_grid_kernel<<<blockN, ThreadsPerBlock>>>(grid, dim, size, pos, cell, d_overflow);
         cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors

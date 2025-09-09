@@ -30,6 +30,10 @@ extern "C"{
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
 
+    void copy_DtoD_f(float* target, float* origin, u_int size){
+        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    }
+
     // ----------------u_int memory management functions----------------
 
     // allocates memory on the GPU and returns a pointer to it
@@ -55,6 +59,10 @@ extern "C"{
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
     }
 
+    void copy_DtoD_u(u_int* target, u_int* origin, u_int size){
+        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    }
+
     // ----------------char memory management functions----------------
     // allocates memory on the GPU and returns a pointer to it
     char* alloc_c(u_int size){
@@ -77,6 +85,10 @@ extern "C"{
     // copies memory from device to host
     void copy_DtoH_c(char* h_ptr, char* d_ptr, u_int size){
         cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    }
+
+    void copy_DtoD_c(char* target, char* origin, u_int size){
+        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
     }
 
 }
