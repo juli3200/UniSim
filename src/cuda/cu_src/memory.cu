@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
-#include <string>
+
+#include "src/cuda/cu_src/helper.hpp"
 
 #define u_int unsigned int
 #define ThreadsPerBlock 256
