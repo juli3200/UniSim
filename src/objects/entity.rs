@@ -68,7 +68,18 @@ impl Entity {
     // TODOOOOOOOOO ligand function
     pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
         // Take the ligands from the entity and return them
-        vec![]
+        return vec![];
+
+        todo!()
+    }
+
+    pub(crate) fn receive_ligand(&mut self, message: u32, position: [f32; 2]) -> Result<(), String> {
+        // process the ligand message
+        // for now, just increase energy based on message
+        return Ok(());
+
+        todo!()
+
     }
 
     pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) {

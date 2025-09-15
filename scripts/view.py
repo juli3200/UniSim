@@ -5,32 +5,14 @@ from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
 import sys
 import extract
 
+LIGANDS = True
+
 def get_fps(fps):
     for factor in range(1, 80):
         if 40<= fps*factor <= 80:
             return fps*factor
         
     return fps
-
-
-
-
-# Function to compute line intersections with plot boundaries
-def compute_line_endpoints(x, y, angle, x_min=0, x_max=100, y_min=0, y_max=100):
-    dx = np.cos(angle)
-    dy = np.sin(angle)
-    t_values = []
-    if dx != 0:
-        t_values.append((x_min - x) / dx)
-        t_values.append((x_max - x) / dx)
-    if dy != 0:
-        t_values.append((y_min - y) / dy)
-        t_values.append((y_max - y) / dy)
-    t_values = [t for t in t_values if t > 0]
-    t_min = min(t_values)
-    x_end = x + t_min * dx
-    y_end = y + t_min * dy
-    return x_end, y_end
 
 
 
@@ -77,11 +59,13 @@ class RealTimePlotter(QtWidgets.QWidget):
 
         # Store plot items
         self.points_e_plot = pg.ScatterPlotItem(pxMode=False)
+        self.points_l_plot = pg.ScatterPlotItem(pxMode=False)
 
 
 
         # Add plot items to the plot widget
         self.plot_widget.addItem(self.points_e_plot)
+        self.plot_widget.addItem(self.points_l_plot)
 
 
         # Initialize timer for updates
@@ -100,6 +84,7 @@ class RealTimePlotter(QtWidgets.QWidget):
         if self.counter % self.update_interval == 0:
             self.state = self.world.get_state()
             self.entities = self.state.entities
+            self.ligands = self.state.ligands
 
 
 
@@ -109,8 +94,17 @@ class RealTimePlotter(QtWidgets.QWidget):
             y = [e.y for e in self.entities],
             symbol='o',
             brush=[pg.mkBrush(0,0,0) for _ in self.entities],
-            size=[e.size * 2 * self.zoom  for e in self.entities]
+            size=[e.size * 2  for e in self.entities]
         )
+
+        if LIGANDS:
+            self.points_l_plot.setData(
+                x = [l.x for l in self.ligands],
+                y = [l.y for l in self.ligands],
+                symbol='t',
+                brush=[pg.mkBrush(255,0,0) for _ in self.ligands],
+                size=[0.5 for _ in self.ligands]
+            )
 
         self.counter += 1
 

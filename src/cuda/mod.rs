@@ -39,11 +39,11 @@ pub(crate) struct EntityArrays {
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub(crate) struct LigandArrays {
-    pos: *mut f32,
-    vel: *mut f32,
-    content: *mut u32, 
+    pub(crate) pos: *mut f32,
+    pub(crate) vel: *mut f32,
+    pub(crate) message: *mut u32,
 
-    num_ligands: usize,
+    pub(crate) num_ligands: usize,
 }
 
 #[repr(C)]
@@ -84,3 +84,14 @@ pub(crate) struct CUDAWorld{
     ligands: LigandArrays,
 }
 
+// Test functions to access private fields
+#[cfg(test)]
+impl CUDAWorld {
+    pub(crate) fn get_entity_arrays(&self) -> EntityArrays {
+        self.entities.clone()
+    }
+
+    pub(crate) fn get_ligand_arrays(&self) -> LigandArrays {
+        self.ligands.clone()
+    }
+}

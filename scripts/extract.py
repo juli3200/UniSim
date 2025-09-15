@@ -67,6 +67,12 @@ class State:
                 self.entities.append(Entity(self.world.bytes, index))
 
             ligand_n = struct.unpack('I', self.world.bytes[address + 13 + entity_n * self.world.entity_bytes_0:address + 17 + entity_n * self.world.entity_bytes_0])[0]
+
+            for i in range(ligand_n):
+                index = address + 17 + entity_n * self.world.entity_bytes_0 + i * self.world.ligand_bytes_0
+                self.ligands.append(Ligand(self.world.bytes, index))
+                
+
         except struct.error:
             return None
         
@@ -86,4 +92,12 @@ class Entity:
         return [self.x, self.y]
 
 
+class Ligand:
+    def __init__(self, bytes, index):
+        self.x = struct.unpack('f', bytes[index:index + 4])[0]
+        self.y = struct.unpack('f', bytes[index + 4:index + 8])[0]
+        self.message = int(bytes[index + 12])
+    
+    def get_position(self):
+        return [self.x, self.y]
 

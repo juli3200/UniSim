@@ -34,7 +34,7 @@ impl CUDAWorld {
 
         let mut ligands_pos_h = Vec::with_capacity((ligand_cap * 2) as usize);
         let mut ligands_vel_h = Vec::with_capacity((ligand_cap * 2) as usize);
-        let mut ligands_content_h = Vec::with_capacity((ligand_cap) as usize); // not yet implemented
+        let mut ligands_message_h = Vec::with_capacity((ligand_cap) as usize); // not yet implemented
         for ligand in ligands {
             ligands_pos_h.push(ligand.position[0]);
             ligands_pos_h.push(ligand.position[1]);
@@ -43,7 +43,7 @@ impl CUDAWorld {
             ligands_vel_h.push(ligand.velocity[1]);
 
             // --------------------------------------------------------------------------- not yet implemented ---------------------------------------------------------------------------
-            ligands_content_h.push(ligand.message);
+            ligands_message_h.push(ligand.message);
         }
 
         // import cuda bindings with shorter names
@@ -62,7 +62,7 @@ impl CUDAWorld {
 
         let ligands_pos_d: *mut f32; 
         let ligands_vel_d: *mut f32; 
-        let ligands_content_d: *mut u32; // not yet implemented
+        let ligands_message_d: *mut u32; // not yet implemented
 
         // allocate device memory and copy data
         unsafe{
@@ -129,10 +129,10 @@ impl CUDAWorld {
             cu_mem::clear_f(ligands_vel_d, ligand_cap * 2);
             cu_mem::copy_HtoD_f(ligands_vel_d, ligands_vel_h.as_mut_ptr(), size_ligand);
 
-            // contents, not yet implemented
-            ligands_content_d = cu_mem::alloc_u(ligand_cap);
-            cu_mem::clear_u(ligands_content_d, ligand_cap);
-            cu_mem::copy_HtoD_u(ligands_content_d, ligands_content_h.as_mut_ptr(), size_ligand / 2);
+            // messages
+            ligands_message_d = cu_mem::alloc_u(ligand_cap);
+            cu_mem::clear_u(ligands_message_d, ligand_cap);
+            cu_mem::copy_HtoD_u(ligands_message_d, ligands_message_h.as_mut_ptr(), size_ligand / 2);
 
         }
 
@@ -150,7 +150,7 @@ impl CUDAWorld {
         let ligands = LigandArrays {
             pos: ligands_pos_d,
             vel: ligands_vel_d,
-            content: ligands_content_d,
+            message: ligands_message_d,
             num_ligands: ligands.len(),
         };
 
@@ -244,8 +244,8 @@ impl CUDAWorld {
             // velocities
             cu_mem::copy_HtoD_f(self.ligands.vel.add(start_index * 2), ligands_vel.as_mut_ptr(), size_ligand);
 
-            // contents, not yet implemented
-            cu_mem::copy_HtoD_u(self.ligands.content.add(start_index), ligands_content.as_mut_ptr(), size_ligand / 2);
+            // messages
+            cu_mem::copy_HtoD_u(self.ligands.message.add(start_index), ligands_content.as_mut_ptr(), size_ligand / 2);
         }
         Ok(())
 
@@ -353,10 +353,10 @@ impl CUDAWorld {
                 self.ligands.vel = new_ligands_vel;
 
                 // contents, not yet implemented
-                let new_ligands_content = cu_mem::alloc_u(new_cap);
-                cu_mem::copy_DtoD_u(new_ligands_content, self.ligands.content, self.ligands.num_ligands as u32);
-                cu_mem::free_u(self.ligands.content);
-                self.ligands.content = new_ligands_content;
+                let new_ligands_message = cu_mem::alloc_u(new_cap);
+                cu_mem::copy_DtoD_u(new_ligands_message, self.ligands.message, self.ligands.num_ligands as u32);
+                cu_mem::free_u(self.ligands.message);
+                self.ligands.message = new_ligands_message;
             },
         }
         }

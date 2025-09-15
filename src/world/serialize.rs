@@ -131,10 +131,17 @@ impl Save for World {
         buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.entities.serialize()?);
 
-        // ligands
+        // ligands are only saved in test mode for debugging purposes
+        #[cfg(test)]
+        {
         buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
+        }
 
+        #[cfg(not(test))]
+        {
+            buffer.extend(&0u32.to_le_bytes()); // 4 bytes
+        }
 
         // Insert the total buffer length at the beginning
         

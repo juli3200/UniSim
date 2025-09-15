@@ -113,23 +113,7 @@ impl World {
         
         self.time += 1.0 / self.settings.fps() as f32;
 
-    }
-
-    fn cpu_update(&mut self) {
-        // Update the world using CPU processing
-        // update all entities positions
-        for entity in &mut self.entities {
-            entity.update(&mut self.space);
-        }
-
-        let entities_clone = self.entities.clone();
-
-        // check for collisions
-        for i in 0..self.entities.len() {
-            self.entities[i].resolve_collision(&mut self.space, &entities_clone);
-        }
-
-        // exit if saving is disabled
+                // exit if saving is disabled
         if self.path.is_none(){return;}
 
         match self.serialize() {
@@ -160,12 +144,32 @@ impl World {
             }
         }
 
+
+    }
+
+    fn cpu_update(&mut self) {
+        // Update the world using CPU processing
+        // update all entities positions
+        for entity in &mut self.entities {
+            entity.update(&mut self.space);
+        }
+
+        let entities_clone = self.entities.clone();
+
+        // check for collisions
+        for i in 0..self.entities.len() {
+            self.entities[i].resolve_collision(&mut self.space, &entities_clone);
+        }
+
     }
 
     #[cfg(feature = "cuda")]
     fn gpu_update(&mut self) -> Result<(), String> {
 
-        let cuda_world = self.cuda_world.as_mut().ok_or("CUDA world is not initialized")?;
+
+        if self.cuda_world.is_none() {
+            return Err("CUDA world is not initialized".to_string());
+        }
 
         // Update the world using GPU processing
 
@@ -201,7 +205,7 @@ impl World {
             .map(|l| l.message) 
             .collect();
 
-        let err = cuda_world.add_ligands(&mut ligands_pos, &mut ligands_vel, &mut ligands_content);
+        let err = self.cuda_world.as_mut().unwrap().add_ligands(&mut ligands_pos, &mut ligands_vel, &mut ligands_content);
 
         
         if let Err(e) = err {
@@ -209,12 +213,12 @@ impl World {
                 return Err("Input ligand vectors have incorrect sizes".to_string());
             } else {
                 // increase capacity 
-                cuda_world.increase_cap(objects::ObjectType::Ligand(0));
+                self.cuda_world.as_mut().unwrap().increase_cap(objects::ObjectType::Ligand(0));
             }
         }
 
         // get the received ligands from the entities
-        let received_ligands = cuda_world.update(self.space.max_size.ceil() as u32);
+        let received_ligands = self.cuda_world.as_mut().unwrap().update(self.space.max_size.ceil() as u32);
 
         let len = received_ligands.counter as usize;
 
@@ -247,6 +251,11 @@ impl World {
             }
         }
 
+
+        // DEBUGGING
+        #[cfg(test)]
+        self.copy_ligands(positions, messages, len);
+
         // free the collision arrays
         unsafe {
             libc::free(received_ligands.collided_message as *mut libc::c_void);
@@ -254,7 +263,7 @@ impl World {
             libc::free(received_ligands.collided_entities as *mut libc::c_void);
         }
 
-        // TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
 
         
 
