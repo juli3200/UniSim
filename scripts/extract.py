@@ -74,6 +74,7 @@ class State:
                 
 
         except struct.error:
+            print("No more saves")
             return None
         
 

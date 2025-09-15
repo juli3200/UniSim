@@ -170,6 +170,7 @@ impl World {
         if self.cuda_world.is_none() {
             return Err("CUDA world is not initialized".to_string());
         }
+        println!("GPU update");
 
         // Update the world using GPU processing
 
@@ -178,7 +179,7 @@ impl World {
 
         let mut new_ligands = Vec::new();
 
-        for entity in &mut self.entities {
+        for entity in  self.entities.iter_mut() {
             entity.update(&mut self.space);
             new_ligands.extend(entity.emit_ligands()); // not yet implemented
         }
