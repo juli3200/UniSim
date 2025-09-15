@@ -45,11 +45,13 @@ mod general{
 
 
     }
+
 }
 
 mod io_tests {
     use crate::world;
     use crate::*;
+
 
     #[test]
     fn test_save(){
@@ -67,6 +69,9 @@ mod io_tests {
 
 
 mod cuda_tests {
+    use ndarray::Array1;
+    use crate::objects;
+    use crate::{settings, world};
 
     #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests_gpu as cb;
@@ -91,6 +96,33 @@ mod cuda_tests {
 
             let value = cb::release_memory_cu(d_ptr);
             println!("value: {}", value);
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn ligands_test(){
+
+
+        let mut world = world::World::new(settings!(1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = false));
+        world.cuda_initialize().expect("Failed to initialize CUDA");
+        world.save("ligands_test.bin").expect("Failed to save world");
+
+
+        // add ligands manually
+        for i in 0..9 {
+            world.ligands.push(objects::Ligand {
+                id: i,
+                position: Array1::from_vec(vec![i as f32 + 0.1, 1.0]),
+                velocity: Array1::from_vec(vec![0.0, 1.0]),
+                message: i as u32 + 1,
+            });
+            world.ligands_count += 1;
+        }
+
+        for _ in 0..1024
+         {
+            world.update();
         }
     }
 }

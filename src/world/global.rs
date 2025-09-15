@@ -191,17 +191,20 @@ impl World {
         }
 
         // ligands are updated on GPU
+        if cfg!(test) {
+            new_ligands = self.ligands.clone(); // in test mode, use the ligands from the world, so ligands can be added manually
+        }
 
         // please improve this code
-        let mut ligands_pos: Vec<f32> = self.ligands.iter()
+        let mut ligands_pos: Vec<f32> = new_ligands.iter()
             .flat_map(|l| l.position.iter())
             .cloned()
             .collect();
-        let mut ligands_vel: Vec<f32> = self.ligands.iter()
+        let mut ligands_vel: Vec<f32> = new_ligands.iter()
             .flat_map(|l| l.velocity.iter())
             .cloned()
             .collect();
-        let mut ligands_content: Vec<u32> = self.ligands.iter()
+        let mut ligands_content: Vec<u32> = new_ligands.iter()
             .map(|l| l.message) 
             .collect();
 
