@@ -253,22 +253,20 @@ impl CUDAWorld {
 
     pub(crate) fn add_to_grid(&self, start_index: u32, end_index: u32) -> i32{
         use cuda_bindings::grid_gpu as cu_grid;
-        use cuda_bindings::memory_gpu as cu_mem;
 
         let size = end_index - start_index;
 
         let overflow;
 
         unsafe{
-            // create dimension array
-            let dim = cu_mem::alloc_u(3);
-            let mut h_dim = vec![self.settings.dimensions().0, self.settings.dimensions().1, self.settings.cuda_slots_per_cell() as u32];
-            cu_mem::copy_HtoD_u(dim, h_dim.as_mut_ptr(), 3);
+            let dim = Dim{
+                x: self.settings.dimensions().0,
+                y: self.settings.dimensions().1,
+                depth: self.settings.cuda_slots_per_cell() as u32,
+            };
 
             overflow = cu_grid::fill_grid(size, dim, self.grid, self.entities.pos, self.entities.cell);
             
-            // free dimension array
-            cu_mem::free_u(dim);
         }
 
         return overflow;
@@ -362,5 +360,29 @@ impl CUDAWorld {
             },
         }
         }
+    }
+
+    pub(crate) fn update(&mut self, search_radius: u32) -> CollisionArraysHost{
+
+        // first, update ligand positions based on their velocities
+        use cuda_bindings::grid_gpu as cu_grid;
+
+        unsafe{
+            let delta_time = 1.0 / self.settings.fps();
+            cu_grid::update_positions(self.ligands.clone(), delta_time);
+        }
+
+        // then, handle collisions
+        let collisions;
+        unsafe {
+            let dim = Dim {
+                x: self.settings.dimensions().0,
+                y: self.settings.dimensions().1,
+                depth: self.settings.cuda_slots_per_cell() as u32,
+            };
+            collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities.clone(), self.ligands.clone());
+        }
+
+        return collisions;
     }
 }

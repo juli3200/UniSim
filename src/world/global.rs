@@ -1,5 +1,5 @@
 use crate::world::serialize::Save;
-
+use libc;
 use super::*;
 
 
@@ -214,9 +214,45 @@ impl World {
         }
 
         // get the received ligands from the entities
-        let received_ligands = cuda_world.update()?;
+        let received_ligands = cuda_world.update(self.space.max_size.ceil() as u32);
+
+        let len = received_ligands.counter as usize;
+
+        // slice around the *mut pointers
+        let messages: &[u32];
+        let positions: &[f32];
+        let ids: &[u32];
+
+        unsafe {
+            messages = std::slice::from_raw_parts(received_ligands.collided_message, len);
+            positions = std::slice::from_raw_parts(received_ligands.collided_pos, len * 2);
+            ids = std::slice::from_raw_parts(received_ligands.collided_entities, len);
+        }
 
         // add the ligands to entities and edit concentrations
+        for i in 0..len {
+            use crate::world::info::get_entity_mut;
+
+            let pos = [positions[i * 2], positions[i * 2 + 1]];
+            let message = messages[i];
+            let entity_id = ids[i] as usize;
+
+            // find the entity with the corresponding id
+            let entity_ref = get_entity_mut(&mut self.entities, entity_id);
+
+            if let Some(entity) = entity_ref {
+                entity.receive_ligand(message, pos)?;
+            } else {
+                return Err(format!("Entity with ID {} not found", entity_id));
+            }
+        }
+
+        // free the collision arrays
+        unsafe {
+            libc::free(received_ligands.collided_message as *mut libc::c_void);
+            libc::free(received_ligands.collided_pos as *mut libc::c_void);
+            libc::free(received_ligands.collided_entities as *mut libc::c_void);
+        }
 
         // TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 

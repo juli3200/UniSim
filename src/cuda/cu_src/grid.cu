@@ -7,12 +7,12 @@
 #define ThreadsPerBlock 256
 
 
-__global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
+__global__ void fill_grid_kernel(u_int* grid, Dim dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
 
-        u_int dim_x = dim[0];
-        u_int depth = dim[2];
+        u_int dim_x = dim.x;
+        u_int depth = dim.depth;
 
         // casting float positions to int for indexing
         // flooring is handled by the cast
@@ -41,6 +41,15 @@ __global__ void fill_grid_kernel(u_int* grid, u_int* dim, u_int size, float* pos
     }
 }
 
+// simple kernel to update ligand positions based on their velocities
+__global__ void update_positions_kernel(LigandArrays l_arrays, float delta_time) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < l_arrays.num_ligands) {
+        l_arrays.pos[i * 2] += l_arrays.vel[i * 2] * delta_time;
+        l_arrays.pos[i * 2 + 1] += l_arrays.vel[i * 2 + 1] * delta_time;
+    }
+}
+
 __device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_int dim_y) {
     float x = l_arrays.pos[i * 2];
     float y = l_arrays.pos[i * 2 + 1];
@@ -65,8 +74,7 @@ __device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_in
     }
 }
 
-
-__global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
+__global__ void ligand_collision_kernel(u_int size, u_int search_radius, Dim dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < size) {
@@ -77,9 +85,9 @@ __global__ void ligand_collision_kernel(u_int size, u_int search_radius, u_int* 
         }
 
 
-        u_int dim_x = dim[0];
-        u_int dim_y = dim[1];
-        u_int depth = dim[2];
+        u_int dim_x = dim.x;
+        u_int dim_y = dim.y;
+        u_int depth = dim.depth;
 
 
         // check for collisions with borders and reflect velocity if necessary
@@ -157,11 +165,13 @@ CollisionArraysHost error_return(CollisionArraysDevice col_arrays) {
     return empty_arrays;
 }
 
+
+
 extern "C" {
     
     // fills a 3D grid with a specified value
     // pointers are already device pointers
-    int fill_grid(u_int size, u_int* dim, u_int* grid, float* pos, u_int* cell) {
+    int fill_grid(u_int size, Dim dim, u_int* grid, float* pos, u_int* cell) {
 
         bool error = false;
 
@@ -197,7 +207,7 @@ extern "C" {
 
     // performs collision detection for ligands against entities in a grid
     // pointers are already device pointers
-    CollisionArraysHost ligand_collision(u_int search_radius, u_int* dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
+    CollisionArraysHost ligand_collision(u_int search_radius, Dim dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
         int size = l_arrays.num_ligands;
 
         // allocate collision arrays on device
@@ -263,5 +273,19 @@ extern "C" {
 
     }
 
+    // updates ligand positions based on their velocities
+    void update_positions(LigandArrays l_arrays, float delta_time) {
+        int size = l_arrays.num_ligands;
+        u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+
+        // launch kernel
+        update_positions_kernel<<<blockN, ThreadsPerBlock>>>(l_arrays, delta_time);
+        cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
+
+        // check for launch errors
+        if (err != cudaSuccess) {
+            printf("Launch error: %s\n", cudaGetErrorString(err));
+        }
+    }
 
 }

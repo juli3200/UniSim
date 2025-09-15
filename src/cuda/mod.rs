@@ -16,10 +16,10 @@ const BUFFER_SIZE: usize = 10 * 1024 * 1024; // 10 MB buffer for saving data fro
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub(crate) struct CollisionArraysHost {
-    collided_message: *mut u32,
-    collided_pos: *mut f32,
-    collided_entities: *mut u32,
-    counter: u32,
+    pub(crate) collided_message: *mut u32,
+    pub(crate) collided_pos: *mut f32,
+    pub(crate) collided_entities: *mut u32,
+    pub(crate) counter: u32,
 }
 
 
@@ -46,6 +46,13 @@ pub(crate) struct LigandArrays {
     num_ligands: usize,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub(crate) struct Dim{
+    x: u32,
+    y: u32,
+    depth: u32,
+}
 
 // if gpu is active positions, velocities, and sizes of the objects are each stored in a single array on gpu memory
 // this is to minimize the number of memory transfers between cpu and gpu

@@ -26,3 +26,7 @@ impl World {
 pub fn get_entity<'a>(entities: &'a Vec<objects::Entity>, id: usize) -> Option<&'a objects::Entity> {
     entities.iter().find(|e| e.id == id)
 }
+
+pub fn get_entity_mut<'a>(entities: &'a mut Vec<objects::Entity>, id: usize) -> Option<&'a mut objects::Entity> {
+    entities.iter_mut().find(|e| e.id == id)
+}

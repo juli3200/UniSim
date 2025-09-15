@@ -42,3 +42,8 @@ typedef struct{
     u_int counter;
 }CollisionArraysHost;
 
+typedef struct{
+    u_int x;
+    u_int y;
+    u_int depth;
+} Dim;
