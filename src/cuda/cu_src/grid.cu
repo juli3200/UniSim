@@ -3,16 +3,15 @@
 
 #include "helper.hpp"
 
-#define u_int unsigned int
 #define ThreadsPerBlock 256
 
 
-__global__ void fill_grid_kernel(u_int* grid, Dim dim, u_int size, float* pos, u_int* cell, u_int* overflow) {
+__global__ void fill_grid_kernel(u_long* grid, Dim dim, u_long size, float* pos, u_long* cell, u_long* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
 
-        u_int dim_x = dim.x;
-        u_int depth = dim.depth;
+        u_long dim_x = dim.x;
+        u_long depth = dim.depth;
 
         // casting float positions to int for indexing
         // flooring is handled by the cast
@@ -50,7 +49,7 @@ __global__ void update_positions_kernel(LigandArrays l_arrays, float delta_time)
     }
 }
 
-__device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_int dim_y) {
+__device__ void border_collision(LigandArrays l_arrays, int i, u_long dim_x, u_long dim_y) {
     float x = l_arrays.pos[i * 2];
     float y = l_arrays.pos[i * 2 + 1];
     float vx = l_arrays.vel[i * 2];
@@ -74,7 +73,7 @@ __device__ void border_collision(LigandArrays l_arrays, int i, u_int dim_x, u_in
     }
 }
 
-__global__ void ligand_collision_kernel(u_int size, u_int search_radius, Dim dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
+__global__ void ligand_collision_kernel(u_long size, u_long search_radius, Dim dim, u_long* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < size) {
@@ -85,9 +84,9 @@ __global__ void ligand_collision_kernel(u_int size, u_int search_radius, Dim dim
         }
 
 
-        u_int dim_x = dim.x;
-        u_int dim_y = dim.y;
-        u_int depth = dim.depth;
+        u_long dim_x = dim.x;
+        u_long dim_y = dim.y;
+        u_long depth = dim.depth;
 
 
         // check for collisions with borders and reflect velocity if necessary
@@ -116,7 +115,7 @@ __global__ void ligand_collision_kernel(u_int size, u_int search_radius, Dim dim
                 // check collisions in this cell
                 // iterate over depth
                 for (int slot = 0; slot < depth; slot++) {
-                    u_int entity_index = grid[index + slot];
+                    u_long entity_index = grid[index + slot];
                     if (entity_index != 0) {
                         // compute distance
                         float dx = e_arrays.pos[entity_index * 2] - x;
@@ -171,17 +170,17 @@ extern "C" {
     
     // fills a 3D grid with a specified value
     // pointers are already device pointers
-    int fill_grid(u_int size, Dim dim, u_int* grid, float* pos, u_int* cell) {
+    int fill_grid(u_long size, Dim dim, u_long* grid, float* pos, u_long* cell) {
 
         bool error = false;
 
         // allocate overflow counter
-        u_int* d_overflow;
-        cudaMalloc((void**)&d_overflow, sizeof(u_int));
-        cudaMemset(d_overflow, 0, sizeof(u_int));
+        u_long* d_overflow;
+        cudaMalloc((void**)&d_overflow, sizeof(u_long));
+        cudaMemset(d_overflow, 0, sizeof(u_long));
 
         // define block sizes
-        u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+        u_long blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
         // launch kernel
         fill_grid_kernel<<<blockN, ThreadsPerBlock>>>(grid, dim, size, pos, cell, d_overflow);
@@ -194,8 +193,8 @@ extern "C" {
         }
 
         // copy overflow counter back to host and free device memory
-        u_int h_overflow;
-        cudaMemcpy(&h_overflow, d_overflow, sizeof(u_int), cudaMemcpyDeviceToHost);
+        u_long h_overflow;
+        cudaMemcpy(&h_overflow, d_overflow, sizeof(u_long), cudaMemcpyDeviceToHost);
         cudaFree(d_overflow);
 
         if (error) {
@@ -207,21 +206,21 @@ extern "C" {
 
     // performs collision detection for ligands against entities in a grid
     // pointers are already device pointers
-    CollisionArraysHost ligand_collision(u_int search_radius, Dim dim, u_int* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
+    CollisionArraysHost ligand_collision(u_long search_radius, Dim dim, u_long* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
         int size = l_arrays.num_ligands;
 
         // allocate collision arrays on device
         CollisionArraysDevice col_arrays;
-        cudaMalloc((void**)&col_arrays.collided_message, size * sizeof(u_int));
+        cudaMalloc((void**)&col_arrays.collided_message, size * sizeof(u_long));
         cudaMalloc((void**)&col_arrays.collided_pos, size * 2 * sizeof(float));
-        cudaMalloc((void**)&col_arrays.collided_entities, size * sizeof(u_int));
-        cudaMalloc((void**)&col_arrays.counter, sizeof(u_int));
+        cudaMalloc((void**)&col_arrays.collided_entities, size * sizeof(u_long));
+        cudaMalloc((void**)&col_arrays.counter, sizeof(u_long));
 
         // initialize memory to zero
-        cudaMemset(col_arrays.collided_message, 0, size * sizeof(u_int));
+        cudaMemset(col_arrays.collided_message, 0, size * sizeof(u_long));
         cudaMemset(col_arrays.collided_pos, 0, size * 2 * sizeof(float));
-        cudaMemset(col_arrays.collided_entities, 0, size * sizeof(u_int));
-        cudaMemset(col_arrays.counter, 0, sizeof(u_int));
+        cudaMemset(col_arrays.collided_entities, 0, size * sizeof(u_long));
+        cudaMemset(col_arrays.counter, 0, sizeof(u_long));
 
         cudaError_t err = cudaDeviceSynchronize(); // wait for memset to finish
         
@@ -233,7 +232,7 @@ extern "C" {
 
 
         // launch kernel
-        u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+        u_long blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
         ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(size, search_radius, dim, grid, e_arrays, l_arrays, col_arrays);
         err = cudaDeviceSynchronize(); // wait for kernel to finish
 
@@ -244,8 +243,8 @@ extern "C" {
         }
 
         // copy counter back to host
-        u_int h_counter;
-        cudaMemcpy(&h_counter, col_arrays.counter, sizeof(u_int), cudaMemcpyDeviceToHost);
+        u_long h_counter;
+        cudaMemcpy(&h_counter, col_arrays.counter, sizeof(u_long), cudaMemcpyDeviceToHost);
         if (h_counter > size) {
             // this should never happen
             printf("Error: counter exceeds allocated size\n");
@@ -254,13 +253,13 @@ extern "C" {
 
         // copy to host
         CollisionArraysHost h_col_arrays;
-        h_col_arrays.collided_message = (u_int*)malloc(h_counter * sizeof(u_int));
+        h_col_arrays.collided_message = (u_long*)malloc(h_counter * sizeof(u_long));
         h_col_arrays.collided_pos = (float*)malloc(h_counter * 2 * sizeof(float));
-        h_col_arrays.collided_entities = (u_int*)malloc(h_counter * sizeof(u_int));
+        h_col_arrays.collided_entities = (u_long*)malloc(h_counter * sizeof(u_long));
 
-        cudaMemcpy(h_col_arrays.collided_message, col_arrays.collided_message, h_counter * sizeof(u_int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_col_arrays.collided_message, col_arrays.collided_message, h_counter * sizeof(u_long), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_col_arrays.collided_pos, col_arrays.collided_pos, h_counter * 2 * sizeof(float), cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_col_arrays.collided_entities, col_arrays.collided_entities, h_counter * sizeof(u_int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_col_arrays.collided_entities, col_arrays.collided_entities, h_counter * sizeof(u_long), cudaMemcpyDeviceToHost);
         h_col_arrays.counter = h_counter;
 
         // free device memory
@@ -276,7 +275,7 @@ extern "C" {
     // updates ligand positions based on their velocities
     void update_positions(LigandArrays l_arrays, float delta_time) {
         int size = l_arrays.num_ligands;
-        u_int blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+        u_long blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
         // launch kernel
         update_positions_kernel<<<blockN, ThreadsPerBlock>>>(l_arrays, delta_time);
