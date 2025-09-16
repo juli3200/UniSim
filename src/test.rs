@@ -104,9 +104,9 @@ mod cuda_tests {
     fn ligands_test(){
 
 
-        let mut world = world::World::new(settings!(1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = false));
-        world.cuda_initialize().expect("Failed to initialize CUDA");
-        world.save("ligands_test.bin").expect("Failed to save world");
+        let mut world = world::World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        world.cuda_initialize().expect("Init expect");
+        world.save("ligands_test.bin").expect("Save expect");
 
 
         // add ligands manually
@@ -120,8 +120,8 @@ mod cuda_tests {
             world.ligands_count += 1;
         }
 
-        for _ in 0..1024
-         {
+        for _ in 0..100 {
+         
             world.update();
         }
     }

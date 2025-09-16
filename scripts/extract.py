@@ -68,9 +68,11 @@ class State:
 
             ligand_n = struct.unpack('I', self.world.bytes[address + 13 + entity_n * self.world.entity_bytes_0:address + 17 + entity_n * self.world.entity_bytes_0])[0]
 
+            print("Entities:", entity_n, "Ligands:", ligand_n)
             for i in range(ligand_n):
                 index = address + 17 + entity_n * self.world.entity_bytes_0 + i * self.world.ligand_bytes_0
                 self.ligands.append(Ligand(self.world.bytes, index))
+            
                 
 
         except struct.error:

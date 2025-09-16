@@ -42,10 +42,12 @@ __global__ void fill_grid_kernel(u_long* grid, Dim dim, u_long size, float* pos,
 
 // simple kernel to update ligand positions based on their velocities
 __global__ void update_positions_kernel(LigandArrays l_arrays, float delta_time) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < l_arrays.num_ligands) {
         l_arrays.pos[i * 2] += l_arrays.vel[i * 2] * delta_time;
         l_arrays.pos[i * 2 + 1] += l_arrays.vel[i * 2 + 1] * delta_time;
+        
     }
 }
 

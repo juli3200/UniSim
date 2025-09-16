@@ -167,7 +167,7 @@ impl CUDAWorld {
         }
     }
 
-    pub(crate) fn add_entities(&self, entities: &Vec<Entity>) -> Result<(), String> {
+    pub(crate) fn add_entities(&mut self, entities: &Vec<Entity>) -> Result<(), String> {
         // checks if there is enough capacity
         if self.entities.num_entities + entities.len()  > self.entity_cap as usize {
             return Err("Entity capacity exceeded".into());
@@ -216,11 +216,11 @@ impl CUDAWorld {
             cu_mem::copy_HtoD_u(self.entities.id.add(start_index), entities_id_h.as_mut_ptr(), size_entity / 2);
         }
 
-
+        self.entities.num_entities += entities.len();
         Ok(())
     }
 
-    pub(crate) fn add_ligands(&self, ligands_pos: &mut Vec<f32>, ligands_vel: &mut Vec<f32>, ligands_content: &mut Vec<u32>) -> Result<(), i32> {
+    pub(crate) fn add_ligands(&mut self, ligands_pos: &mut Vec<f32>, ligands_vel: &mut Vec<f32>, ligands_content: &mut Vec<u32>) -> Result<(), i32> {
         // checks if input vectors are of correct size
         if ligands_pos.len() != ligands_vel.len() || ligands_pos.len() / 2 != ligands_content.len() {
             return Err(-1);
@@ -247,6 +247,9 @@ impl CUDAWorld {
             // messages
             cu_mem::copy_HtoD_u(self.ligands.message.add(start_index), ligands_content.as_mut_ptr(), size_ligand / 2);
         }
+
+        self.ligands.num_ligands += ligands_content.len();
+
         Ok(())
 
     }

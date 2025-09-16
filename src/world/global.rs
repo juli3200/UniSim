@@ -161,6 +161,18 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
+        // update all ligands positions
+        for ligand in &mut self.ligands {
+            ligand.update(&mut self.space);
+        }
+
+        // collect new ligands from entities
+        let mut new_ligands = Vec::new();
+        for entity in &mut self.entities {
+            new_ligands.extend(entity.emit_ligands());
+        }
+
+
     }
 
     #[cfg(feature = "cuda")]
@@ -170,7 +182,6 @@ impl World {
         if self.cuda_world.is_none() {
             return Err("CUDA world is not initialized".to_string());
         }
-        println!("GPU update");
 
         // Update the world using GPU processing
 
@@ -196,6 +207,7 @@ impl World {
             new_ligands = self.ligands.clone(); // in test mode, use the ligands from the world, so ligands can be added manually
         }
 
+
         // please improve this code
         let mut ligands_pos: Vec<f32> = new_ligands.iter()
             .flat_map(|l| l.position.iter())
@@ -217,6 +229,7 @@ impl World {
                 return Err("Input ligand vectors have incorrect sizes".to_string());
             } else {
                 // increase capacity 
+                println!("Increasing ligand capacity");
                 self.cuda_world.as_mut().unwrap().increase_cap(objects::ObjectType::Ligand(0));
             }
         }
