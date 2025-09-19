@@ -191,6 +191,16 @@ impl World {
             }
         }
 
+        // emit new ligands from entities
+        for entity in &mut self.entities {
+            let new_ligands = entity.emit_ligands();
+            self.ligands.extend(new_ligands);
+        }
+
+        self.ligands_count = self.ligands.len();
+
+        
+
     }
 
     #[cfg(feature = "cuda")]

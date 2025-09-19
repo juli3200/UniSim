@@ -6,6 +6,8 @@ use crate::objects;
 
 mod general{
     use crate::{settings, world};
+    use super::*;
+
 
     #[test]
     fn create_world(){
@@ -41,6 +43,28 @@ mod general{
         if let Err(e) = e {
             eprintln!("Error saving world: {}", e);
         }
+        world.run(1024);
+
+
+    }
+
+    #[test]
+    fn ligand_test(){
+        let setting = settings!(1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true);
+        let mut world = world::World::new(setting);
+
+        // add ligands manually
+        for i in 0..9 {
+            world.ligands.push(objects::Ligand {
+                id: i,
+                position: Array1::from_vec(vec![i as f32 + 0.1, 1.0]),
+                velocity: Array1::from_vec(vec![0.0, 1.0]),
+                message: i as u32 + 1,
+            });
+            world.ligands_count += 1;
+        }
+
+        world.save("ligand_test.bin").expect("Failed to save world");
         world.run(1024);
 
 
@@ -128,6 +152,7 @@ mod cuda_tests {
 }
 
 // Test debugging impl block for World
+#[cfg(feature = "cuda")]
 impl World{
 
     pub(crate) fn copy_ligands(&mut self, positions: &[f32], messages: &[u32], len: usize){
