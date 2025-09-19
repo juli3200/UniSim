@@ -92,11 +92,10 @@ mod io_tests {
 }
 
 
+#[cfg(feature = "cuda")]
 mod cuda_tests {
-    use ndarray::Array1;
-    use crate::objects;
-    use crate::{settings, world};
-
+    use super::*;
+    
     #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests_gpu as cb;
 
