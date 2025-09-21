@@ -3,9 +3,14 @@
 use crate::world::World;
 use ndarray::Array1;
 use crate::objects;
+use crate::settings;
+use rand::Rng;
+
 
 mod general{
     use crate::{settings, world};
+    use super::*;
+
 
     #[test]
     fn create_world(){
@@ -46,6 +51,28 @@ mod general{
 
     }
 
+    #[test]
+    fn ligand_test(){
+        let setting = settings!(1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true);
+        let mut world = world::World::new(setting);
+
+        // add ligands manually
+        for i in 0..9 {
+            world.ligands.push(objects::Ligand {
+                id: i,
+                position: Array1::from_vec(vec![i as f32 + 0.1, 1.0]),
+                velocity: Array1::from_vec(vec![0.0, 1.0]),
+                message: i as u32 + 1,
+            });
+            world.ligands_count += 1;
+        }
+
+        world.save("ligand_test.bin").expect("Failed to save world");
+        world.run(1024);
+
+
+    }
+
 }
 
 mod io_tests {
@@ -68,11 +95,10 @@ mod io_tests {
 }
 
 
+#[cfg(feature = "cuda")]
 mod cuda_tests {
-    use ndarray::Array1;
-    use crate::objects;
-    use crate::{settings, world};
-
+    use super::*;
+    
     #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests_gpu as cb;
 
@@ -104,7 +130,7 @@ mod cuda_tests {
     fn ligands_test(){
 
 
-        let mut world = world::World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
         world.save("ligands_test.bin").expect("Save expect");
 
@@ -127,7 +153,104 @@ mod cuda_tests {
     }
 }
 
+
+mod performance_tests {
+    use std::time::{Duration, Instant};
+    use super::*;
+
+
+    fn test_performance_cpu(n : usize, ligands: usize) -> Duration {
+
+
+        let mut world = World::new(settings!(1000, spawn_size = 5.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
+
+        world.add_ligands(ligands);
+
+        let start = Instant::now();
+        world.run(n);
+        let duration = start.elapsed();
+
+        return duration;
+
+    }
+
+    #[cfg(feature = "cuda")]
+    fn test_performance_gpu(n : usize, ligands: usize) -> Duration {
+
+
+        let mut world = World::new(settings!(1000, spawn_size = 5.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
+        world.cuda_initialize().expect("Failed to initialize CUDA");
+
+        world.add_ligands(ligands);
+
+        let start = Instant::now();
+        world.run(n);
+        let duration = start.elapsed();
+
+        return duration;
+
+    }
+
+    #[test]
+    #[cfg(feature = "cuda")]
+    fn test_compare_performance() {
+        let n = 1000;
+        let mut cpu_durations = Vec::new();
+        let mut gpu_durations = Vec::new();
+        for ligands in [10, 100, 500, 1000, 5000, 10000].iter() {
+            println!("Testing with {} ligands", ligands);
+            println!("CPU:");
+            cpu_durations.push(test_performance_cpu(n, *ligands));
+            println!("GPU:");
+            gpu_durations.push(test_performance_gpu(n, *ligands));
+        }
+
+        // store results in csv file
+        let mut wtr = csv::Writer::from_path("performance_results.csv").expect("Failed to create CSV writer");
+        wtr.write_record(&["Ligands", "CPU Duration (ms)", "GPU Duration (ms)"]).expect("Failed to write header");
+        for i in 0..cpu_durations.len() {
+            wtr.write_record(&[
+                (10_usize.pow(i as u32 + 1)).to_string(),
+                cpu_durations[i].as_millis().to_string(),
+                gpu_durations[i].as_millis().to_string(),
+            ]).expect("Failed to write record");
+        }
+        wtr.flush().expect("Failed to flush CSV writer");
+        println!("Performance results saved to performance_results.csv");
+
+    }
+}
+
+
+impl World {
+    // add n ligands at random positions
+    // only for testing purposes
+    pub fn add_ligands(&mut self, n: usize) {
+
+        let mut rng = rand::rng();
+
+        for _ in 0..n {
+            let x = rng.random_range(0.0..self.space.width as f32);
+            let y = rng.random_range(0.0..self.space.height as f32);
+            let position = Array1::from_vec(vec![x, y]);
+
+            let norm_pos = Array1::from_vec(vec![(position[0].powi(2) + position[1].powi(2)).sqrt()]);
+            // add ligand at random position
+            // ensure position is within bounds
+            let ligand = objects::Ligand {
+                id: self.ligands_count,
+                position,
+                velocity: norm_pos, // velocity is not tracked after collision
+                message: 0u32,
+            };
+            self.ligands.push(ligand);
+            self.ligands_count += 1;
+        }
+    }
+}
+
 // Test debugging impl block for World
+#[cfg(feature = "cuda")]
 impl World{
 
     pub(crate) fn copy_ligands(&mut self, positions: &[f32], messages: &[u32], len: usize){

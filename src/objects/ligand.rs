@@ -1,5 +1,49 @@
-use crate::objects::Ligand;
+use ndarray::Array1;
+use crate::{objects::Entity, world::{Border, Collision, Space}};
 
-impl Ligand{
-    fn new()
+use super::Ligand;
+
+impl Ligand {
+
+    pub fn new( id: usize, message: u32, position: Array1<f32>, velocity: Array1<f32>) -> Self {
+        Self {
+            id,
+            message,
+            position,
+            velocity,
+        }
+    }
+
+    pub(crate) fn update(&mut self, space: &Space, entities: &Vec<Entity>, dt: f32) -> Option<usize> {
+        // update position based on velocity and dt
+        // position = position + velocity * dt * space.settings.velocity()
+        self.position.scaled_add(dt* space.settings.velocity(), &self.velocity);
+
+        // check for collisions
+        let collision = space.check_position(self.position.clone(), None, None, entities);
+
+        let mut collided_entity_id: Option<usize> = None;
+
+        match collision {
+            Collision::BorderCollision(border) => {
+                match border {
+                    Border::Left | Border::Right => {
+                        self.velocity[0] = -self.velocity[0];
+                    }
+                    Border::Top | Border::Bottom => {
+                        self.velocity[1] = -self.velocity[1];
+                    }
+                }
+            }
+            Collision::EntityCollision(_, _, _, entity_id) => {
+                // return the id to be consumed by the entity
+                collided_entity_id = Some(entity_id);
+            }
+            Collision::NoCollision => {}
+        }
+
+        collided_entity_id
+
+    }
+
 }

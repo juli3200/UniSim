@@ -73,7 +73,7 @@ impl Entity {
         todo!()
     }
 
-    pub(crate) fn receive_ligand(&mut self, message: u32, position: [f32; 2]) -> Result<(), String> {
+    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>) -> Result<(), String> {
         // process the ligand message
         // for now, just increase energy based on message
         return Ok(());

@@ -1,4 +1,5 @@
 use crate::world::serialize::Save;
+use crate::world::info::get_entity_mut;
 use libc;
 use super::*;
 
@@ -173,6 +174,45 @@ impl World {
         }
 
 
+        // update all ligands positions and check for collisions
+        let mut collided = vec![None; self.ligands.len()];
+
+        let dt = 1.0 / self.settings.fps() as f32;
+
+        for (i, ligand) in self.ligands.iter_mut().enumerate() {
+            if let Some(entity_id) = ligand.update(&self.space, &entities_clone, dt) {
+                collided[i] = Some(entity_id);
+            }
+        }
+
+        // remove collided ligands and add them to entities
+
+        let len = self.ligands.len();
+
+        for i in (0..len).rev() {
+            if let Some(entity_id) = collided[i] {
+                let entity_ref = get_entity_mut(&mut self.entities, entity_id);
+
+                if let Some(entity) = entity_ref {
+                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone());
+                    // remove the ligand
+                    self.ligands.remove(i);
+                } else {
+                    eprintln!("Entity with ID {} not found", entity_id);
+                }
+            }
+        }
+
+        // emit new ligands from entities
+        for entity in &mut self.entities {
+            let new_ligands = entity.emit_ligands();
+            self.ligands.extend(new_ligands);
+        }
+
+        self.ligands_count = self.ligands.len();
+
+        
+
     }
 
     #[cfg(feature = "cuda")]
@@ -254,7 +294,7 @@ impl World {
         for i in 0..len {
             use crate::world::info::get_entity_mut;
 
-            let pos = [positions[i * 2], positions[i * 2 + 1]];
+            let pos = Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]);
             let message = messages[i];
             let entity_id = ids[i] as usize;
 
