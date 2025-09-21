@@ -43,7 +43,7 @@ extern "C"{
                 return -1;
             }
             printf("Device %d: %s\n", i, deviceProp.name);
-            printf("  Total Global Memory: %lu bytes\n", deviceProp.totalGlobalMem);
+            printf("  Total Global Memory: %zu bytes\n", deviceProp.totalGlobalMem);
 
         }
 

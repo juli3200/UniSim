@@ -101,9 +101,9 @@ class RealTimePlotter(QtWidgets.QWidget):
             self.points_l_plot.setData(
                 x = [l.x for l in self.ligands],
                 y = [l.y for l in self.ligands],
-                symbol='t',
+                symbol='o',
                 brush=[pg.mkBrush(255,0,0) for _ in self.ligands],
-                size=[0.5 for _ in self.ligands]
+                size=[0.01 for _ in self.ligands]
             )
 
         self.counter += 1

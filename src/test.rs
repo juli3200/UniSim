@@ -57,15 +57,7 @@ mod general{
         let mut world = world::World::new(setting);
 
         // add ligands manually
-        for i in 0..9 {
-            world.ligands.push(objects::Ligand {
-                id: i,
-                position: Array1::from_vec(vec![i as f32 + 0.1, 1.0]),
-                velocity: Array1::from_vec(vec![0.0, 1.0]),
-                message: i as u32 + 1,
-            });
-            world.ligands_count += 1;
-        }
+        world.add_ligands(1000);
 
         world.save("ligand_test.bin").expect("Failed to save world");
         world.run(1024);
@@ -162,7 +154,7 @@ mod performance_tests {
     fn test_performance_cpu(n : usize, ligands: usize) -> Duration {
 
 
-        let mut world = World::new(settings!(1000, spawn_size = 5.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
+        let mut world = World::new(settings!(1000, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
 
         world.add_ligands(ligands);
 
@@ -178,7 +170,7 @@ mod performance_tests {
     fn test_performance_gpu(n : usize, ligands: usize) -> Duration {
 
 
-        let mut world = World::new(settings!(1000, spawn_size = 5.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
+        let mut world = World::new(settings!(1000, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true));
         world.cuda_initialize().expect("Failed to initialize CUDA");
 
         world.add_ligands(ligands);
@@ -191,6 +183,7 @@ mod performance_tests {
 
     }
 
+    // not working properly yet
     #[test]
     #[cfg(feature = "cuda")]
     fn test_compare_performance() {
@@ -200,9 +193,14 @@ mod performance_tests {
         for ligands in [10, 100, 500, 1000, 5000, 10000].iter() {
             println!("Testing with {} ligands", ligands);
             println!("CPU:");
-            cpu_durations.push(test_performance_cpu(n, *ligands));
+            let cpu_duration = test_performance_cpu(n, *ligands);
+            cpu_durations.push(cpu_duration);
+            println!("CPU Duration: {:?}", cpu_duration);
             println!("GPU:");
-            gpu_durations.push(test_performance_gpu(n, *ligands));
+            let gpu_duration = test_performance_gpu(n, *ligands);
+            gpu_durations.push(gpu_duration);
+            println!("GPU Duration: {:?}", gpu_duration);
+            println!("-----------------------");
         }
 
         // store results in csv file
@@ -234,15 +232,18 @@ impl World {
             let y = rng.random_range(0.0..self.space.height as f32);
             let position = Array1::from_vec(vec![x, y]);
 
-            let norm_pos = Array1::from_vec(vec![(position[0].powi(2) + position[1].powi(2)).sqrt()]);
+
+            let len = (position[0].powi(2) + position[1].powi(2)).sqrt();
+            let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
             // add ligand at random position
             // ensure position is within bounds
             let ligand = objects::Ligand {
-                id: self.ligands_count,
+                id: self.counter,
                 position,
                 velocity: norm_pos, // velocity is not tracked after collision
                 message: 0u32,
             };
+            self.counter += 1;
             self.ligands.push(ligand);
             self.ligands_count += 1;
         }

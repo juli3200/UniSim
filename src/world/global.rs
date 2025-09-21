@@ -162,16 +162,7 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
-        // update all ligands positions
-        for ligand in &mut self.ligands {
-            ligand.update(&mut self.space);
-        }
 
-        // collect new ligands from entities
-        let mut new_ligands = Vec::new();
-        for entity in &mut self.entities {
-            new_ligands.extend(entity.emit_ligands());
-        }
 
 
         // update all ligands positions and check for collisions
