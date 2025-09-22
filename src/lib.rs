@@ -10,8 +10,8 @@
 //! in a controlled environment, allowing for the study of their interactions and adaptations.
 
 
-
-pub mod world;
+pub mod prelude;
+mod world;
 mod objects;
 mod test;
 mod settings_;
@@ -34,7 +34,7 @@ pub use settings_::Settings;
 // this macro is used to edit the settings of the world AND the space
 // it also can only change changeable settings it panics
 #[macro_export]
-macro_rules! edit_settings {
+macro_rules!  edit_settings {
     ($world:expr, $($setting:ident = $value:expr),+) => {
         // concat puts "set_" and the identifier together
         // so e.g. "set_fps"
@@ -76,7 +76,7 @@ macro_rules! settings {
     ($n:expr, $($setting:ident = $value:expr),+) => {
         {
             
-            use crate::Settings; // compiler got issues idk
+
             let mut settings = Settings::blueprint($n);
             $( settings.${concat(set_, $setting)}($value); )+
             settings.init();

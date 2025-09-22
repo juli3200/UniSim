@@ -38,7 +38,7 @@ pub(crate) mod memory_gpu{
 pub(crate) mod grid_gpu{
     use crate::cuda::*;
     unsafe extern "C" {
-        pub(crate) fn fill_grid(size: u32, dim: Dim, grid: *mut u32, pos: *mut f32, cell: *mut u32,) -> i32;
+        pub(crate) fn fill_grid(size: u32, dim: Dim, grid: *mut u32, pos: *mut f32,) -> i32;
         pub(crate) fn ligand_collision(search_radius: u32, dim: Dim, grid: *mut u32, e_arrays: EntityArrays, l_arrays: LigandArrays) -> CollisionArraysHost;
         pub(crate) fn update_positions(l_arrays: LigandArrays, delta_time: f32);
     }

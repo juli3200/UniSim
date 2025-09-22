@@ -9,26 +9,18 @@ impl CUDAWorld {
 
         // create host-side vectors to hold data before copying to device
         let mut entities_pos_h = Vec::with_capacity((entity_cap * 2) as usize);
-        let mut entities_vel_h = Vec::with_capacity((entity_cap * 2) as usize);
-        let mut entities_acc_h = Vec::with_capacity((entity_cap * 2) as usize);
 
         let mut entities_size_h = Vec::with_capacity((entity_cap) as usize);
         let mut entities_id_h = Vec::with_capacity((entity_cap) as usize);
-        let mut entities_cell_h = Vec::with_capacity((entity_cap) as usize);
+
 
         for entity in entities {
             entities_pos_h.push(entity.position[0]);
             entities_pos_h.push(entity.position[1]);
 
-            entities_vel_h.push(entity.velocity[0]);
-            entities_vel_h.push(entity.velocity[1]);
-
-            entities_acc_h.push(entity.acceleration[0]);
-            entities_acc_h.push(entity.acceleration[1]);
-
             entities_size_h.push(entity.size);
             entities_id_h.push(entity.id as u32);
-            entities_cell_h.push(0u32); // initialize cell positions to zero
+
         }
 
 
@@ -54,11 +46,8 @@ impl CUDAWorld {
         let save_buffer_d: *mut u8;
 
         let entities_pos_d: *mut f32; 
-        let entities_vel_d: *mut f32; 
-        let entities_acc_d: *mut f32; 
         let entities_size_d: *mut f32; 
         let entities_id_d: *mut u32; 
-        let entities_cell_d: *mut u32;
 
         let ligands_pos_d: *mut f32; 
         let ligands_vel_d: *mut f32; 
@@ -89,16 +78,6 @@ impl CUDAWorld {
             cu_mem::clear_f(entities_pos_d, entity_cap * 2);
             cu_mem::copy_HtoD_f(entities_pos_d, entities_pos_h.as_mut_ptr(), size_entity); // data size is number of entities * 2, so there is space for more
 
-            // velocities
-            entities_vel_d = cu_mem::alloc_f(entity_cap * 2);
-            cu_mem::clear_f(entities_vel_d, entity_cap * 2);
-            cu_mem::copy_HtoD_f(entities_vel_d, entities_vel_h.as_mut_ptr(), size_entity);
-
-            // accelerations
-            entities_acc_d = cu_mem::alloc_f(entity_cap * 2);
-            cu_mem::clear_f(entities_acc_d, entity_cap * 2);
-            cu_mem::copy_HtoD_f(entities_acc_d, entities_acc_h.as_mut_ptr(), size_entity);
-
             // sizes
             entities_size_d = cu_mem::alloc_f(entity_cap);
             cu_mem::clear_f(entities_size_d, entity_cap);
@@ -108,11 +87,6 @@ impl CUDAWorld {
             entities_id_d = cu_mem::alloc_u(entity_cap);
             cu_mem::clear_u(entities_id_d, entity_cap);
             cu_mem::copy_HtoD_u(entities_id_d, entities_id_h.as_mut_ptr(), size_entity / 2);
-
-            // cell positions
-            entities_cell_d = cu_mem::alloc_u(entity_cap);
-            cu_mem::clear_u(entities_cell_d, entity_cap);
-            cu_mem::copy_HtoD_u(entities_cell_d, entities_cell_h.as_mut_ptr(), size_entity / 2);
 
 
             // ----------------- ligands -----------------
@@ -139,11 +113,8 @@ impl CUDAWorld {
         // create EntityArrays and LigandArrays structs
         let entities = EntityArrays {
             pos: entities_pos_d,
-            vel: entities_vel_d,
-            acc: entities_acc_d,
             size: entities_size_d,
             id: entities_id_d,
-            cell: entities_cell_d,
             num_entities: entities.len(),
         };
 
@@ -167,18 +138,16 @@ impl CUDAWorld {
         }
     }
 
-    pub(crate) fn add_entities(&mut self, entities: &Vec<Entity>) -> Result<(), String> {
+    pub(crate) fn update_entities(&mut self, entities: &Vec<Entity>) {
         // checks if there is enough capacity
         if self.entities.num_entities + entities.len()  > self.entity_cap as usize {
-            return Err("Entity capacity exceeded".into());
+            self.increase_cap(objects::ObjectType::Entity(0));
         }
 
         use cuda_bindings::memory_gpu as cu_mem;
 
         // create host-side vectors to hold data before copying to device
         let mut entities_pos_h = Vec::with_capacity(entities.len() * 2);
-        let mut entities_vel_h = Vec::with_capacity(entities.len() * 2);
-        let mut entities_acc_h = Vec::with_capacity(entities.len() * 2);
         let mut entities_size_h = Vec::with_capacity(entities.len());
         let mut entities_id_h = Vec::with_capacity(entities.len());
 
@@ -186,38 +155,25 @@ impl CUDAWorld {
             entities_pos_h.push(entity.position[0]);
             entities_pos_h.push(entity.position[1]);
 
-            entities_vel_h.push(entity.velocity[0]);
-            entities_vel_h.push(entity.velocity[1]);
-
-            entities_acc_h.push(entity.acceleration[0]);
-            entities_acc_h.push(entity.acceleration[1]);
-
             entities_size_h.push(entity.size);
             entities_id_h.push(entity.id as u32);
         }
 
         unsafe{
-            let start_index = self.entities.num_entities;
-            let size_entity = entities.len() as u32 * 2;
+            let size_entity = entities.len() as u32;
 
             // positions
-            cu_mem::copy_HtoD_f(self.entities.pos.add(start_index * 2), entities_pos_h.as_mut_ptr(), size_entity);
-
-            // velocities
-            cu_mem::copy_HtoD_f(self.entities.vel.add(start_index * 2), entities_vel_h.as_mut_ptr(), size_entity);
-
-            // accelerations
-            cu_mem::copy_HtoD_f(self.entities.acc.add(start_index * 2), entities_acc_h.as_mut_ptr(), size_entity);
+            cu_mem::copy_HtoD_f(self.entities.pos, entities_pos_h.as_mut_ptr(), size_entity * 2);
 
             // sizes
-            cu_mem::copy_HtoD_f(self.entities.size.add(start_index), entities_size_h.as_mut_ptr(), size_entity / 2);
+            cu_mem::copy_HtoD_f(self.entities.size, entities_size_h.as_mut_ptr(), size_entity);
 
             // ids
-            cu_mem::copy_HtoD_u(self.entities.id.add(start_index), entities_id_h.as_mut_ptr(), size_entity / 2);
+            cu_mem::copy_HtoD_u(self.entities.id, entities_id_h.as_mut_ptr(), size_entity);
         }
 
-        self.entities.num_entities += entities.len();
-        Ok(())
+        self.entities.num_entities = entities.len();
+
     }
 
     pub(crate) fn add_ligands(&mut self, ligands_pos: &mut Vec<f32>, ligands_vel: &mut Vec<f32>, ligands_content: &mut Vec<u32>) -> Result<(), i32> {
@@ -254,10 +210,8 @@ impl CUDAWorld {
 
     }
 
-    pub(crate) fn add_to_grid(&self, start_index: u32, end_index: u32) -> i32{
+    pub(crate) fn add_to_grid(&self) -> i32{
         use cuda_bindings::grid_gpu as cu_grid;
-
-        let size = end_index - start_index;
 
         let overflow;
 
@@ -268,7 +222,7 @@ impl CUDAWorld {
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
 
-            overflow = cu_grid::fill_grid(size, dim, self.grid, self.entities.pos, self.entities.cell);
+            overflow = cu_grid::fill_grid(self.entities.num_entities as u32, dim, self.grid, self.entities.pos);
             
         }
 
@@ -297,19 +251,6 @@ impl CUDAWorld {
                 cu_mem::free_f(self.entities.pos);
                 self.entities.pos = new_entities_pos;
 
-                // velocities
-                let new_entities_vel = cu_mem::alloc_f(new_cap * 2);
-                cu_mem::clear_f(new_entities_vel, new_cap * 2);
-                cu_mem::copy_DtoD_f(new_entities_vel, self.entities.vel, self.entities.num_entities as u32 * 2);
-                cu_mem::free_f(self.entities.vel);
-                self.entities.vel = new_entities_vel;
-
-                // accelerations
-                let new_entities_acc = cu_mem::alloc_f(new_cap * 2);
-                cu_mem::clear_f(new_entities_acc, new_cap * 2);
-                cu_mem::copy_DtoD_f(new_entities_acc, self.entities.acc, self.entities.num_entities as u32 * 2);
-                cu_mem::free_f(self.entities.acc);
-                self.entities.acc = new_entities_acc;
 
                 // sizes
                 let new_entities_size = cu_mem::alloc_f(new_cap);
@@ -325,12 +266,6 @@ impl CUDAWorld {
                 cu_mem::free_u(self.entities.id);
                 self.entities.id = new_entities_id;
 
-                // cell positions
-                let new_entities_cell = cu_mem::alloc_u(new_cap);
-                cu_mem::clear_u(new_entities_cell, new_cap);
-                cu_mem::copy_DtoD_u(new_entities_cell, self.entities.cell, self.entities.num_entities as u32);
-                cu_mem::free_u(self.entities.cell);
-                self.entities.cell = new_entities_cell;
 
 
 
@@ -365,10 +300,16 @@ impl CUDAWorld {
         }
     }
 
-    pub(crate) fn update(&mut self, search_radius: u32) -> CollisionArraysHost{
+    pub(crate) fn update(&mut self, entities: &Vec<Entity>, search_radius: u32) -> (CollisionArraysHost, i32){
 
         // first, update ligand positions based on their velocities
         use cuda_bindings::grid_gpu as cu_grid;
+
+        // update entities 
+        self.update_entities(entities);
+
+        // update the grid with the new entity positions
+        let overflow = self.add_to_grid();
 
         unsafe{
             let delta_time = 1.0 / self.settings.fps();
@@ -386,6 +327,6 @@ impl CUDAWorld {
             collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities.clone(), self.ligands.clone());
         }
 
-        return collisions;
+        return (collisions, overflow);
     }
 }

@@ -149,8 +149,10 @@ impl World {
         #[cfg(test)]
         #[cfg(feature = "cuda")]
         {
-            self.ligands = Vec::new(); // in test mode, clear the ligands so they are not added multiple times
-            self.ligands_count = 0;
+            if self.cuda_world.is_some(){
+                self.ligands = Vec::new(); // in test mode, clear the ligands so they are not added multiple times
+                self.ligands_count = 0;
+            }
         }
 
 
@@ -262,7 +264,7 @@ impl World {
 
         let err = self.cuda_world.as_mut().unwrap().add_ligands(&mut ligands_pos, &mut ligands_vel, &mut ligands_content);
 
-        
+        // error handling for adding ligands
         if let Err(e) = err {
             if e == -1 {
                 return Err("Input ligand vectors have incorrect sizes".to_string());
@@ -274,11 +276,18 @@ impl World {
         }
 
         // get the received ligands from the entities
-        let received_ligands = self.cuda_world.as_mut().unwrap().update(self.space.max_size.ceil() as u32);
+        let (received_ligands, overflow) = self.cuda_world.as_mut().unwrap().update(&self.entities, self.space.max_size.ceil() as u32);
+
+        if overflow != 0 {
+            use crate::edit_settings;
+
+            println!("Warning: Grid overflow occurred, increasing grid size or slots per cell");
+            let new_size = (self.settings.cuda_slots_per_cell() as f32 * 1.2) as usize;
+            edit_settings!(self, cuda_slots_per_cell = new_size);
+        }
+
 
         let len = received_ligands.counter as usize;
-
-        assert_eq!(len, 0);
 
         // slice around the *mut pointers
         let messages: &[u32];
@@ -293,7 +302,7 @@ impl World {
 
         // add the ligands to entities and edit concentrations
         for i in 0..len {
-            use crate::world::info::get_entity_mut;
+            
 
             let pos = Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]);
             let message = messages[i];
@@ -432,3 +441,36 @@ impl World{
     }
 
 } 
+
+#[cfg(feature = "debug")]
+impl World {
+    
+    // add n ligands at random positions
+    // only for testing purposes
+    pub fn add_ligands(&mut self, n: usize) {
+        use rand::Rng;
+
+        let mut rng = rand::rng();
+
+        for _ in 0..n {
+            let x = rng.random_range(0.0..self.space.width as f32);
+            let y = rng.random_range(0.0..self.space.height as f32);
+            let position = Array1::from_vec(vec![x, y]);
+
+
+            let len = (position[0].powi(2) + position[1].powi(2)).sqrt();
+            let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
+            // add ligand at random position
+            // ensure position is within bounds
+            let ligand = objects::Ligand {
+                id: self.counter,
+                position,
+                velocity: norm_pos, // velocity is not tracked after collision
+                message: 0u32,
+            };
+            self.counter += 1;
+            self.ligands.push(ligand);
+            self.ligands_count += 1;
+        }
+    }
+}

@@ -33,20 +33,6 @@ extern "C"{
             return 2; // No CUDA devices available
         }
 
-
-        printf("CUDA device count: %d\n", deviceCount);
-        printf("CUDA device properties:\n");
-        for (int i = 0; i < deviceCount; ++i) {
-            cudaDeviceProp deviceProp;
-            err = cudaGetDeviceProperties(&deviceProp, i);
-            if (err != cudaSuccess) {
-                return -1;
-            }
-            printf("Device %d: %s\n", i, deviceProp.name);
-            printf("  Total Global Memory: %zu bytes\n", deviceProp.totalGlobalMem);
-
-        }
-
         return 0;
     }
 }

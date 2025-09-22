@@ -27,12 +27,8 @@ pub(crate) struct CollisionArraysHost {
 #[derive(Debug, Clone)]
 pub(crate) struct EntityArrays {
     pos: *mut f32,
-    vel: *mut f32,
-    acc: *mut f32,
     size: *mut f32,
     id: *mut u32,
-    cell: *mut u32,
-
     num_entities: usize,
 }
 
