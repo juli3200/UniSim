@@ -103,7 +103,7 @@ class RealTimePlotter(QtWidgets.QWidget):
                 y = [l.y for l in self.ligands],
                 symbol='o',
                 brush=[pg.mkBrush(255,0,0) for _ in self.ligands],
-                size=[0.01 for _ in self.ligands]
+                size=[0.05 for _ in self.ligands]
             )
 
         self.counter += 1

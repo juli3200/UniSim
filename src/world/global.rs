@@ -145,6 +145,14 @@ impl World {
             }
         }
 
+        // DEBUGGING
+        #[cfg(test)]
+        #[cfg(feature = "cuda")]
+        {
+            self.ligands = Vec::new(); // in test mode, clear the ligands so they are not added multiple times
+            self.ligands_count = 0;
+        }
+
 
     }
 
@@ -223,7 +231,7 @@ impl World {
 
         for entity in  self.entities.iter_mut() {
             entity.update(&mut self.space);
-            new_ligands.extend(entity.emit_ligands()); // not yet implemented
+            new_ligands.extend(entity.emit_ligands()); // collect new ligands from entities
         }
 
         let entities_clone = self.entities.clone();
@@ -269,6 +277,8 @@ impl World {
         let received_ligands = self.cuda_world.as_mut().unwrap().update(self.space.max_size.ceil() as u32);
 
         let len = received_ligands.counter as usize;
+
+        assert_eq!(len, 0);
 
         // slice around the *mut pointers
         let messages: &[u32];

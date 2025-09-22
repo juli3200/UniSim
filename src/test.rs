@@ -9,7 +9,6 @@ use rand::Rng;
 
 mod general{
     use crate::{settings, world};
-    use super::*;
 
 
     #[test]
@@ -122,7 +121,7 @@ mod cuda_tests {
     fn ligands_test(){
 
 
-        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 1000));
         world.cuda_initialize().expect("Init expect");
         world.save("ligands_test.bin").expect("Save expect");
 
@@ -138,10 +137,7 @@ mod cuda_tests {
             world.ligands_count += 1;
         }
 
-        for _ in 0..100 {
-         
-            world.update();
-        }
+        world.run(1000);
     }
 }
 

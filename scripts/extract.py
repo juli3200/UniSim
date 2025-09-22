@@ -75,7 +75,7 @@ class State:
             
                 
 
-        except struct.error:
+        except (struct.error, IndexError):
             print("No more saves")
             return None
         
