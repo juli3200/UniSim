@@ -1,5 +1,5 @@
 #![cfg(feature = "cuda")]
-use crate::{objects, Settings};
+use crate::{objects, settings_::Settings};
 use crate::objects::{Entity, Ligand};
 
 pub(crate) mod cuda_bindings;

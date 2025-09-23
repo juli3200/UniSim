@@ -1,7 +1,5 @@
 #![allow(non_snake_case)]
-#![allow(dead_code)]
-// feature used for the settings macros
-#![feature(macro_metavar_expr_concat)]
+//#[allow(dead_code)]
 
 
 //! # Simulation of evolving unicellular organisms
@@ -19,10 +17,6 @@ mod settings_;
 #[cfg(feature = "cuda")]
 mod cuda;
 
-
-pub use settings_::Settings;
-
-
 // ******************************************************** MACROS ***********************************************************
 
 
@@ -33,6 +27,7 @@ pub use settings_::Settings;
 
 // this macro is used to edit the settings of the world AND the space
 // it also can only change changeable settings it panics
+#[allow(dead_code)]
 #[macro_export]
 macro_rules!  edit_settings {
     ($world:expr, $($setting:ident = $value:expr),+) => {
@@ -40,13 +35,19 @@ macro_rules!  edit_settings {
         // so e.g. "set_fps"
         // then calls the setter function to change the value
         // via the macro syntax(...)+ it can take multiple settings
+        paste! {
+            $( ($world).settings.[<set_ $setting>]($value); )+
+        }
 
-        $( $world.settings.${concat(set_, $setting)}($value); )+
-        $( $world.space.settings.${concat(set_, $setting)}($value); )+
+        paste! {
+            $( ($world).space.settings.[<set_ $setting>]($value); )+
+        }
         #[cfg(feature = "cuda")]
         {
             if $world.cuda_world.is_some() {
-                $($world.cuda_world.as_mut().unwrap().settings.${concat(set_, $setting)}($value);)+
+                paste! {
+                    $(($world).cuda_world.as_mut().unwrap().settings.[<set_ $setting>]($value);)+
+                }
             }
         }
     };
@@ -54,6 +55,7 @@ macro_rules!  edit_settings {
 
 // Macro to create settings
 // declared here that it can access private fields
+#[allow(dead_code)]
 #[macro_export]
 macro_rules! settings {
     () => {
@@ -62,23 +64,26 @@ macro_rules! settings {
     ( $n:expr ) => {
         Settings::new($n)
     };
-    ($($setting:ident = $value:expr),+) => {
-
-        // same logic as in the edit settings macro
-
+    ($($setting:ident = $value:expr),+ $(,)?) => {
         {
             let mut settings = Settings::blueprint(100);
-            $( settings.${concat(set_, $setting)}($value); )+
+            paste! {
+                $(
+                    settings.[<set_ $setting>]($value);
+                )+
+            }
             settings.init();
             settings
         }
     };
-    ($n:expr, $($setting:ident = $value:expr),+) => {
+    ($n:expr, $($setting:ident = $value:expr),+ $(,)?) => {
         {
-            
-
             let mut settings = Settings::blueprint($n);
-            $( settings.${concat(set_, $setting)}($value); )+
+            paste! {
+                $(
+                    settings.[<set_ $setting>]($value);
+                )+
+            }
             settings.init();
             settings
         }

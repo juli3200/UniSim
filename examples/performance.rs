@@ -1,7 +1,5 @@
 #![cfg(all(feature = "debug", feature = "cuda"))]
 
-#![feature(macro_metavar_expr_concat)]
-
 
 use std::time::{Duration, Instant};
 use UniSim::prelude::*;

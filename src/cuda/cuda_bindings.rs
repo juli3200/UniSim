@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 
 pub(crate) mod tests_gpu{
     unsafe extern "C" {
