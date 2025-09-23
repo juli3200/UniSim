@@ -5,9 +5,9 @@ use super::Ligand;
 
 impl Ligand {
 
-    pub fn new(emmited_id: usize, message: u32, position: Array1<f32>, velocity: Array1<f32>) -> Self {
+    pub fn new(emitted_id: usize, message: u32, position: Array1<f32>, velocity: Array1<f32>) -> Self {
         Self {
-            emmited_id,
+            emitted_id,
             message,
             position,
             velocity,

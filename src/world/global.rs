@@ -475,12 +475,11 @@ impl World {
             // add ligand at random position
             // ensure position is within bounds
             let ligand = objects::Ligand {
-                id: self.counter,
+                emitted_id: usize::MAX,
                 position,
                 velocity: norm_pos, // velocity is not tracked after collision
                 message: 0u32,
             };
-            self.counter += 1;
             self.ligands.push(ligand);
             self.ligands_count += 1;
         }

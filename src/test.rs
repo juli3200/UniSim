@@ -158,7 +158,7 @@ impl World{
                 use crate::objects::Ligand;
 
                 let ligand = Ligand {
-                    id: self.ligands_count,
+                    emitted_id: self.ligands_count,
                     position: Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]),
                     velocity: Array1::from_vec(vec![0.0, 0.0]), // velocity is not tracked after collision
                     message: messages[i+1]
@@ -167,7 +167,7 @@ impl World{
             }
             
             for ligand in ligands {
-                println!("Received ligand ID: {}, message: {}, position: {:?}", ligand.id, ligand.message, ligand.position);
+                println!("message: {}, position: {:?}", ligand.message, ligand.position);
             }
 
             self.ligands = vec![];
@@ -200,7 +200,7 @@ impl World{
                 }
                 
                 self.ligands.push(objects::Ligand {
-                    id: 0, // id is not important here
+                    emitted_id: 0, // emitted_id is not important here
                     position: Array1::from_vec(vec![pos[0], pos[1]]),
                     velocity: Array1::from_vec(vec![0.0, 0.0]), // velocity is not tracked after collision
                     message: messages_host[i],
