@@ -280,16 +280,25 @@ impl World {
         // get the received ligands from the entities
         let (received_ligands, overflow) = self.cuda_world.as_mut().unwrap().update(&self.entities, self.space.max_size.ceil() as u32);
 
-        if overflow != 0 {
+        if overflow > 0 {
             use crate::edit_settings;
 
             println!("Warning: Grid overflow occurred, increasing grid size or slots per cell");
             let new_size = (self.settings.cuda_slots_per_cell() as f32 * 1.2) as usize;
+
+            // edit the settings to increase the grid size
             edit_settings!(self, cuda_slots_per_cell = new_size);
+
+            // recreate the grid with the new size
+            self.cuda_world.as_mut().unwrap().new_grid();
         }
 
 
         let len = received_ligands.counter as usize;
+        dbg!(len);
+        dbg!(overflow);
+        dbg!(received_ligands.collided_message.is_null());
+
 
         // slice around the *mut pointers
         let messages: &[u32];

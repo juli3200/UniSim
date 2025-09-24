@@ -138,9 +138,46 @@ impl CUDAWorld {
         }
     }
 
+    pub(crate) fn free(&mut self) {
+        use cuda_bindings::memory_gpu as cu_mem;
+
+        unsafe{
+            // free grid
+            cu_mem::free_u(self.grid);
+
+            // free save buffer
+            cu_mem::free_c(self.save_buffer);
+
+            // free entities
+            cu_mem::free_f(self.entities.pos);
+            cu_mem::free_f(self.entities.size);
+            cu_mem::free_u(self.entities.id);
+
+            // free ligands
+            cu_mem::free_f(self.ligands.pos);
+            cu_mem::free_f(self.ligands.vel);
+            cu_mem::free_u(self.ligands.message);
+        }
+    }
+
+    pub(crate) fn new_grid(&mut self) {
+        use cuda_bindings::memory_gpu as cu_mem;
+
+        unsafe{
+            let grid_size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
+
+            // free old grid
+            cu_mem::free_u(self.grid);
+
+            // allocate new grid and set to zero
+            self.grid = cu_mem::alloc_u(grid_size);
+            cu_mem::clear_u(self.grid, grid_size);
+        }
+    }
+
     pub(crate) fn update_entities(&mut self, entities: &Vec<Entity>) {
         // checks if there is enough capacity
-        if self.entities.num_entities + entities.len()  > self.entity_cap as usize {
+        if entities.len()  > self.entity_cap as usize {
             self.increase_cap(objects::ObjectType::Entity(0));
         }
 
@@ -304,6 +341,7 @@ impl CUDAWorld {
 
         // first, update ligand positions based on their velocities
         use cuda_bindings::grid_gpu as cu_grid;
+        use cuda_bindings::memory_gpu as cu_mem;
 
         // update entities 
         self.update_entities(entities);
@@ -325,6 +363,12 @@ impl CUDAWorld {
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
             collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities.clone(), self.ligands.clone());
+        }
+
+        // clear grid
+        let size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
+        unsafe {
+            cu_mem::clear_u(self.grid, size);
         }
 
         return (collisions, overflow);

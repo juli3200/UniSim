@@ -17,11 +17,8 @@ typedef struct{
 
 typedef struct{
     float* pos; // 2 floats per entity
-    float* vel; // 2 floats per entity
-    float* acc; // 2 floats per entity
     float* size; // 2 floats per entity
     u_long* id;  // 1 int per entity
-
     size_t num_entities; // number of entities
 
 } EntityArrays;

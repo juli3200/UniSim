@@ -18,6 +18,7 @@ __global__ void fill_grid_kernel(u_long* grid, Dim dim, u_long size, float* pos,
         int x = (int)pos[i * 2];
         int y = (int)pos[i * 2 + 1];
 
+
         int index = (x + y * dim_x) * depth;
         int slot;
 
@@ -175,6 +176,8 @@ extern "C" {
     int fill_grid(u_long size, Dim dim, u_long* grid, float* pos, u_long* cell) {
 
         bool error = false;
+        printf("Size: %lu\n", size);
+        printf("Dim: %lu x %lu x %lu\n", dim.x, dim.y, dim.depth);
 
         // allocate overflow counter
         u_long* d_overflow;
@@ -198,6 +201,8 @@ extern "C" {
         u_long h_overflow;
         cudaMemcpy(&h_overflow, d_overflow, sizeof(u_long), cudaMemcpyDeviceToHost);
         cudaFree(d_overflow);
+
+        printf("Overflow: %lu\n", h_overflow);
 
         if (error) {
             return -1;
@@ -228,6 +233,7 @@ extern "C" {
         
         // check for errors
         if (err != cudaSuccess) {
+            printf("ligand_collision failed\n");
             printf("Memset error: %s\n", cudaGetErrorString(err));
             return error_return(col_arrays);
         }
@@ -240,6 +246,7 @@ extern "C" {
 
         // check for launch errors
         if (err != cudaSuccess) {
+            printf("ligand_collision failed\n");
             printf("Launch error: %s\n", cudaGetErrorString(err));
             return error_return(col_arrays);
         }
@@ -270,6 +277,7 @@ extern "C" {
         cudaFree(col_arrays.collided_entities);
         cudaFree(col_arrays.counter);
 
+
         return h_col_arrays;
 
     }
@@ -290,3 +298,5 @@ extern "C" {
     }
 
 }
+
+
