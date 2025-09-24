@@ -347,13 +347,14 @@ impl CUDAWorld {
         self.update_entities(entities);
 
         // update the grid with the new entity positions
-        let overflow = self.add_to_grid();
+        //let overflow = self.add_to_grid();
+        let overflow = 0;
 
         unsafe{
             let delta_time = 1.0 / self.settings.fps();
             cu_grid::update_positions(self.ligands.clone(), delta_time);
         }
-
+        
         // then, handle collisions
         let collisions;
         unsafe {
@@ -368,7 +369,7 @@ impl CUDAWorld {
         // clear grid
         let size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
         unsafe {
-            cu_mem::clear_u(self.grid, size);
+            //cu_mem::clear_u(self.grid, size);
         }
 
         return (collisions, overflow);

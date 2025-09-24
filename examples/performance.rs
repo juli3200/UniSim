@@ -28,7 +28,7 @@ fn test_performance_cpu(n : usize, ligands: usize) -> Duration {
 
 }
 
-#[cfg(feature = "cuda")]
+
 fn test_performance_gpu(n : usize, ligands: usize) -> Duration {
 
     let s = settings!(1000, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true);
@@ -46,8 +46,8 @@ fn test_performance_gpu(n : usize, ligands: usize) -> Duration {
 }
 
 
-#[cfg(feature = "cuda")]
-fn test_compare_performance() {
+
+pub fn test_compare_performance() {
     let n = 1000;
     let mut cpu_durations = Vec::new();
     let mut gpu_durations = Vec::new();

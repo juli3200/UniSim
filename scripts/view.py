@@ -74,12 +74,6 @@ class RealTimePlotter(QtWidgets.QWidget):
         self.timer.start(int(1000/self.plot_fps / 2))  # 20 FPS
 
 
-
-
-
-    
-
-
     def update_plot(self):
         if self.counter % self.update_interval == 0:
             self.state = self.world.get_state()
@@ -103,7 +97,7 @@ class RealTimePlotter(QtWidgets.QWidget):
                 y = [l.y for l in self.ligands],
                 symbol='o',
                 brush=[pg.mkBrush(255,0,0) for _ in self.ligands],
-                size=[0.05 for _ in self.ligands]
+                size=[0.1 for _ in self.ligands]
             )
 
         self.counter += 1

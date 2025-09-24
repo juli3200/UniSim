@@ -2,6 +2,11 @@
 
 use crate::prelude::*;
 
+#[cfg(feature = "cuda")]
+use ndarray::Array1;
+#[cfg(feature = "cuda")]
+use crate::objects;
+
 
 mod general{
     use super::*;
@@ -117,12 +122,13 @@ mod cuda_tests {
     fn ligands_test(){
 
 
-        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 1000));
+        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
         world.save("ligands_test.bin").expect("Save expect");
 
 
         // add ligands manually
+        /*
         for i in 0..9 {
             world.ligands.push(objects::Ligand {
                 id: i,
@@ -131,9 +137,10 @@ mod cuda_tests {
                 message: i as u32 + 1,
             });
             world.ligands_count += 1;
-        }
+        }*/
+        world.add_ligands(1000);
 
-        world.run(1000);
+        world.run(100);
     }
 }
 
@@ -154,7 +161,7 @@ impl World{
                     id: self.ligands_count,
                     position: Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]),
                     velocity: Array1::from_vec(vec![0.0, 0.0]), // velocity is not tracked after collision
-                    message: messages[i]
+                    message: messages[i+1]
                 };
                 ligands.push(ligand);
             }
@@ -182,9 +189,15 @@ impl World{
 
             for i in 0..device_ligands.num_ligands {
                 if messages_host[i] == 0 {
+                    if i == 0 {
+                        println!("Empty ligand at index {}", i);
+                    } 
                     continue; // skip empty, collided ligands
                 }
                 let pos = [positions_host[i * 2], positions_host[i * 2 + 1]];
+                if i == device_ligands.num_ligands - 1 {
+                    println!("Last ligand pos: {:?}", pos);
+                }
                 
                 self.ligands.push(objects::Ligand {
                     id: 0, // id is not important here
