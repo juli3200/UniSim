@@ -14,7 +14,6 @@ impl Space{
             height: 0,
             grid: vec![],
             max_size: 0.0, // no entities or ligands, so max_size is 0
-            hit: false
         }
     }
 
@@ -33,7 +32,6 @@ impl Space{
             height,
             grid,
             max_size,
-            hit: false
         })
     }
 

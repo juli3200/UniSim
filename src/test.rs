@@ -1,9 +1,6 @@
-#![cfg(test)]
+#![cfg(all(test, feature = "debug"))]
 
 use crate::prelude::*;
-use ndarray::Array1;
-use crate::objects;
-
 
 
 mod general{

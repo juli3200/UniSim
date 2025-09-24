@@ -1,5 +1,12 @@
-#![cfg(all(feature = "debug", feature = "cuda"))]
+#[cfg(not(all(feature = "debug", feature = "cuda")))]
+mod performance {
+    pub fn test_compare_performance() {
+        println!("Performance comparison is only available with both 'debug' and 'cuda' features enabled.");
+    }
+}
 
+#[cfg(all(feature = "debug", feature = "cuda"))]
+mod performance {
 
 use std::time::{Duration, Instant};
 use UniSim::prelude::*;
@@ -76,9 +83,9 @@ fn test_compare_performance() {
 }
 
 
-fn main(){
-    #[cfg(feature = "cuda")]
-    test_compare_performance();
+
 }
 
-
+fn main(){
+    performance::test_compare_performance();
+}
