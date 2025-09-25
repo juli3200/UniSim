@@ -3,9 +3,9 @@
 #[cfg(feature = "cuda")]
 const NAMES: [&str; 3] = ["test", "memory", "grid"];
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "cuda"))]
 const CUDA_PATH: &str = "/usr/local/cuda/lib64";
-#[cfg(not(target_os = "linux"))]
+#[cfg(all(not(target_os = "linux"), feature = "cuda"))]
 const CUDA_PATH: &str = r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\lib\x64";
 
 fn main() {

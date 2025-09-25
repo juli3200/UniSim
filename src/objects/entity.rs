@@ -7,6 +7,30 @@ use crate::world::{Border, Collision, Space};
 
 const IDLE_COLLISION_TIMER: usize = 2; // number of updates to ignore collisions after a collision
 
+
+fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
+    assert_eq!(position.len(), 2, "Position should be a 2D vector");
+    assert_eq!(entity.position.len(), 2, "Entity position should be a 2D vector");
+
+    // not neccessary to normalize, because 
+
+    let direction = position - &entity.position;
+
+    let v: Array1<f32> = entity.velocity.clone();
+
+    // cross product
+    let cross_product = direction[0] * v[1] - direction[1] * v[0];
+
+    // dot product
+    let dot_product = direction[0] * v[0] + direction[1] * v[1];
+
+    let angle = cross_product.atan2(dot_product);
+    assert_ne!(angle, f32::NAN, "Angle should not be NaN");
+
+    return angle;
+}
+
+
 impl Entity {
     pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
 
@@ -76,7 +100,13 @@ impl Entity {
     pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>) -> Result<(), String> {
         // process the ligand message
         // for now, just increase energy based on message
-        return Ok(());
+
+        let angle = calculate_ligand_direction(self, &position);
+
+        #[cfg(feature = "debug")]
+        println!("Entity {} received ligand with message {} from angle {}", self.id, message, angle);
+
+        
 
         todo!()
 

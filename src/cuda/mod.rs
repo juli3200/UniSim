@@ -81,6 +81,7 @@ pub(crate) struct CUDAWorld{
 }
 
 // Test functions to access private fields
+#[allow(dead_code)]
 #[cfg(test)]
 impl CUDAWorld {
     pub(crate) fn get_entity_arrays(&self) -> EntityArrays {
