@@ -6,6 +6,7 @@ import sys
 import extract
 
 LIGANDS = True
+LSIZE = 5
 
 def get_fps(fps):
     for factor in range(1, 80):
@@ -97,7 +98,7 @@ class RealTimePlotter(QtWidgets.QWidget):
                 y = [l.y for l in self.ligands],
                 symbol='o',
                 brush=[pg.mkBrush(255,0,0) for _ in self.ligands],
-                size=[0.1 for _ in self.ligands]
+                size=[0.1 * LSIZE for _ in self.ligands]
             )
 
         self.counter += 1

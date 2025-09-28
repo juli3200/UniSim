@@ -19,13 +19,13 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
 
     let v: Array1<f32> = entity.velocity.clone();
 
-    // cross product
-    let cross_product = direction[0] * v[1] - direction[1] * v[0];
+    // dot product is enough because we only need unsigned angle
+    let dot_product = direction.dot(&v);
 
-    // dot product
-    let dot_product = direction[0] * v[0] + direction[1] * v[1];
+    let direction_len = direction.mapv(|x| x.powi(2)).sum().sqrt();
+    let v_len = v.mapv(|x| x.powi(2)).sum().sqrt();
 
-    let angle = cross_product.atan2(dot_product);
+    let angle = (dot_product / (direction_len * v_len)).acos();
     assert_ne!(angle, f32::NAN, "Angle should not be NaN");
 
     return angle;
@@ -101,28 +101,6 @@ impl Entity {
 
     }
 
-    // TODOOOOOOOOO ligand function
-    pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
-        // Take the ligands from the entity and return them
-        return vec![];
-
-        todo!()
-    }
-
-    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>) -> Result<(), String> {
-        // process the ligand message
-        // for now, just increase energy based on message
-
-        let angle = calculate_ligand_direction(self, &position);
-
-        #[cfg(feature = "debug")]
-        println!("Entity {} received ligand with message {} from angle {}", self.id, message, angle);
-
-        
-
-        todo!()
-
-    }
 
     pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) {
 
@@ -187,5 +165,32 @@ impl Entity {
             }
             _ => {}
         }
+    }
+
+        // TODOOOOOOOOO ligand function
+    pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
+        // Take the ligands from the entity and return them
+        return vec![];
+
+        todo!()
+    }
+
+    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>) {
+        // process the ligand message
+        // for now, just increase energy based on message
+
+        let angle = calculate_ligand_direction(self, &position);
+
+
+        #[cfg(feature = "debug")]
+        {
+            let direction = &position - &self.position;
+            println!("Entity {} received ligand at position {} from angle {} v{}", self.id, direction, angle, self.velocity);
+        }
+
+        return;
+
+        todo!()
+
     }
 }

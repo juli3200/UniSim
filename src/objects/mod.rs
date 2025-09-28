@@ -6,7 +6,7 @@ pub mod ligand;
 #[derive(Debug, Clone)]
 pub(crate) enum ObjectType {
     Entity(usize),
-    Ligand(usize),
+    Ligand,
 }
 
 #[derive(Debug, Clone)]

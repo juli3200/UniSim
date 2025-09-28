@@ -274,7 +274,7 @@ impl World {
             } else {
                 // increase capacity 
                 println!("Increasing ligand capacity");
-                self.cuda_world.as_mut().unwrap().increase_cap(objects::ObjectType::Ligand(0));
+                self.cuda_world.as_mut().unwrap().increase_cap(objects::ObjectType::Ligand);
             }
         }
 
@@ -324,7 +324,7 @@ impl World {
             let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
             if let Some(entity) = entity_ref {
-                entity.receive_ligand(message, pos)?;
+                entity.receive_ligand(message, pos);
             } else {
                 return Err(format!("Entity with ID {} not found", entity_id));
             }
@@ -474,12 +474,7 @@ impl World {
             let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
             // add ligand at random position
             // ensure position is within bounds
-            let ligand = objects::Ligand {
-                emitted_id: usize::MAX,
-                position,
-                velocity: norm_pos, // velocity is not tracked after collision
-                message: 0u32,
-            };
+            let ligand = objects::Ligand::new(usize::MAX, 0u32, position, norm_pos);
             self.ligands.push(ligand);
             self.ligands_count += 1;
         }

@@ -307,7 +307,7 @@ impl CUDAWorld {
 
 
             },
-            objects::ObjectType::Ligand(_) => {
+            objects::ObjectType::Ligand => {
                 let new_cap = (self.ligand_cap as f32 * EXTRA_SPACE_LIGAND) as u32;
                 self.ligand_cap = new_cap;
 

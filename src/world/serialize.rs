@@ -136,14 +136,20 @@ impl Save for World {
         buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.entities.serialize()?);
 
+        let ligands_count = if cfg!(feature = "save_ligands") {
+            self.ligands_count
+        } else {
+            0
+        };
+
         // ligands are only saved in test mode for debugging purposes
-        #[cfg(test)]
+        #[cfg(feature = "save_ligands")]
         {
         buffer.extend(&(self.ligands_count as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
         }
 
-        #[cfg(not(test))]
+        #[cfg(not(feature = "save_ligands"))]
         {
             buffer.extend(&0u32.to_le_bytes()); // 4 bytes for ligands count
         }
@@ -155,7 +161,7 @@ impl Save for World {
 
 
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
-            self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.0 {
+            ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.0 {
                 return Err("Invalid buffer length world".to_string());
         }
 

@@ -6,6 +6,7 @@ edition = "2024"
 [features]
 default = ["debug", "cuda"]
 debug = []
+save_ligands = ["debug"]
 cuda = ["dep:libc"]
 
 [dev-dependencies]
