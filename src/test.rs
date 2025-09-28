@@ -42,7 +42,7 @@ mod general{
         world.entities[1].position = ndarray::Array1::from(vec![8.0, 3.0]);
         world.entities[1].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);
 
-        let e = world.save("col.bin");
+        let e = world.save("testfiles/col.bin");
         if let Err(e) = e {
             eprintln!("Error saving world: {}", e);
         }
@@ -65,6 +65,17 @@ mod general{
 
     }
 
+    #[test]
+    fn gravity_test(){
+        let setting = settings!(100, velocity = 3.0, dimensions = (100,100), gravity = vec![0.0, -1.0], store_capacity = 1000);
+        let mut world = World::new(setting);
+
+        world.save("testfiles/gravity_test.bin").expect("Failed to save world");
+
+        world.run(1000);
+
+    }
+
 }
 
 mod io_tests {
@@ -79,7 +90,7 @@ mod io_tests {
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 
-        let e = world.save("alpha.bin");
+        let e = world.save("testfiles/alpha.bin");
         println!("Save result: {:?}", e);
         world.run(n);
 
@@ -124,7 +135,7 @@ mod cuda_tests {
 
         let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
-        world.save("ligands_test.bin").expect("Save expect");
+        world.save("testfiles/ligands_test.bin").expect("Save expect");
 
 
         // add ligands manually

@@ -5,7 +5,8 @@ use super::{Entity, Ligand};
 use crate::settings_::Settings;
 use crate::world::{Border, Collision, Space};
 
-const IDLE_COLLISION_TIMER: usize = 2; // number of updates to ignore collisions after a collision
+const IDLE_COLLISION_TIMER: usize = 30; // number of updates to ignore collisions after a collision
+const IDLE_BORDER_TIMER: usize = 10; // number of updates to ignore border collisions after a border collision
 
 
 fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
@@ -63,7 +64,8 @@ impl Entity {
             size: settings.spawn_size(),
             velocity,
             acceleration: Array1::zeros(2),
-            last_collision: None,
+            last_entity_collision: (0,0),
+            last_border_collision: 0,
         })
     }
 
@@ -71,19 +73,29 @@ impl Entity {
 
         // update last_collision timer
         // timer is set by constant: IDLE_COLLISION_TIMER
-        if let Some((last_id, last_time)) = self.last_collision {
-            if last_time <= 1{ self.last_collision = None; }
-            else { self.last_collision = Some((last_id, last_time -1)); }
+        if self.last_entity_collision.1 > 0 {
+            self.last_entity_collision.1 -= 1;
         }
+
+        if self.last_border_collision > 0 {
+            self.last_border_collision -= 1;
+        }
+
 
         let fps = 1.0 / space.settings.fps();
 
-        // implement acceleration 
-        // TODOOOO
-        let old_position: Array1<f32> = self.position.clone();
+        
+        // acceleration
+        self.velocity.scaled_add(fps, &self.acceleration);
+        // friction
+        self.velocity *= 1.0 - space.settings.friction() * fps;
+        // gravity
+        self.velocity.scaled_add(fps, &space.settings.gravity());
 
         // update the entity's position based on its velocity
         self.position.scaled_add(fps * space.settings.velocity(), &self.velocity);
+
+        let old_position: Array1<f32> = self.position.clone();
 
         space.update_entity_position(self.id, old_position, self.position.clone());
 
@@ -122,11 +134,9 @@ impl Entity {
             Collision::EntityCollision(other_velocity, mass, other_position, id) => {
                 // check if the colliding entity is the last collided entity
                 // this is used to avoid jittering
-                if let Some((last_id, last_time)) = self.last_collision {
-                    if last_id == id && last_time > 0 {
-                        // skip update if the entity just collided with the same entity
-                        return;
-                    }
+                if self.last_entity_collision.0 == id && self.last_entity_collision.1 > 0 {
+                    // skip update if the entity just collided with the same entity
+                    return;
                 }
 
                 // resolve collision with other entity
@@ -155,18 +165,25 @@ impl Entity {
                     panic!("NaN velocity detected after collision resolution");
                 }
 
-                self.last_collision = Some((id, IDLE_COLLISION_TIMER));
+                self.last_entity_collision = (id, IDLE_COLLISION_TIMER);
 
             }
 
 
             Collision::BorderCollision(border) => {
+                // check if the entity just collided with a border
+                if self.last_border_collision > 0 {
+                    return;
+                }
+                
                 match border {
                     Border::Left => self.velocity[0] = -self.velocity[0], // reflect velocity
                     Border::Right => self.velocity[0] = -self.velocity[0],
                     Border::Top => self.velocity[1] = -self.velocity[1],
                     Border::Bottom => self.velocity[1] = -self.velocity[1],
                 }
+
+                self.last_border_collision = IDLE_BORDER_TIMER;
             }
             _ => {}
         }

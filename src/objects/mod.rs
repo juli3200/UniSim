@@ -11,10 +11,10 @@ pub(crate) enum ObjectType {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Ligand {
-    pub emitted_id: usize, // id of the entity that emitted the ligand
-    pub position: Array1<f32>, // position in the world
-    pub velocity: Array1<f32>, // velocity in the world
-    pub message: u32 // message carried by the ligand
+    pub(crate) emitted_id: usize, // id of the entity that emitted the ligand
+    pub(crate) position: Array1<f32>, // position in the world
+    pub(crate) velocity: Array1<f32>, // velocity in the world
+    pub(crate) message: u32 // message carried by the ligand
 }
 #[derive(Debug, Clone)]
 pub(crate) struct Entity {
@@ -35,6 +35,6 @@ pub(crate) struct Entity {
     pub(crate) velocity: Array1<f32>, // velocity of the entity
     pub(crate) acceleration: Array1<f32>, // acceleration of the entity
 
-    pub(crate) last_collision: Option<(usize, usize)>, // id of the last collided entity and when it happened
-
+    pub(crate) last_entity_collision: (usize, usize), // ids of the last collided entity and when it happened 
+    pub(crate) last_border_collision: usize, // when the last border collision happened
 }

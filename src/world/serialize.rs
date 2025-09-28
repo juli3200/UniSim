@@ -1,11 +1,12 @@
-use crate::{objects::{Entity, Ligand}, world::World};
+use crate::{objects::{Entity, Ligand}, prelude::Settings, world::World};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
 pub const LIGAND_BUF_SIZE: (usize, usize) = (12, 16);
-pub const WORLD_BUF_ADD: (usize, usize) = (17, 25);
-pub const HEADER_SIZE: usize = 37;
+pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
+pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
+pub const HEADER_SIZE: usize = 53;
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -23,6 +24,9 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.spawn_size().to_le_bytes()); // spawn size 4 bytes
     buffer.extend(&(world.settings.store_capacity() as u32).to_le_bytes()); // store capacity 4 bytes
     buffer.extend(&world.settings.fps().to_le_bytes()); // fps 4 bytes
+    buffer.extend(&world.settings.velocity().to_le_bytes()); // velocity 4 bytes
+    buffer.extend(&world.settings.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>()); // gravity 8 bytes
+    buffer.extend(&world.settings.friction().to_le_bytes()); // friction 4 bytes
     // add other settings
 
     
@@ -141,7 +145,7 @@ impl Save for World {
 
         #[cfg(not(test))]
         {
-            buffer.extend(&0u32.to_le_bytes()); // 4 bytes
+            buffer.extend(&0u32.to_le_bytes()); // 4 bytes for ligands count
         }
 
         // Insert the total buffer length at the beginning
@@ -165,7 +169,7 @@ impl Save for World {
         buffer.push(true as u8); // pause file 1 byte
 
         // add changeable settings
-        buffer.extend(&self.settings.fps().to_le_bytes()); // 4 bytes
+        buffer.extend(self.settings.pause_serialize()?); // 16 bytes
 
         // time, counter
         buffer.extend(&self.time.to_le_bytes()); // 4 bytes
@@ -187,6 +191,38 @@ impl Save for World {
         if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
             self.ligands_count * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
                 return Err("Invalid buffer length world".to_string());
+        }
+
+        Ok(buffer)
+    }
+}
+
+
+impl Save for Settings{
+    fn serialize(&self) -> Result<Vec<u8>, String> {
+        let buffer = Vec::new();
+
+
+        Ok(buffer)
+    }
+
+    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+        let mut buffer = Vec::new();
+
+        // fps 4 bytes
+        buffer.extend(&self.fps().to_le_bytes());
+
+        // velocity 4 bytes
+        buffer.extend(&self.velocity().to_le_bytes());
+
+        // gravity 4 bytes
+        buffer.extend(&self.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>());
+
+        // friction 4 bytes
+        buffer.extend(&self.friction().to_le_bytes());
+
+        if buffer.len() != SETTINGS_BUF_SIZE.0 {
+            return Err("Invalid buffer length settings".to_string());
         }
 
         Ok(buffer)

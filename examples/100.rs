@@ -9,7 +9,7 @@ fn main() {
     #[cfg(feature = "debug")]
     world.add_ligands(100);
 
-    let e = world.save("test.bin");
+    let e = world.save("testfiles/test.bin");
 
     if let Err(e) = e {
         eprintln!("Failed to save world: {}", e);

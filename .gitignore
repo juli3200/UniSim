@@ -6,3 +6,4 @@
 /.idea
 /lib/*
 scripts/__pycache__
+testfiles/*

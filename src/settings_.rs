@@ -1,3 +1,5 @@
+use ndarray::Array1;
+
 
 
 #[derive(Debug, Clone)]
@@ -15,6 +17,8 @@ pub struct Settings {
     // changeable settings
     fps: f32, // frames per second of the simulation
     velocity: f32, // default velocity of entities
+    gravity: Array1<f32>, // gravity of the world
+    friction: f32, // mü of the world
 
     // cuda settings
     #[cfg(feature = "cuda")]
@@ -41,6 +45,8 @@ impl Settings {
             store_capacity: 1024,
             fps: 60.0,
             velocity: 3.0,
+            gravity: Array1::zeros(2),
+            friction: 0.0,
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
         }
@@ -89,6 +95,16 @@ impl Settings {
     // returns default velocity
     pub fn velocity(&self) -> f32 {
         self.velocity
+    }
+
+    // returns gravity
+    pub fn gravity(&self) -> Array1<f32> {
+        self.gravity.clone()
+    }
+
+    // returns friction
+    pub fn friction(&self) -> f32 {
+        self.friction
     }
 
     #[cfg(feature = "cuda")]
@@ -149,6 +165,14 @@ impl Settings {
 
     pub fn set_velocity(&mut self, velocity: f32) {
         self.velocity = velocity;
+    }
+
+    pub fn set_gravity<T: Into<Array1<f32>>>(&mut self, gravity: T) {
+        self.gravity = gravity.into();
+    }
+
+    pub fn set_friction(&mut self, friction: f32) {
+        self.friction = friction;
     }
 
     #[cfg(feature = "cuda")]

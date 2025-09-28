@@ -14,11 +14,14 @@ class World:
         self.spawn_size = struct.unpack('f', self.bytes[21:25])[0]
         self.store_capacity = struct.unpack('I', self.bytes[25:29])[0]
         self.fps = struct.unpack('f', self.bytes[29:33])[0]
+        self.velocity = struct.unpack('f', self.bytes[33:37])[0]
+        self.gravity = [struct.unpack('f', self.bytes[37:41])[0], struct.unpack('f', self.bytes[41:45])[0]]
+        self.friction = struct.unpack('f', self.bytes[45:49])[0]
 
-        self.entity_bytes_0 = int(self.bytes[33])
-        self.entity_bytes_1 = int(self.bytes[34])
-        self.ligand_bytes_0 = int(self.bytes[35])
-        self.ligand_bytes_1 = int(self.bytes[36])
+        self.entity_bytes_0 = int(self.bytes[49])
+        self.entity_bytes_1 = int(self.bytes[50])
+        self.ligand_bytes_0 = int(self.bytes[51])
+        self.ligand_bytes_1 = int(self.bytes[52])
 
         self.counter = 0
 
@@ -68,7 +71,6 @@ class State:
 
             ligand_n = struct.unpack('I', self.world.bytes[address + 13 + entity_n * self.world.entity_bytes_0:address + 17 + entity_n * self.world.entity_bytes_0])[0]
 
-            print("Entities:", entity_n, "Ligands:", ligand_n)
             for i in range(ligand_n):
                 index = address + 17 + entity_n * self.world.entity_bytes_0 + i * self.world.ligand_bytes_0
                 self.ligands.append(Ligand(self.world.bytes, index))
