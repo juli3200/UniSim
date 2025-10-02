@@ -1,6 +1,6 @@
+#![allow(dead_code)]
+
 use ndarray::Array1;
-
-
 
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -179,5 +179,6 @@ impl Settings {
     pub fn set_cuda_slots_per_cell(&mut self, slots: usize) {
         self.cuda_slots_per_cell = slots;
     }
+
 
 }

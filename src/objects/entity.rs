@@ -59,6 +59,7 @@ impl Entity {
             dna: vec![],
             age: 0,
             reproduction_rate: 0.0,
+            receptors: vec![],
 
             position,
             size: settings.spawn_size(),
@@ -175,7 +176,12 @@ impl Entity {
         todo!()
     }
 
-    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>) {
+    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>, emitted_id: usize, receptor_capacity: usize) {
+        if emitted_id == self.id {
+            // ignore ligands emitted by self
+            return;
+        }
+
         // process the ligand message
         // for now, just increase energy based on message
 
@@ -186,6 +192,18 @@ impl Entity {
         {
             let direction = &position - &self.position;
             println!("Entity {} received ligand at position {} from angle {} v{}", self.id, direction, angle, self.velocity);
+        }
+
+        // handle the message
+
+        let angle_index = (angle / std::f32::consts::PI * receptor_capacity as f32).round() as usize; // index in receptor array
+
+        assert!(angle_index < receptor_capacity, "Angle index out of bounds");
+
+        let receptor = self.receptors[angle_index];
+        match receptor {
+            0 => {}, // no receptor
+            _ => {} // other receptor types can be implemented here
         }
 
         return;

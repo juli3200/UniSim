@@ -198,7 +198,7 @@ impl World {
                 let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
                 if let Some(entity) = entity_ref {
-                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone());
+                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone(), self.ligands[i].emitted_id);
                     // remove the ligand
                     self.ligands.remove(i);
                 } else {
@@ -324,7 +324,7 @@ impl World {
             let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
             if let Some(entity) = entity_ref {
-                entity.receive_ligand(message, pos);
+                entity.receive_ligand(message, pos, 0)  ; // emitted_id is 0 for now
             } else {
                 return Err(format!("Entity with ID {} not found", entity_id));
             }
