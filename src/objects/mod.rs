@@ -4,6 +4,9 @@ pub mod entity;
 pub mod ligand;
 mod receptor;
 
+const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
+
+
 #[derive(Debug, Clone)]
 pub(crate) enum ObjectType {
     Entity(usize),
@@ -28,10 +31,12 @@ pub(crate) struct Entity {
     reproduction_rate: f32, // rate of reproduction
 
     // receptors
-    receptors: Vec<u32>, // list of receptor functions
-    //...
-    // concentrations
+    receptors: Vec<u32>, // list of receptors (size: settings.receptor_capacity())
 
+    // concentrations
+    // range defined in settings.concentration_range()
+    concentrations: [i16; OUTPUTS], // concentration levels of different inner proteins
+    
 
     // ******************* physics ***********************
     pub(crate) position: Array1<f32>, // position in the world
@@ -43,8 +48,3 @@ pub(crate) struct Entity {
     pub(crate) last_border_collision: usize, // when the last border collision happened
 }
 
-struct ReceptorBond {
-    energy_change: f32, 
-    concentration_type: u8, // which concentration to change
-    concentration_change: f32, // how much to change the concentration
-}

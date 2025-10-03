@@ -1,5 +1,4 @@
 use rand::Rng;
-
 use ndarray::Array1;
 use super::{Entity, Ligand};
 use crate::settings_::Settings;
@@ -60,6 +59,7 @@ impl Entity {
             age: 0,
             reproduction_rate: 0.0,
             receptors: vec![],
+            concentrations: [0; super::OUTPUTS],
 
             position,
             size: settings.spawn_size(),
@@ -70,7 +70,7 @@ impl Entity {
         })
     }
 
-    pub(crate) fn update(&mut self, space: &mut Space) {
+    pub(crate) fn update_physics(&mut self, space: &mut Space) {
 
         // update last_collision timer
         // timer is set by constant: IDLE_COLLISION_TIMER
@@ -99,6 +99,15 @@ impl Entity {
         let old_position: Array1<f32> = self.position.clone();
 
         space.update_entity_position(self.id, old_position, self.position.clone());
+
+    }
+
+    pub(crate) fn update_biology(&mut self) -> bool{
+        // update the entity's biological state
+        self.age += 1;
+        
+        // DNA processing, energy consumption, reproduction, etc.
+        todo!();
 
     }
 
@@ -176,7 +185,7 @@ impl Entity {
         todo!()
     }
 
-    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>, emitted_id: usize, receptor_capacity: usize) {
+    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>, emitted_id: usize, settings: &Settings) {
         if emitted_id == self.id {
             // ignore ligands emitted by self
             return;
@@ -196,19 +205,30 @@ impl Entity {
 
         // handle the message
 
-        let angle_index = (angle / std::f32::consts::PI * receptor_capacity as f32).round() as usize; // index in receptor array
+        let angle_index = (angle / std::f32::consts::PI * settings.receptor_capacity() as f32).round() as usize; // index in receptor array
 
-        assert!(angle_index < receptor_capacity, "Angle index out of bounds");
+        assert!(angle_index < settings.receptor_capacity(), "Angle index out of bounds");
 
         let receptor = self.receptors[angle_index];
-        match receptor {
-            0 => {}, // no receptor
-            _ => {} // other receptor types can be implemented here
+        let bond_result = super::receptor::bond(receptor, message);
+        if bond_result.is_none() {
+            // no bond formed
+            return;
         }
 
+        let (energy_change, concentration_change) = bond_result.unwrap();
+        self.energy += energy_change;
+
+        // change concentration
+        let index = concentration_change.abs() as usize;
+        let change: i16 = if concentration_change < 0 { -1 } else { 1 };
+
+        assert!(index < self.concentrations.len(), "Concentration index out of bounds");
+
+        // change concentration and clamp to range
+        self.concentrations[index] = (self.concentrations[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
         return;
 
-        todo!()
 
     }
 }

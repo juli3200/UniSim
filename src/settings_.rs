@@ -12,6 +12,8 @@ pub struct Settings {
     spawn_size: f32, // size of the entities when they are spawned
     store_capacity: usize, // capacity of the save file
     give_start_vel: bool, // whether to give entities a starting velocity
+    concentration_range: (i16, i16), // range of concentrations for inner proteins
+    receptor_capacity: usize, // number of receptors per entity
 
 
     // changeable settings
@@ -42,6 +44,9 @@ impl Settings {
             dimensions: (100, 100),
             spawn_size: 1.0,
             give_start_vel: true,
+            concentration_range: (-32, 32),
+            receptor_capacity: 10_000, // 10_000 receptors
+
             store_capacity: 1024,
             fps: 60.0,
             velocity: 3.0,
@@ -85,6 +90,16 @@ impl Settings {
     // returns store capacity
     pub fn store_capacity(&self) -> usize {
         self.store_capacity
+    }
+
+    // returns concentration range
+    pub fn concentration_range(&self) -> (i16, i16) {
+        self.concentration_range
+    }
+
+    // returns receptor capacity
+    pub fn receptor_capacity(&self) -> usize {
+        self.receptor_capacity
     }
 
     // returns frames per second
@@ -156,6 +171,37 @@ impl Settings {
             return;
         }
         self.store_capacity = store_capacity;
+    }
+
+    pub fn set_concentration_range(&mut self, range: (i16, i16)) {
+        if self.init {
+            eprint!("Cannot change concentration_range after initialization");
+            return;
+        }
+        if range.0 >= range.1 {
+            eprint!("Invalid concentration range: start must be less than end");
+            return;
+        }
+
+        // prevent overflow
+        if range.0 == i16::MIN || range.1 == i16::MAX {
+            eprint!("Invalid concentration range: values must be within i16 bounds");
+            return;
+        }
+
+        if range.0 - range.1 < 5 {
+            eprint!("Warning: concentration range is very small, may lead to frequent clamping");
+        }
+
+        self.concentration_range = range;
+    }
+
+    pub fn set_receptor_capacity(&mut self, capacity: usize) {
+        if self.init {
+            eprint!("Cannot change receptor_capacity after initialization");
+            return;
+        }
+        self.receptor_capacity = capacity;
     }
 
 

@@ -165,7 +165,7 @@ impl World {
         // Update the world using CPU processing
         // update all entities positions
         for entity in &mut self.entities {
-            entity.update(&mut self.space);
+            entity.update_physics(&mut self.space);
         }
 
         let entities_clone = self.entities.clone();
@@ -198,7 +198,7 @@ impl World {
                 let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
                 if let Some(entity) = entity_ref {
-                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone(), self.ligands[i].emitted_id);
+                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone(), self.ligands[i].emitted_id, &self.settings);
                     // remove the ligand
                     self.ligands.remove(i);
                 } else {
@@ -235,7 +235,7 @@ impl World {
         let mut new_ligands = Vec::new();
 
         for entity in  self.entities.iter_mut() {
-            entity.update(&mut self.space);
+            entity.update_physics(&mut self.space);
             new_ligands.extend(entity.emit_ligands()); // collect new ligands from entities
         }
 
@@ -324,7 +324,7 @@ impl World {
             let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
             if let Some(entity) = entity_ref {
-                entity.receive_ligand(message, pos, 0)  ; // emitted_id is 0 for now
+                entity.receive_ligand(message, pos, 0, &self.settings); // emitted_id is 0 since we don't track it on GPU YET!
             } else {
                 return Err(format!("Entity with ID {} not found", entity_id));
             }

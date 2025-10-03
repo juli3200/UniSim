@@ -1,6 +1,13 @@
-use super::ReceptorBond;
+const SPEC_LENGTH: f64 = 16.0; // length of the specification in bits
 
-pub fn bond(receptor: u32, message: u32) -> Option<ReceptorBond> {
+
+fn spec_match(spec1: u16, spec2: u16) -> bool{
+    let matches = (spec1 ^ spec2).count_ones();
+
+    rand::random_bool(matches as f64 / SPEC_LENGTH)
+}
+
+pub fn bond(receptor: u32, message: u32) -> Option<(f32, i32)> {
     // returns: (energy change, (new receptor type, new receptor strength))
     if receptor == 0 {
         return None; // no receptor
@@ -9,13 +16,17 @@ pub fn bond(receptor: u32, message: u32) -> Option<ReceptorBond> {
     let (inner_protein, positive, receptor_spec) = sequence_receptor(receptor);
     let (energy , message_spec) = sequence_message(message);
 
-    let spec_match = (receptor_spec ^ message_spec).count_ones();
+    let bonding = spec_match(receptor_spec, message_spec);
 
-    // CONTINUEEEEE
+    if !bonding {
+        return None; // no bond formed
+    }
 
-    // example receptor types
+    // inner protein negative if concentration should decrease
+    // the abs value is the index
+    let inner_protein: i32 =  if positive { inner_protein as i32 } else { -(inner_protein as i32) };
 
-    None
+    return Some((energy, inner_protein));
     
 }
 
