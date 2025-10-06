@@ -32,7 +32,7 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
 
 
 impl Entity {
-    pub fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
+    pub(crate) fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
 
         let position = space
             .get_random_position(settings.spawn_size(), entities)?;
@@ -56,6 +56,7 @@ impl Entity {
             id,
             energy: 0.0,
             dna: vec![],
+            receptor_dna: vec![],
             age: 0,
             reproduction_rate: 0.0,
             receptors: vec![],
@@ -67,7 +68,43 @@ impl Entity {
             acceleration: Array1::zeros(2),
             last_entity_collision: (0,0),
             last_border_collision: 0,
-        })
+        }) 
+    }
+
+    fn init_receptors(&mut self, settings: &Settings) {
+        let mut rng = rand::rng();
+
+        // this receptor array will be filled with receptors all over the membrane
+        let mut receptors = Vec::with_capacity(settings.receptor_capacity());
+
+        // this section receptors reference the *different* receptors in receptor_dna
+        // extract receptor functions from receptor_dna
+        let receptor_fns: Vec<Box<dyn Fn(f32) -> f32>> = self.receptor_dna.iter().map(|&dna| super::receptor::extract_receptor_fns(dna)).collect();
+
+        let len = receptor_fns.len() as f32;
+
+        // e.g if receptor_capacity is 100 and there are 4 receptor functions, each function is called 25 times
+        // so every 4th receptor slot is reserved for the same receptor function
+        // this ensures that the receptors are evenly distributed over the membrane
+
+        for i in 0..(settings.receptor_capacity() / self.receptor_dna.len()) {
+            for r_type in 0..receptor_fns.len() {
+                let p = receptor_fns[r_type](i as f32 * len);
+                let create = rng.random_bool(p as f64);
+
+                if !create {
+                    receptors.push(0); // no receptor
+                    continue;
+                }
+
+                // create a receptor
+                let receptor = u32::from_le_bytes(self.receptor_dna[r_type].to_le_bytes()[4..8].try_into().unwrap());
+
+                receptors.push(receptor);
+            }
+        }
+        
+
     }
 
     pub(crate) fn update_physics(&mut self, space: &mut Space) {

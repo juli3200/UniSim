@@ -30,6 +30,32 @@ pub fn bond(receptor: u32, message: u32) -> Option<(f32, i32)> {
     
 }
 
+pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f32> {
+
+
+    let bytes = receptor_dna.to_le_bytes();
+
+    let (mut a, mut b, c) = (bytes[1] as f32 / 512.0, bytes[2] as f32 / 512.0, bytes[3] as f32 / 512.0); // in range 0..0.5
+
+    a -= 0.166;
+    b -= 0.166;
+    // c -= 0.0;
+
+
+    // a, b are now in range -0.166..0.334
+    // fn results are in range -0.33..1.333
+    // c is not changed and is in range 0..0.5
+    // this is to ensure that the function is not too extreme and overlaps 0 and one equally
+
+    return Box::new( move |x: f32| {
+
+                // quadratic function clamped to 0..1
+                (a * x.powi(2) + b * x + c).clamp(0.0, 1.0)
+
+            }) as Box<dyn Fn(f32) -> f32>;
+
+}
+
 fn sequence_receptor(receptor: u32) -> (u8, bool, u16) {
     // returns the sequence of the receptor
     // first byte: type of inner protein
@@ -47,3 +73,6 @@ fn sequence_message(message: u32) -> (f32, u16) {
 
     (energy, u16::from_le_bytes([bytes[2], bytes[3]]))
 }
+
+
+

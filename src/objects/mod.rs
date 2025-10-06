@@ -27,6 +27,7 @@ pub(crate) struct Entity {
     // ******************** biological *********************
     energy: f32, // energy level of the entity
     dna: Vec<u128>, // DNA sequence of the entity
+    receptor_dna: Vec<u64>, // DNA sequence for receptors
     age: usize, // age of the entity in simulation steps
     reproduction_rate: f32, // rate of reproduction
 
