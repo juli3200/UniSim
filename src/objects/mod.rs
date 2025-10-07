@@ -26,7 +26,7 @@ pub(crate) struct Entity {
 
     // ******************** biological *********************
     energy: f32, // energy level of the entity
-    dna: Vec<u128>, // DNA sequence of the entity
+    action_dna: Vec<u128>, // DNA sequence of the entity
     receptor_dna: Vec<u64>, // DNA sequence for receptors
     age: usize, // age of the entity in simulation steps
     reproduction_rate: f32, // rate of reproduction
@@ -36,8 +36,11 @@ pub(crate) struct Entity {
 
     // concentrations
     // range defined in settings.concentration_range()
-    concentrations: [i16; OUTPUTS], // concentration levels of different inner proteins
+    pub(crate) concentrations: [i16; OUTPUTS], // concentration levels of different inner proteins
     
+
+    // during update emit ligands
+    ligands_to_emit: Vec<Ligand>, // ligands to emit
 
     // ******************* physics ***********************
     pub(crate) position: Array1<f32>, // position in the world

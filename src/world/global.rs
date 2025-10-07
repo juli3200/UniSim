@@ -207,6 +207,11 @@ impl World {
             }
         }
 
+        for entity in &mut self.entities {
+            entity.update_output(&self.settings);
+        }
+
+
         // emit new ligands from entities
         for entity in &mut self.entities {
             let new_ligands = entity.emit_ligands();

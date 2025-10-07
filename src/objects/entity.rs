@@ -1,5 +1,5 @@
 use rand::Rng;
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 use super::{Entity, Ligand};
 use crate::settings_::Settings;
 use crate::world::{Border, Collision, Space};
@@ -52,15 +52,17 @@ impl Entity {
             Array1::zeros(2)
         };
 
-        Ok(Self {
+        let mut e = Self {
             id,
             energy: 0.0,
-            dna: vec![],
+            action_dna: vec![],
             receptor_dna: vec![],
             age: 0,
             reproduction_rate: 0.0,
             receptors: vec![],
             concentrations: [0; super::OUTPUTS],
+
+            ligands_to_emit: vec![],
 
             position,
             size: settings.spawn_size(),
@@ -68,10 +70,16 @@ impl Entity {
             acceleration: Array1::zeros(2),
             last_entity_collision: (0,0),
             last_border_collision: 0,
-        }) 
+        };
+
+        e.init_receptors(settings);
+        
+        Ok(e)
+
     }
 
     fn init_receptors(&mut self, settings: &Settings) {
+        if self.receptor_dna.len() == 0 {return;} // no receptors to initialize
         let mut rng = rand::rng();
 
         // this receptor array will be filled with receptors all over the membrane
@@ -139,12 +147,37 @@ impl Entity {
 
     }
 
-    pub(crate) fn update_biology(&mut self) -> bool{
+    pub(crate) fn update_output(&mut self, settings: &Settings){
         // update the entity's biological state
         self.age += 1;
         
-        // DNA processing, energy consumption, reproduction, etc.
-        todo!();
+        // 0 MOVEMENT
+        if self.concentrations[0] > 0 {
+            // run
+            // TODOOOOOOOOOOOOOOOO how mutch acceleration?
+            self.acceleration = &self.velocity * 0.1;
+
+        } else if self.concentrations[1] <= 0 {
+            // tumble
+            // TODOOO OVERHAUL TUMBLE
+            // random rotation matrix
+            let mut rng = rand::rng();
+            
+            if rng.random_bool(settings.tumble_chance()) {
+                let angle: f32 = rng.random_range(-std::f32::consts::PI/ 4.0 ..std::f32::consts::PI / 4.0);
+
+            let rotation_matrix: Array2<f32> = Array2::from_shape_vec((2, 2), vec![
+                angle.cos(), -angle.sin(),
+                angle.sin(), angle.cos(),
+            ]).unwrap();
+
+            self.velocity = rotation_matrix.dot(&self.velocity);
+            }
+            
+
+        }
+
+
 
     }
 
@@ -217,14 +250,16 @@ impl Entity {
         // TODOOOOOOOOO ligand function
     pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
         // Take the ligands from the entity and return them
-        return vec![];
-
-        todo!()
+        let ligands = self.ligands_to_emit.clone();
+        self.ligands_to_emit.clear();
+        ligands
     }
 
     pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>, emitted_id: usize, settings: &Settings) {
         if emitted_id == self.id {
             // ignore ligands emitted by self
+            let ligand = Ligand::new(self.id, message, position.clone(), position);
+            self.ligands_to_emit.push(ligand);
             return;
         }
 
@@ -248,8 +283,11 @@ impl Entity {
 
         let receptor = self.receptors[angle_index];
         let bond_result = super::receptor::bond(receptor, message);
+
         if bond_result.is_none() {
-            // no bond formed
+            // bonding failed, re-emit the ligand
+            let ligand = Ligand::new(self.id, message, position.clone(), position);
+            self.ligands_to_emit.push(ligand);
             return;
         }
 

@@ -97,6 +97,21 @@ mod io_tests {
     }
 }
 
+mod dna_tests {
+    use super::*;
+
+
+    #[test]
+    fn test_tumble(){
+        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        world.entities[0].concentrations[1] = -10; // set concentration to negative value to trigger tumble
+
+        world.save("testfiles/tumble_test.bin").expect("Failed to save world");
+        world.run(100);
+
+
+    }
+}
 
 #[cfg(feature = "cuda")]
 mod cuda_tests {

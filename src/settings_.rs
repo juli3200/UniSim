@@ -21,6 +21,7 @@ pub struct Settings {
     velocity: f32, // default velocity of entities
     gravity: Array1<f32>, // gravity of the world
     friction: f32, // mü of the world
+    tumble_chance: f64, // chance of tumbling
 
     // cuda settings
     #[cfg(feature = "cuda")]
@@ -54,6 +55,7 @@ impl Settings {
             friction: 0.0,
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
+            tumble_chance: 0.3333,
         }
     }
 
@@ -104,7 +106,7 @@ impl Settings {
 
     // returns frames per second
     pub fn fps(&self) -> f32 {
-        self.fps
+        self.fps 
     }
 
     // returns default velocity
@@ -125,6 +127,9 @@ impl Settings {
     #[cfg(feature = "cuda")]
     pub fn cuda_slots_per_cell(&self) -> usize {
         self.cuda_slots_per_cell
+    }
+    pub fn tumble_chance(&self) -> f64 {
+        self.tumble_chance
     }
 
     //
@@ -226,5 +231,12 @@ impl Settings {
         self.cuda_slots_per_cell = slots;
     }
 
+    pub fn set_tumble_chance(&mut self, chance: f64) {
+        if chance < 0.0 || chance > 1.0 {
+            eprint!("Tumble chance must be between 0.0 and 1.0");
+            return;
+        }
+        self.tumble_chance = chance;
+    }
 
 }
