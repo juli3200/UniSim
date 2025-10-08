@@ -34,6 +34,7 @@ impl World {
             // the objects are filled in in the initialize function
             entities: Vec::new(),
             ligands: Vec::new(),
+            ligand_sources: Vec::new(),
             space: Space::empty(),
 
             #[cfg(feature = "cuda")]
@@ -84,7 +85,31 @@ impl World {
         Ok(())
     }
 
+    pub fn add_ligand_source(&mut self, position: Array1<f32>, emission_rate: f32, ligand_message: u32) {
+        let source = objects::LigandSource::new(position, emission_rate, ligand_message);
+        self.ligand_sources.push(source);
+    }
+
     pub fn run(&mut self, n: usize) {
+
+        // check if if n is smaller than store capacity$
+        // it isn't saved if too small
+        if n + self.buffer.len() < self.settings.store_capacity() {
+            eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");
+            if self.iteration == 0 {
+                eprintln!("Do you want to decrease the store capacity? (y/n)");
+                let mut input = String::new();   
+                std::io::stdin().read_line(&mut input).expect("Failed to read line");
+                if input.trim() == "y" {      
+                    use crate::edit_settings;
+                    edit_settings!(self, store_capacity = n + self.buffer.len());
+                    eprintln!("Store capacity set to {}", self.settings.store_capacity());
+                } else {
+                    eprintln!("Continuing without saving.");
+                }
+            }           
+        }
+
         // Main loop for the world simulation
         for _ in 0..n {
             self.update();
@@ -215,6 +240,12 @@ impl World {
         // emit new ligands from entities
         for entity in &mut self.entities {
             let new_ligands = entity.emit_ligands();
+            self.ligands.extend(new_ligands);
+        }
+
+        // emit new ligands from sources
+        for source in &self.ligand_sources {
+            let new_ligands = source.emit_ligands(dt);
             self.ligands.extend(new_ligands);
         }
 
@@ -360,6 +391,7 @@ impl World {
 use std::io::{self, Write};
 use std::fs::OpenOptions;
 
+
 // save impl Block
 impl World{
 
@@ -370,6 +402,17 @@ impl World{
     where
         S: AsRef<std::path::Path>,
     {
+        // check if the path exists
+        if path.as_ref().exists() {
+            eprint!("Warning: File {} already exists. Overwrite? (y/n)", path.as_ref().display());
+            let mut input = String::new();   
+            std::io::stdin().read_line(&mut input).expect("Failed to read line");
+            if input.trim() != "y" {      
+                return Err(io::Error::new(io::ErrorKind::Other, "File already exists"));
+            }
+        }
+
+
         self.path = Some(path.as_ref().to_path_buf());
         self.save_header()?;
         Ok(())
@@ -487,16 +530,16 @@ impl World {
         }
     }
 
-    pub fn change_concentration(&mut self, entity_id: usize, index: usize, value: i16)  {
-        // change the concentration of an entity
-        if let Some(entity) = get_entity_mut(&mut self.entities, entity_id) {
-            if index < entity.concentrations.len() {
-                entity.concentrations[index] = value;
+    pub fn change_concentration(&mut self, index: usize, value: i16)  {
+        for i in 0..self.entities.len() {
+        
+            if index < self.entities[i].concentrations.len() {
+                self.entities[i].concentrations[index] = value;
             } else {
                 eprint!("Index {} out of bounds for concentrations", index);
             }
-        } else {
-            eprint!("Entity with ID {} not found", entity_id);
+            return;
+            
         }
     }
 

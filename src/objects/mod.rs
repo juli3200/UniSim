@@ -14,6 +14,13 @@ pub(crate) enum ObjectType {
 }
 
 #[derive(Debug, Clone)]
+pub struct LigandSource {
+    position: Array1<f32>,
+    emission_rate: f32, // ligands per second
+    ligand_message: u32,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct Ligand {
     pub(crate) emitted_id: usize, // id of the entity that emitted the ligand
     pub(crate) position: Array1<f32>, // position in the world

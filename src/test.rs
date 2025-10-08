@@ -103,8 +103,8 @@ mod dna_tests {
 
     #[test]
     fn test_tumble(){
-        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
-        world.entities[0].concentrations[1] = -10; // set concentration to negative value to trigger tumble
+        let mut world = World::new(settings!(100, fps = 40.0, velocity = 3.0, store_capacity = 100, tumble_chance = 0.1));
+        world.change_concentration(0, -1);
 
         world.save("testfiles/tumble_test.bin").expect("Failed to save world");
         world.run(100);

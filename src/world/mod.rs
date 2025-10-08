@@ -34,6 +34,7 @@ pub struct World {
     // objects in the world
     pub(crate) entities: Vec<objects::Entity>,
     pub(crate) ligands: Vec<objects::Ligand>,
+    pub(crate) ligand_sources: Vec<objects::LigandSource>,
 
     pub space: Space, // the space is used to store the entities and ligands in a 2D grid
 

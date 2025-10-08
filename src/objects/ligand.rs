@@ -1,7 +1,44 @@
 use ndarray::Array1;
+use rand::Rng;
 use crate::{objects::Entity, world::{Border, Collision, Space}};
 
-use super::Ligand;
+use super::{Ligand, LigandSource};
+
+impl LigandSource {
+    pub fn new(position: Array1<f32>, emission_rate: f32, ligand_message: u32) -> Self {
+        Self {
+            position,
+            emission_rate,
+            ligand_message,
+        }
+    }
+
+    pub(crate) fn emit_ligands(&self, fps: f32) -> Vec<Ligand> {
+        let quantity = (self.emission_rate / fps) as usize; 
+        // emit 'quantity' ligands per frame
+
+        let mut ligands = Vec::with_capacity(quantity);
+
+        let mut rng = rand::rng();
+
+        for _ in 0..quantity {
+
+            let angle = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
+            let velocity: Array1<f32> = vec![angle.cos(), angle.sin()].into();
+            
+
+            ligands.push(Ligand::new(
+                usize::MAX, // no entity emitted this ligand
+                self.ligand_message,
+                self.position.clone(),
+                velocity
+            ));
+        }
+
+        ligands
+
+    }
+}
 
 impl Ligand {
 
