@@ -53,9 +53,9 @@ pub(crate) struct Dim{
 // if gpu is active positions, velocities, and sizes of the objects are each stored in a single array on gpu memory
 // this is to minimize the number of memory transfers between cpu and gpu
 #[derive(Debug, Clone)]
-pub(crate) struct CUDAWorld{
+pub struct CUDAWorld{
 
-    pub(crate) settings: Settings,
+    pub settings: Settings,
 
     // The following are pointers to CUDA device memory
 

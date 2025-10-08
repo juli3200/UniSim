@@ -18,7 +18,7 @@ pub mod serialize;
 pub struct World {
     // settings are stored in the settings struct
     // settings are used to configure the world
-    pub(crate) settings: Settings,
+    pub settings: Settings,
     buffer: Vec<Vec<u8>>,  // Buffer for saving to reduce I/O time
     path: Option<PathBuf>,
 
@@ -35,10 +35,10 @@ pub struct World {
     pub(crate) entities: Vec<objects::Entity>,
     pub(crate) ligands: Vec<objects::Ligand>,
 
-    pub(crate) space: Space, // the space is used to store the entities and ligands in a 2D grid
+    pub space: Space, // the space is used to store the entities and ligands in a 2D grid
 
     #[cfg(feature = "cuda")]
-    pub(crate) cuda_world: Option<crate::cuda::CUDAWorld>, // the CUDA world is used to store the entities and ligands in a single array for CUDA processing
+    pub cuda_world: Option<crate::cuda::CUDAWorld>, // the CUDA world is used to store the entities and ligands in a single array for CUDA processing
 
 
 }

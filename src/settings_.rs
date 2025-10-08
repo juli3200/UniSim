@@ -2,6 +2,9 @@
 
 use ndarray::Array1;
 
+// doesn't actually provide any security, just a deterrent
+const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are only done through macros
+
 #[derive(Debug, Clone)]
 pub struct Settings {
     init: bool, // whether the settings have been initialized
@@ -138,49 +141,73 @@ impl Settings {
     //
     //
 
-    pub fn set_default_population(&mut self, population: usize) {
+    pub fn set_default_population(&mut self, population: usize, key: u32) {
         if self.init {
             eprint!("Cannot change default population after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.default_population = population;
     }
 
-    pub fn set_dimensions(&mut self, dimensions: (u32, u32)) {
+    pub fn set_dimensions(&mut self, dimensions: (u32, u32), key: u32) {
         if self.init {
             eprint!("Cannot change dimensions after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.dimensions = dimensions;
     }
 
-    pub fn set_spawn_size(&mut self, spawn_size: f32) {
+    pub fn set_spawn_size(&mut self, spawn_size: f32, key: u32) {
         if self.init {
             eprint!("Cannot change spawn size after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.spawn_size = spawn_size;
     }
 
-    pub fn set_give_start_vel(&mut self, give_start_vel: bool) {
+    pub fn set_give_start_vel(&mut self, give_start_vel: bool, key: u32) {
         if self.init {
             eprint!("Cannot change give_start_vel after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.give_start_vel = give_start_vel;
     }
 
-    pub fn set_store_capacity(&mut self, store_capacity: usize) {
+    pub fn set_store_capacity(&mut self, store_capacity: usize, key: u32) {
         if self.init {
             eprint!("Cannot change store_capacity after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.store_capacity = store_capacity;
     }
 
-    pub fn set_concentration_range(&mut self, range: (i16, i16)) {
+    pub fn set_concentration_range(&mut self, range: (i16, i16), key: u32) {
         if self.init {
             eprint!("Cannot change concentration_range after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         if range.0 >= range.1 {
@@ -201,37 +228,65 @@ impl Settings {
         self.concentration_range = range;
     }
 
-    pub fn set_receptor_capacity(&mut self, capacity: usize) {
+    pub fn set_receptor_capacity(&mut self, capacity: usize, key: u32) {
         if self.init {
             eprint!("Cannot change receptor_capacity after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
             return;
         }
         self.receptor_capacity = capacity;
     }
 
 
-    pub fn set_fps(&mut self, fps: f32) {
+    pub fn set_fps(&mut self, fps: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         self.fps = fps;
     }
 
-    pub fn set_velocity(&mut self, velocity: f32) {
+    pub fn set_velocity(&mut self, velocity: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         self.velocity = velocity;
     }
 
-    pub fn set_gravity<T: Into<Array1<f32>>>(&mut self, gravity: T) {
+    pub fn set_gravity<T: Into<Array1<f32>>>(&mut self, gravity: T, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         self.gravity = gravity.into();
     }
 
-    pub fn set_friction(&mut self, friction: f32) {
+    pub fn set_friction(&mut self, friction: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         self.friction = friction;
     }
 
     #[cfg(feature = "cuda")]
-    pub fn set_cuda_slots_per_cell(&mut self, slots: usize) {
+    pub fn set_cuda_slots_per_cell(&mut self, slots: usize, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         self.cuda_slots_per_cell = slots;
     }
 
-    pub fn set_tumble_chance(&mut self, chance: f64) {
+    pub fn set_tumble_chance(&mut self, chance: f64, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
         if chance < 0.0 || chance > 1.0 {
             eprint!("Tumble chance must be between 0.0 and 1.0");
             return;
@@ -240,3 +295,4 @@ impl Settings {
     }
 
 }
+

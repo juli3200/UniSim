@@ -459,6 +459,8 @@ impl World{
 
 } 
 
+// debug features
+
 #[cfg(feature = "debug")]
 impl World {
     
@@ -484,4 +486,18 @@ impl World {
             self.ligands_count += 1;
         }
     }
+
+    pub fn change_concentration(&mut self, entity_id: usize, index: usize, value: i16)  {
+        // change the concentration of an entity
+        if let Some(entity) = get_entity_mut(&mut self.entities, entity_id) {
+            if index < entity.concentrations.len() {
+                entity.concentrations[index] = value;
+            } else {
+                eprint!("Index {} out of bounds for concentrations", index);
+            }
+        } else {
+            eprint!("Entity with ID {} not found", entity_id);
+        }
+    }
+
 }

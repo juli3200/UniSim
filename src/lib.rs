@@ -31,22 +31,28 @@ mod cuda;
 #[macro_export]
 macro_rules!  edit_settings {
     ($world:expr, $($setting:ident = $value:expr),+) => {
-        // concat puts "set_" and the identifier together
+        fn check_type(_w: &mut World){}
+        check_type($world); // ensure that the first argument is a World
+
+        let key = 31425364; // same as in settings.rs
+        // key is used to ensure settings changes are only done through macros
+
+        // paste puts "set_" and the identifier together
         // so e.g. "set_fps"
         // then calls the setter function to change the value
         // via the macro syntax(...)+ it can take multiple settings
         paste! {
-            $( ($world).settings.[<set_ $setting>]($value); )+
+            $( ($world).settings.[<set_ $setting>]($value, key); )+
         }
 
         paste! {
-            $( ($world).space.settings.[<set_ $setting>]($value); )+
+            $( ($world).space.settings.[<set_ $setting>]($value, key); )+
         }
         #[cfg(feature = "cuda")]
         {
             if $world.cuda_world.is_some() {
                 paste! {
-                    $(($world).cuda_world.as_mut().unwrap().settings.[<set_ $setting>]($value);)+
+                    $(($world).cuda_world.as_mut().unwrap().settings.[<set_ $setting>]($value, key);)+
                 }
             }
         }
@@ -66,10 +72,12 @@ macro_rules! settings {
     };
     ($($setting:ident = $value:expr),+ $(,)?) => {
         {
+            let key = 31425364; // same as in settings.rs
+            // key is used to ensure settings changes are only done through macros
             let mut settings = Settings::blueprint(100);
             paste! {
                 $(
-                    settings.[<set_ $setting>]($value);
+                    settings.[<set_ $setting>]($value, key);
                 )+
             }
             settings.init();
@@ -78,10 +86,12 @@ macro_rules! settings {
     };
     ($n:expr, $($setting:ident = $value:expr),+ $(,)?) => {
         {
+            let key = 31425364; // same as in settings.rs
+            // key is used to ensure settings changes are only done through macros
             let mut settings = Settings::blueprint($n);
             paste! {
                 $(
-                    settings.[<set_ $setting>]($value);
+                    settings.[<set_ $setting>]($value, key);
                 )+
             }
             settings.init();
