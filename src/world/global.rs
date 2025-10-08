@@ -1,6 +1,7 @@
 use crate::world::serialize::Save;
 use crate::world::info::get_entity_mut;
 use crate::prelude::*;
+use rayon::prelude::*;
 use super::*;
 
 #[cfg(feature = "cuda")]
@@ -85,8 +86,8 @@ impl World {
         Ok(())
     }
 
-    pub fn add_ligand_source(&mut self, position: Array1<f32>, emission_rate: f32, ligand_message: u32) {
-        let source = objects::LigandSource::new(position, emission_rate, ligand_message);
+    pub fn add_ligand_source<A: Into<Array1<f32>>>(&mut self, position: A, emission_rate: f32, ligand_message: u32) {
+        let source = objects::LigandSource::new(position.into(), emission_rate, ligand_message);
         self.ligand_sources.push(source);
     }
 
@@ -111,8 +112,15 @@ impl World {
         }
 
         // Main loop for the world simulation
-        for _ in 0..n {
+        for i in 0..n {
             self.update();
+            if i % 10 == 0 {
+                println!("Step {}/{}", i, n);
+                #[cfg(feature = "debug")]
+                {
+                    println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
+                }
+            }
         }
     }
 
@@ -223,9 +231,14 @@ impl World {
                 let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
                 if let Some(entity) = entity_ref {
-                    entity.receive_ligand(self.ligands[i].message, self.ligands[i].position.clone(), self.ligands[i].emitted_id, &self.settings);
+                    let remove = entity.receive_ligand(&self.ligands[i], &self.settings);
                     // remove the ligand
-                    self.ligands.remove(i);
+                    if remove {
+                        self.ligands.remove(i);
+                    } else {
+                        // re-emit the ligand
+                        self.ligands[i].re_emit();
+                    }
                 } else {
                     eprintln!("Entity with ID {} not found", entity_id);
                 }
@@ -247,6 +260,7 @@ impl World {
         for source in &self.ligand_sources {
             let new_ligands = source.emit_ligands(dt);
             self.ligands.extend(new_ligands);
+
         }
 
         self.ligands_count = self.ligands.len();
@@ -410,6 +424,7 @@ impl World{
             if input.trim() != "y" {      
                 return Err(io::Error::new(io::ErrorKind::Other, "File already exists"));
             }
+            std::fs::remove_file(path.as_ref())?;
         }
 
 

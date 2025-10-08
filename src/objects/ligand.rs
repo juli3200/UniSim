@@ -13,13 +13,25 @@ impl LigandSource {
         }
     }
 
-    pub(crate) fn emit_ligands(&self, fps: f32) -> Vec<Ligand> {
-        let quantity = (self.emission_rate / fps) as usize; 
+    pub(crate) fn emit_ligands(&self, dt: f32) -> Vec<Ligand> {
+        let quantity;
+        let mut rng = rand::rng();
+
+
         // emit 'quantity' ligands per frame
+        if self.emission_rate * dt < 1.0 {
+            if !rng.random_bool((self.emission_rate * dt) as f64) {
+                return Vec::new();
+            } else {
+                quantity = 1;
+            }
+        } else {
+            quantity = (self.emission_rate * dt).floor() as usize;
+        }
 
         let mut ligands = Vec::with_capacity(quantity);
 
-        let mut rng = rand::rng();
+
 
         for _ in 0..quantity {
 
@@ -81,6 +93,10 @@ impl Ligand {
 
         collided_entity_id
 
+    }
+
+    pub(crate ) fn re_emit(&mut self) {
+        self.velocity = -&self.velocity;
     }
 
 }

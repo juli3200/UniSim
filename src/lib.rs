@@ -65,7 +65,7 @@ macro_rules!  edit_settings {
 #[macro_export]
 macro_rules! settings {
     () => {
-        crate::Settings::new(100)
+        Settings::new(100)
     };
     ( $n:expr ) => {
         Settings::new($n)

@@ -9,11 +9,9 @@ const IDLE_BORDER_TIMER: usize = 10; // number of updates to ignore border colli
 
 
 fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
-    assert_eq!(position.len(), 2, "Position should be a 2D vector");
-    assert_eq!(entity.position.len(), 2, "Entity position should be a 2D vector");
-
-    // not neccessary to normalize, because 
-
+    // calculate the angle between the entity's velocity and the direction to the ligand
+    // return the angle in radians between 0 and PI
+    
     let direction = position - &entity.position;
 
     let v: Array1<f32> = entity.velocity.clone();
@@ -44,10 +42,8 @@ impl Entity {
         // give a random velocity if settings.give_start_vel is true
         let velocity = if settings.give_start_vel() {
             let mut rng = rand::rng();
-            Array1::from(vec![
-                rng.random_range(-1.0..1.0),
-                rng.random_range(-1.0..1.0),
-            ])
+            let angle = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
+            vec![angle.cos(), angle.sin()].into()
         } else {
             Array1::zeros(2)
         };
@@ -79,7 +75,10 @@ impl Entity {
     }
 
     fn init_receptors(&mut self, settings: &Settings) {
-        if self.receptor_dna.len() == 0 {return;} // no receptors to initialize
+        if self.receptor_dna.len() == 0 {
+            self.receptors = vec![0; settings.receptor_capacity()];
+            return; // no receptors to initialize
+        }
         let mut rng = rand::rng();
 
         // this receptor array will be filled with receptors all over the membrane
@@ -255,40 +254,29 @@ impl Entity {
         ligands
     }
 
-    pub(crate) fn receive_ligand(&mut self, message: u32, position: Array1<f32>, emitted_id: usize, settings: &Settings) {
-        if emitted_id == self.id {
-            // ignore ligands emitted by self
-            let ligand = Ligand::new(self.id, message, position.clone(), position);
-            self.ligands_to_emit.push(ligand);
-            return;
+    pub(crate) fn receive_ligand(&mut self, ligand: &Ligand, settings: &Settings) -> bool{
+        // return true if the ligand was processed, false if it was ignored (e.g. self-emitted ligand)
+
+        // ignore self-emitted ligands (destroyed to prevent them from being stuck in the entity)
+        if ligand.emitted_id == self.id {
+            return true; 
         }
 
         // process the ligand message
         // for now, just increase energy based on message
 
-        let angle = calculate_ligand_direction(self, &position);
-
-
-        #[cfg(feature = "debug")]
-        {
-            let direction = &position - &self.position;
-            println!("Entity {} received ligand at position {} from angle {} v{}", self.id, direction, angle, self.velocity);
-        }
+        let angle = calculate_ligand_direction(self, &ligand.position);
 
         // handle the message
 
-        let angle_index = (angle / std::f32::consts::PI * settings.receptor_capacity() as f32).round() as usize; // index in receptor array
-
-        assert!(angle_index < settings.receptor_capacity(), "Angle index out of bounds");
+        let angle_index = (angle / std::f32::consts::PI * (settings.receptor_capacity() - 1) as f32).floor() as usize; // index in receptor array
 
         let receptor = self.receptors[angle_index];
-        let bond_result = super::receptor::bond(receptor, message);
+        let bond_result = super::receptor::bond(receptor, ligand.message);
 
         if bond_result.is_none() {
-            // bonding failed, re-emit the ligand
-            let ligand = Ligand::new(self.id, message, position.clone(), position);
-            self.ligands_to_emit.push(ligand);
-            return;
+            // bonding failed
+            return true;
         }
 
         let (energy_change, concentration_change) = bond_result.unwrap();
@@ -302,7 +290,7 @@ impl Entity {
 
         // change concentration and clamp to range
         self.concentrations[index] = (self.concentrations[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
-        return;
+        return true;
 
 
     }
