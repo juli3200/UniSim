@@ -15,8 +15,15 @@ pub struct Settings {
     spawn_size: f32, // size of the entities when they are spawned
     store_capacity: usize, // capacity of the save file
     give_start_vel: bool, // whether to give entities a starting velocity
+
     concentration_range: (i16, i16), // range of concentrations for inner proteins
-    receptor_capacity: usize, // number of receptors per entity
+
+    receptor_capacity: usize, // number of total receptors per entity
+    different_receptors: usize, // number of different receptor types
+    different_ligands: usize, // number of different ligand types an entity can emit
+
+    standard_deviation: f64, // standard deviation for random values
+    mean: f64, // mean for random values
 
 
     // changeable settings
@@ -49,7 +56,13 @@ impl Settings {
             spawn_size: 1.0,
             give_start_vel: true,
             concentration_range: (-32, 32),
+
             receptor_capacity: 10_000, // 10_000 receptors
+            different_receptors: 10, // 10 different receptor types
+            different_ligands: 10, // 10 different ligand types
+
+            standard_deviation: 10.0,
+            mean: 0.0,
 
             store_capacity: 1024,
             fps: 60.0,
@@ -105,6 +118,26 @@ impl Settings {
     // returns receptor capacity
     pub fn receptor_capacity(&self) -> usize {
         self.receptor_capacity
+    }
+
+    // returns number of different receptor types
+    pub fn different_receptors(&self) -> usize {
+        self.different_receptors
+    }
+
+    // returns number of different ligand types
+    pub fn ligand_types(&self) -> usize {
+        self.different_ligands
+    }
+
+    // returns standard deviation
+    pub fn standard_deviation(&self) -> f64 {
+        self.standard_deviation
+    }
+
+    // returns mean
+    pub fn mean(&self) -> f64 {
+        self.mean
     }
 
     // returns frames per second
@@ -239,6 +272,58 @@ impl Settings {
         }
         self.receptor_capacity = capacity;
     }
+
+    pub fn set_different_receptors(&mut self, different: usize, key: u32) {
+        if self.init {
+            eprint!("Cannot change different_receptors after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        self.different_receptors = different;
+    }
+
+    pub fn set_different_ligands(&mut self, different: usize, key: u32) {
+        if self.init {
+            eprint!("Cannot change different_ligands after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        self.different_ligands = different;
+    }
+    
+    pub fn set_standard_deviation(&mut self, std_dev: f64, key: u32) {
+        if self.init {
+            eprint!("Cannot change standard_deviation after initialization");
+            return;
+        }
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        if std_dev <= 0.0 {
+            eprint!("Standard deviation must be positive");
+            return;
+        }
+        self.standard_deviation = std_dev;
+    }
+
+        pub fn set_mean(&mut self, mean: f64, key: u32) {
+            if self.init {
+                eprint!("Cannot change mean after initialization");
+                return;
+            }
+            if key != SECRET_KEY {
+                eprint!("Only edit settings through macros");
+                return;
+            }
+            self.mean = mean;
+        }
 
 
     pub fn set_fps(&mut self, fps: f32, key: u32) {

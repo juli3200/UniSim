@@ -1,6 +1,7 @@
 use rand::Rng;
 use ndarray::{Array1, Array2};
 use super::{Entity, Ligand};
+use crate::objects::Genome;
 use crate::settings_::Settings;
 use crate::world::{Border, Collision, Space};
 
@@ -8,13 +9,13 @@ const IDLE_COLLISION_TIMER: usize = 30; // number of updates to ignore collision
 const IDLE_BORDER_TIMER: usize = 10; // number of updates to ignore border collisions after a border collision
 
 
-fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
+fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f64 {
     // calculate the angle between the entity's velocity and the direction to the ligand
     // return the angle in radians between 0 and PI
     
-    let direction = position - &entity.position;
+    let direction = (position - &entity.position).mapv(|x| x as f64);
 
-    let v: Array1<f32> = entity.velocity.clone();
+    let v: Array1<f64> = entity.velocity.mapv(|x| x as f64);
 
     // dot product is enough because we only need unsigned angle
     let dot_product = direction.dot(&v);
@@ -23,14 +24,19 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f32 {
     let v_len = v.mapv(|x| x.powi(2)).sum().sqrt();
 
     let angle = (dot_product / (direction_len * v_len)).acos();
-    assert_ne!(angle, f32::NAN, "Angle should not be NaN");
+    assert_ne!(angle, f64::NAN, "Angle should not be NaN");
 
     return angle;
 }
 
 
 impl Entity {
-    pub(crate) fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
+    pub(crate) fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings, genome: Option<Genome>) -> Result<Self, String> {
+        let genome = match genome {
+            Some(g) => g,
+            None => Genome::random(settings),
+        };
+
 
         let position = space
             .get_random_position(settings.spawn_size(), entities)?;
@@ -49,14 +55,15 @@ impl Entity {
         };
 
         let mut e = Self {
+            genome,
+
             id,
             energy: 0.0,
-            action_dna: vec![],
-            receptor_dna: vec![],
+
             age: 0,
-            reproduction_rate: 0.0,
-            receptors: vec![],
-            concentrations: [0; super::OUTPUTS],
+
+            receptors: vec![0; settings.receptor_capacity()], // will be initialized later
+            inner_protein_levels: [0; super::OUTPUTS],
 
             ligands_to_emit: vec![],
 
@@ -75,7 +82,7 @@ impl Entity {
     }
 
     fn init_receptors(&mut self, settings: &Settings) {
-        if self.receptor_dna.len() == 0 {
+        if settings.different_receptors() == 0 {
             self.receptors = vec![0; settings.receptor_capacity()];
             return; // no receptors to initialize
         }
@@ -86,18 +93,18 @@ impl Entity {
 
         // this section receptors reference the *different* receptors in receptor_dna
         // extract receptor functions from receptor_dna
-        let receptor_fns: Vec<Box<dyn Fn(f32) -> f32>> = self.receptor_dna.iter().map(|&dna| super::receptor::extract_receptor_fns(dna)).collect();
+        let receptor_fns: Vec<Box<dyn Fn(f32) -> f64>> = self.genome.receptor_dna.iter().map(|&dna| super::receptor::extract_receptor_fns(dna)).collect();
 
-        let len = receptor_fns.len() as f32;
 
-        // e.g if receptor_capacity is 100 and there are 4 receptor functions, each function is called 25 times
+
+        // e.g if receptor_capacity is 100 and there are 4 receptor types, each function is called 25 times
         // so every 4th receptor slot is reserved for the same receptor function
         // this ensures that the receptors are evenly distributed over the membrane
 
-        for i in 0..(settings.receptor_capacity() / self.receptor_dna.len()) {
+        for i in 0..(settings.receptor_capacity() / self.genome.receptor_dna.len()) {
             for r_type in 0..receptor_fns.len() {
-                let p = receptor_fns[r_type](i as f32 * len);
-                let create = rng.random_bool(p as f64);
+                let p = receptor_fns[r_type]((i  * settings.different_receptors()) as f32); // probability to create a receptor here
+                let create = rng.random_bool(p);
 
                 if !create {
                     receptors.push(0); // no receptor
@@ -105,7 +112,7 @@ impl Entity {
                 }
 
                 // create a receptor
-                let receptor = u32::from_le_bytes(self.receptor_dna[r_type].to_le_bytes()[4..8].try_into().unwrap());
+                let receptor = u32::from_le_bytes(self.genome.receptor_dna[r_type].to_le_bytes()[4..8].try_into().unwrap());
 
                 receptors.push(receptor);
             }
@@ -151,12 +158,12 @@ impl Entity {
         self.age += 1;
         
         // 0 MOVEMENT
-        if self.concentrations[0] > 0 {
+        if self.inner_protein_levels[0] > self.genome.move_threshold {
             // run
             // TODOOOOOOOOOOOOOOOO how mutch acceleration?
             self.acceleration = &self.velocity * 0.1;
 
-        } else if self.concentrations[1] <= 0 {
+        } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
             // TODOOO OVERHAUL TUMBLE
             // random rotation matrix
@@ -175,6 +182,20 @@ impl Entity {
             
 
         }
+
+        // 1 EMIT LIGANDS
+
+        if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
+            #[cfg(feature = "debug")]
+            {
+                println!("Entity {} emitted a ligand", self.id);
+            }
+        }
+        // 2 REPRODUCTION
+
+
+
+        // (FUTURE: KILLING OTHER ENTITIES)
 
 
 
@@ -269,14 +290,14 @@ impl Entity {
 
         // handle the message
 
-        let angle_index = (angle / std::f32::consts::PI * (settings.receptor_capacity() - 1) as f32).floor() as usize; // index in receptor array
+        let angle_index = (angle / std::f64::consts::PI * (settings.receptor_capacity() - 1) as f64).floor() as usize; // index in receptor array
 
         let receptor = self.receptors[angle_index];
         let bond_result = super::receptor::bond(receptor, ligand.message);
 
         if bond_result.is_none() {
             // bonding failed
-            return true;
+            return false;
         }
 
         let (energy_change, concentration_change) = bond_result.unwrap();
@@ -286,10 +307,10 @@ impl Entity {
         let index = concentration_change.abs() as usize;
         let change: i16 = if concentration_change < 0 { -1 } else { 1 };
 
-        assert!(index < self.concentrations.len(), "Concentration index out of bounds");
+        assert!(index < self.inner_protein_levels.len(), "Concentration index out of bounds");
 
         // change concentration and clamp to range
-        self.concentrations[index] = (self.concentrations[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
+        self.inner_protein_levels[index] = (self.inner_protein_levels[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
         return true;
 
 

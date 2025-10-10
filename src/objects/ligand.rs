@@ -100,3 +100,8 @@ impl Ligand {
     }
 
 }
+
+pub(crate) fn random_message() -> u32 {
+    let mut rng = rand::rng();
+    rng.random_range(0..=u32::MAX)
+}

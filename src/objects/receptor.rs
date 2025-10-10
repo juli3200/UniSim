@@ -30,7 +30,7 @@ pub fn bond(receptor: u32, message: u32) -> Option<(f32, i32)> {
     
 }
 
-pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f32> {
+pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f64> {
 
 
     let bytes = receptor_dna.to_le_bytes();
@@ -50,9 +50,9 @@ pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f32> {
     return Box::new( move |x: f32| {
 
                 // quadratic function clamped to 0..1
-                (a * x.powi(2) + b * x + c).clamp(0.0, 1.0)
+                (a * x.powi(2) + b * x + c).clamp(0.0, 1.0) as f64
 
-            }) as Box<dyn Fn(f32) -> f32>;
+            }) as Box<dyn Fn(f32) -> f64>;
 
 }
 

@@ -2,6 +2,7 @@ use ndarray::Array1;
 
 pub mod entity;
 pub mod ligand;
+pub mod genome;
 mod receptor;
 
 const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
@@ -27,23 +28,41 @@ pub(crate) struct Ligand {
     pub(crate) velocity: Array1<f32>, // velocity in the world
     pub(crate) message: u32 // message carried by the ligand
 }
+
+#[derive(Debug, Clone)]
+pub(crate) struct Genome{
+    // outputs 
+    move_threshold: i16, // threshold for movement decision
+    ligand_emission_threshold: i16, // threshold for ligand emission decision
+    ligands: Vec<u32>, // types of ligands the entity can emit -> size: settings.ligand_types()
+    reproduction_threshold: i16, // threshold for reproduction decision, can be handled by a global setting (settings.reproduction_threshold() -> Option<i16>)
+
+    // inputs
+    receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
+
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Entity {
     pub(crate) id: usize,
 
     // ******************** biological *********************
+
+    // *********** GENOME *************
+    pub(crate) genome: Genome, // GENOME of the entity
+
+
     energy: f32, // energy level of the entity
-    action_dna: Vec<u128>, // DNA sequence of the entity
-    receptor_dna: Vec<u64>, // DNA sequence for receptors
     age: usize, // age of the entity in simulation steps
-    reproduction_rate: f32, // rate of reproduction
+
+    // ************ sensors and inner proteins ************
 
     // receptors
     receptors: Vec<u32>, // list of receptors (size: settings.receptor_capacity())
 
-    // concentrations
+    // inner proteins
     // range defined in settings.concentration_range()
-    pub(crate) concentrations: [i16; OUTPUTS], // concentration levels of different inner proteins
+    pub(crate) inner_protein_levels: [i16; OUTPUTS], // concentration levels of different inner proteins
     
 
     // during update emit ligands

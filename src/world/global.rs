@@ -55,7 +55,7 @@ impl World {
 
         // Initialize the world with default population size
         for _ in 0..self.settings.default_population() {
-            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings)?;
+            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings, None)?;
             self.entities.push(entity);
             self.counter += 1;
         }
@@ -182,8 +182,7 @@ impl World {
         }
 
         // DEBUGGING
-        #[cfg(test)]
-        #[cfg(feature = "cuda")]
+        #[cfg(all(feature = "cuda", test))]
         {
             if self.cuda_world.is_some(){
                 self.ligands = Vec::new(); // in test mode, clear the ligands so they are not added multiple times
@@ -232,7 +231,7 @@ impl World {
 
                 if let Some(entity) = entity_ref {
                     let remove = entity.receive_ligand(&self.ligands[i], &self.settings);
-                    // remove the ligand
+                    // remove the ligand if it was absorbed else turn it around
                     if remove {
                         self.ligands.remove(i);
                     } else {
@@ -548,8 +547,8 @@ impl World {
     pub fn change_concentration(&mut self, index: usize, value: i16)  {
         for i in 0..self.entities.len() {
         
-            if index < self.entities[i].concentrations.len() {
-                self.entities[i].concentrations[index] = value;
+            if index < self.entities[i].inner_protein_levels.len() {
+                self.entities[i].inner_protein_levels[index] = value;
             } else {
                 eprint!("Index {} out of bounds for concentrations", index);
             }
