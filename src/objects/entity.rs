@@ -134,18 +134,33 @@ impl Entity {
         }
 
 
-        let fps = 1.0 / space.settings.fps();
+        let dt = 1.0 / space.settings.fps();
 
         
         // acceleration
-        self.velocity.scaled_add(fps, &self.acceleration);
-        // friction
-        self.velocity *= 1.0 - space.settings.friction() * fps;
+        self.velocity.scaled_add(dt, &self.acceleration);
+
+        // drag
+
+        // acceleration due to drag would be: 1/2 * cd * p * A * v^2 / m => 1/2 * cd * p * A * v^2 / (pi * size^2)
+        // A = 2 * size (diameter in 2D)
+        // so size cancels out one size in the denominator and the 2  cancels the 1/2
+        // so we get cd * p * v^2 / (pi * size)
+        // since p = 1, we get 
+        // cd * v^2 / (pi * size)
+
+        let speed = self.velocity.mapv(|x| x.powi(2)).sum().sqrt();
+        let cd = space.settings.drag(); // drag coefficient        
+
+        let ad: Array1<f32> = &self.velocity * (cd * speed / (std::f32::consts::PI * self.size)) * dt; // acceleration due to drag
+
+        self.velocity -= &ad;
+
         // gravity
-        self.velocity.scaled_add(fps, &space.settings.gravity());
+        self.velocity.scaled_add(dt, &space.settings.gravity());
 
         // update the entity's position based on its velocity
-        self.position.scaled_add(fps * space.settings.velocity(), &self.velocity);
+        self.position.scaled_add(dt * space.settings.velocity(), &self.velocity);
 
         let old_position: Array1<f32> = self.position.clone();
 
@@ -186,10 +201,7 @@ impl Entity {
         // 1 EMIT LIGANDS
 
         if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
-            #[cfg(feature = "debug")]
-            {
-                println!("Entity {} emitted a ligand", self.id);
-            }
+            
         }
         // 2 REPRODUCTION
 

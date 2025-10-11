@@ -26,7 +26,7 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.fps().to_le_bytes()); // fps 4 bytes
     buffer.extend(&world.settings.velocity().to_le_bytes()); // velocity 4 bytes
     buffer.extend(&world.settings.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>()); // gravity 8 bytes
-    buffer.extend(&world.settings.friction().to_le_bytes()); // friction 4 bytes
+    buffer.extend(&world.settings.drag().to_le_bytes()); // drag 4 bytes
     // add other settings
 
     
@@ -224,8 +224,8 @@ impl Save for Settings{
         // gravity 4 bytes
         buffer.extend(&self.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>());
 
-        // friction 4 bytes
-        buffer.extend(&self.friction().to_le_bytes());
+        // drag 4 bytes
+        buffer.extend(&self.drag().to_le_bytes());
 
         if buffer.len() != SETTINGS_BUF_SIZE.0 {
             return Err("Invalid buffer length settings".to_string());

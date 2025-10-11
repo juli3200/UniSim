@@ -30,7 +30,7 @@ pub struct Settings {
     fps: f32, // frames per second of the simulation
     velocity: f32, // default velocity of entities
     gravity: Array1<f32>, // gravity of the world
-    friction: f32, // mü of the world
+    drag: f32, // drag/friction of the world
     tumble_chance: f64, // chance of tumbling
 
     // cuda settings
@@ -68,7 +68,7 @@ impl Settings {
             fps: 60.0,
             velocity: 3.0,
             gravity: Array1::zeros(2),
-            friction: 0.0,
+            drag: 0.0,
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
             tumble_chance: 0.3333,
@@ -155,9 +155,9 @@ impl Settings {
         self.gravity.clone()
     }
 
-    // returns friction
-    pub fn friction(&self) -> f32 {
-        self.friction
+    // returns drag
+    pub fn drag(&self) -> f32 {
+        self.drag
     }
 
     #[cfg(feature = "cuda")]
@@ -350,12 +350,12 @@ impl Settings {
         self.gravity = gravity.into();
     }
 
-    pub fn set_friction(&mut self, friction: f32, key: u32) {
+    pub fn set_drag(&mut self, drag: f32, key: u32) {
         if key != SECRET_KEY {
             eprint!("Only edit settings through macros");
             return;
         }
-        self.friction = friction;
+        self.drag = drag;
     }
 
     #[cfg(feature = "cuda")]

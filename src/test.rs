@@ -103,11 +103,12 @@ mod dna_tests {
 
     #[test]
     fn test_tumble(){
-        let mut world = World::new(settings!(100, fps = 40.0, velocity = 3.0, store_capacity = 100, tumble_chance = 0.1));
-        world.change_concentration(0, -1);
+        let mut world = World::new(settings!(100, fps = 40.0, velocity = 3.0, store_capacity = 10000, tumble_chance = 0.1));
+        
+        edit_settings!(&mut world, drag = 0.1);
 
         world.save("testfiles/tumble_test.bin").expect("Failed to save world");
-        world.run(100);
+        world.run(10000);
 
 
     }

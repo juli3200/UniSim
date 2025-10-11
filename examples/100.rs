@@ -7,9 +7,8 @@ fn main() {
 
     let mut world = World::new(settings);
 
-    edit_settings!(&mut world, fps = 60.0, velocity = 3.0, gravity = vec![0.0, -1.0]);
 
-    world.add_ligand_source(vec![1.0, 1.0], 10.0, 0);
+    //world.add_ligand_source(vec![1.0, 1.0], 10.0, 0);
 
     #[cfg(feature = "debug")]
     {
