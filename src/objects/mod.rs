@@ -72,6 +72,7 @@ pub(crate) struct Entity {
     pub(crate) position: Array1<f32>, // position in the world
     pub(crate) size: f32, // size of the entity
     pub(crate) velocity: Array1<f32>, // velocity of the entity
+    pub(crate) speed: f32, // current speed of the entity
     pub(crate) acceleration: Array1<f32>, // acceleration of the entity
 
     pub(crate) last_entity_collision: (usize, usize), // ids of the last collided entity and when it happened 

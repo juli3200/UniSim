@@ -1,5 +1,5 @@
 use crate::world::serialize::Save;
-use crate::world::info::get_entity_mut;
+use crate::world::info::{get_entity, get_entity_mut};
 use crate::prelude::*;
 use rayon::prelude::*;
 use super::*;
@@ -114,7 +114,7 @@ impl World {
         // Main loop for the world simulation
         for i in 0..n {
             self.update();
-            if i % 10 == 0 {
+            if i % 100 == 0 {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
                 {
@@ -398,6 +398,15 @@ impl World {
         Ok(())
     }
 
+
+    pub fn print_entity_stats(&self, entity_id: usize) {
+        // Print statistics of a specific entity by its ID
+        if let Some(entity) = get_entity(&self.entities, entity_id){
+            entity.print_stats();
+        } else {
+            println!("Entity with ID {} not found", entity_id);
+        }
+    }
 
 }
 

@@ -21,9 +21,8 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f64 {
     let dot_product = direction.dot(&v);
 
     let direction_len = direction.mapv(|x| x.powi(2)).sum().sqrt();
-    let v_len = v.mapv(|x| x.powi(2)).sum().sqrt();
 
-    let angle = (dot_product / (direction_len * v_len)).acos();
+    let angle = (dot_product / (direction_len * entity.speed as f64)).acos();
     assert_ne!(angle, f64::NAN, "Angle should not be NaN");
 
     return angle;
@@ -70,6 +69,7 @@ impl Entity {
             position,
             size: settings.spawn_size(),
             velocity,
+            speed: 0.0,
             acceleration: Array1::zeros(2),
             last_entity_collision: (0,0),
             last_border_collision: 0,
@@ -117,6 +117,8 @@ impl Entity {
                 receptors.push(receptor);
             }
         }
+
+        self.receptors = receptors;
         
 
     }
@@ -140,6 +142,9 @@ impl Entity {
         // acceleration
         self.velocity.scaled_add(dt, &self.acceleration);
 
+        // update current speed
+        self.speed = self.velocity.mapv(|x| x.powi(2)).sum().sqrt();
+
         // drag
 
         // acceleration due to drag would be: 1/2 * cd * p * A * v^2 / m => 1/2 * cd * p * A * v^2 / (pi * size^2)
@@ -149,10 +154,9 @@ impl Entity {
         // since p = 1, we get 
         // cd * v^2 / (pi * size)
 
-        let speed = self.velocity.mapv(|x| x.powi(2)).sum().sqrt();
         let cd = space.settings.drag(); // drag coefficient        
 
-        let ad: Array1<f32> = &self.velocity * (cd * speed / (std::f32::consts::PI * self.size)) * dt; // acceleration due to drag
+        let ad: Array1<f32> = &self.velocity * (cd * self.speed / (std::f32::consts::PI * self.size)) * dt; // acceleration due to drag
 
         self.velocity -= &ad;
 
@@ -169,6 +173,9 @@ impl Entity {
     }
 
     pub(crate) fn update_output(&mut self, settings: &Settings){
+
+        let mut rng = rand::rng();
+
         // update the entity's biological state
         self.age += 1;
         
@@ -176,13 +183,12 @@ impl Entity {
         if self.inner_protein_levels[0] > self.genome.move_threshold {
             // run
             // TODOOOOOOOOOOOOOOOO how mutch acceleration?
-            self.acceleration = &self.velocity * 0.1;
+            self.acceleration = &self.velocity * 0.1 / (self.size * 2.0); // acceleration proportional to velocity and inversely proportional to size
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
             // TODOOO OVERHAUL TUMBLE
             // random rotation matrix
-            let mut rng = rand::rng();
             
             if rng.random_bool(settings.tumble_chance()) {
                 let angle: f32 = rng.random_range(-std::f32::consts::PI/ 4.0 ..std::f32::consts::PI / 4.0);
@@ -201,7 +207,21 @@ impl Entity {
         // 1 EMIT LIGANDS
 
         if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
-            
+            // determine what ligand to emit
+            let step: i16 = ((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.ligand_types() as f32).floor() as i16;
+            let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
+            let message = if l_index >= settings.ligand_types() as usize {
+                self.genome.ligands[settings.ligand_types() as usize - 1]
+            } else {
+                self.genome.ligands[l_index]
+            };
+            let random_angle: f32 = rng.random_range(-std::f32::consts::PI ..std::f32::consts::PI);
+            let direction: Array1<f32> = vec![random_angle.cos(), random_angle.sin()].into();
+            let position: Array1<f32> = &self.position + &direction * self.size; // emit from the edge of the entity
+            let velocity: Array1<f32> = &self.velocity + &direction ;
+
+            self.ligands_to_emit.push(Ligand::new(self.id, message, position, velocity));
+
         }
         // 2 REPRODUCTION
 
@@ -326,5 +346,22 @@ impl Entity {
         return true;
 
 
+    }
+
+    pub(crate) fn print_stats(&self) {
+        println!("Entity ID: {}", self.id);
+        println!("Age: {}", self.age);
+        println!("Energy: {:.2}", self.energy);
+        println!("Position: ({:.2}, {:.2})", self.position[0], self.position[1]);
+        println!("Velocity: ({:.2}, {:.2})", self.velocity[0], self.velocity[1]);
+        println!("Speed: {:.2}", self.speed);
+        println!("Size: {:.2}", self.size);
+        println!("Receptors: {:?}", self.receptors);
+        println!("Receptor DNA: {:?}", self.genome.receptor_dna);
+        println!("Inner Protein Levels: {:?}", self.inner_protein_levels);
+        println!("Genome Ligands: {:?}", self.genome.ligands);
+        println!("Move Threshold: {}", self.genome.move_threshold);
+        println!("Ligand Emission Threshold: {}", self.genome.ligand_emission_threshold);
+        println!("Reproduction Threshold: {}", self.genome.reproduction_threshold);
     }
 }

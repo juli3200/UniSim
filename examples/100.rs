@@ -12,7 +12,7 @@ fn main() {
 
     #[cfg(feature = "debug")]
     {
-        //world.add_ligands(1000);
+        world.add_ligands(1000);
         
     }
     let e = world.save("testfiles/test.bin");
@@ -21,5 +21,8 @@ fn main() {
         eprintln!("Failed to save world: {}", e);
     }
 
-    world.run(5000);
+    world.run(1000);
+    world.print_entity_stats(0);
+    world.run(100);
+    world.print_entity_stats(0);
 }
