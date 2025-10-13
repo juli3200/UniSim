@@ -31,3 +31,8 @@ typedef struct{
     uint32_t y;
     uint32_t depth;
 } Dim;
+
+typedef struct{
+    LigandCuda* ligands; // array of collided ligands
+    uint32_t count; // number of collided ligands
+} LigandWrapper;

@@ -4,6 +4,7 @@
 #include "helper.hpp"
 
 #define ThreadsPerBlock 256
+#define COLLISION_SPACE_FACTOR 0.2 // factor to allocate more space for collided ligands
 
 
 __global__ void fill_grid_kernel(uint16_t* grid, Dim dim, uint16_t size, EntityCuda* entities, uint32_t* overflow) {
@@ -77,12 +78,12 @@ __device__ void border_collision(LigandArrays l_arrays, int i, uint32_t dim_x, u
     }
 }
 
-__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, Dim dim, uint32_t* grid, EntityArrays e_arrays, LigandArrays l_arrays, CollisionArraysDevice col_arrays) {
+__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, Dim dim, uint32_t* grid, EntityCuda* entities, LigandCuda* ligands, LigandCuda* collided_ligands, uint32_t* counter) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i < size) {
 
-        if (l_arrays.message[i] == 0) {
+        if (ligands[i].message == 0) {
             // skip if ligand is already collided
             return;
         }
@@ -151,21 +152,15 @@ __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, D
     }
 }
 
-CollisionArraysHost error_return(CollisionArraysDevice col_arrays) {
+LigandWrapper error_return(LigandCuda* collided_ligands, uint32_t* counter) {
     // free device memory
-    cudaFree(col_arrays.collided_message);
-    cudaFree(col_arrays.collided_pos);
-    cudaFree(col_arrays.collided_entities);
-    cudaFree(col_arrays.counter);
+    cudaFree(collided_ligands);
+    cudaFree(counter);
 
-
-    // return empty collision arrays on error
-    CollisionArraysHost empty_arrays;
-    empty_arrays.collided_message = nullptr;
-    empty_arrays.collided_pos = nullptr;
-    empty_arrays.collided_entities = nullptr;
-    empty_arrays.counter = 0;
-    return empty_arrays;
+    LigandWrapper empty_wrapper;
+    empty_wrapper.ligands = nullptr;
+    empty_wrapper.count = 0;
+    return empty_wrapper;
 }
 
 
@@ -214,72 +209,48 @@ extern "C" {
 
     // performs collision detection for ligands against entities in a grid
     // pointers are already device pointers
-    CollisionArraysHost ligand_collision(uint32_t search_radius, Dim dim, uint32_t* grid, EntityArrays e_arrays, LigandArrays l_arrays) {
-        int size = l_arrays.num_ligands;
+    LigandWrapper ligand_collision(uint32_t search_radius, Dim dim, uint32_t* grid, EntityCuda* entities, LigandCuda* ligands, uint32_t ligands_size) {
 
-        // allocate collision arrays on device
-        CollisionArraysDevice col_arrays;
-        cudaMalloc((void**)&col_arrays.collided_message, size * sizeof(uint32_t));
-        cudaMalloc((void**)&col_arrays.collided_pos, size * 2 * sizeof(float));
-        cudaMalloc((void**)&col_arrays.collided_entities, size * sizeof(uint32_t));
-        cudaMalloc((void**)&col_arrays.counter, sizeof(uint32_t));
+        LigandCuda* collided_ligands = ligands;
+        cudaMemset(collided_ligands, 0, ligands_size * sizeof(LigandCuda) * COLLISION_SPACE_FACTOR); // clear collided ligands array
 
-        // initialize memory to zero
-        cudaMemset(col_arrays.collided_message, 0, size * sizeof(uint32_t));
-        cudaMemset(col_arrays.collided_pos, 0, size * 2 * sizeof(float));
-        cudaMemset(col_arrays.collided_entities, 0, size * sizeof(uint32_t));
-        cudaMemset(col_arrays.counter, 0, sizeof(uint32_t));
-
-        cudaError_t err = cudaDeviceSynchronize(); // wait for memset to finish
-        
-        // check for errors
-        if (err != cudaSuccess) {
-            printf("ligand_collision failed\n");
-            printf("Memset error: %s\n", cudaGetErrorString(err));
-            return error_return(col_arrays);
-        }
+        uint32_t* counter;
+        cudaMemset(&counter, sizeof(uint32_t), 0); // initialize counter to 0
 
 
         // launch kernel
-        uint32_t blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
-        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(size, search_radius, dim, grid, e_arrays, l_arrays, col_arrays);
-        err = cudaDeviceSynchronize(); // wait for kernel to finish
+        uint32_t blockN = (ligands_size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(ligands_size, search_radius, dim, grid, entities, ligands, collided_ligands, counter);
+        cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors
         if (err != cudaSuccess) {
             printf("ligand_collision failed\n");
             printf("Launch error: %s\n", cudaGetErrorString(err));
-            return error_return(col_arrays);
+            return error_return(collided_ligands, counter);
         }
 
         // copy counter back to host
         uint32_t h_counter;
-        cudaMemcpy(&h_counter, col_arrays.counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        if (h_counter > size) {
-            // this should never happen
+        cudaMemcpy(&h_counter, counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        if (h_counter > ligands_size * COLLISION_SPACE_FACTOR) {
+            // overflow, too many collisions
             printf("Error: counter exceeds allocated size\n");
-            return error_return(col_arrays);
+            return error_return(collided_ligands, counter);
         }
 
-        // copy to host
-        CollisionArraysHost h_col_arrays;
-        h_col_arrays.collided_message = (uint32_t*)malloc(h_counter * sizeof(uint32_t));
-        h_col_arrays.collided_pos = (float*)malloc(h_counter * 2 * sizeof(float));
-        h_col_arrays.collided_entities = (uint32_t*)malloc(h_counter * sizeof(uint32_t));
 
-        cudaMemcpy(h_col_arrays.collided_message, col_arrays.collided_message, h_counter * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_col_arrays.collided_pos, col_arrays.collided_pos, h_counter * 2 * sizeof(float), cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_col_arrays.collided_entities, col_arrays.collided_entities, h_counter * sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        h_col_arrays.counter = h_counter;
 
         // free device memory
-        cudaFree(col_arrays.collided_message);
-        cudaFree(col_arrays.collided_pos);
-        cudaFree(col_arrays.collided_entities);
-        cudaFree(col_arrays.counter);
+        cudaFree(counter);
+        cudaFree(collided_ligands);
 
+        // prepare return struct
+        LigandWrapper h_collided;
+        h_collided.ligands = collided_ligands;
+        h_collided.count = h_counter;
 
-        return h_col_arrays;
+        return h_collided;
 
     }
 

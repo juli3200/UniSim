@@ -45,11 +45,16 @@ pub(crate) struct LigandCuda {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone)]
 pub(crate) struct Dim{
     x: u32,
     y: u32,
     depth: u32,
+}
+
+#[repr(C)]
+pub(crate) struct LigandWrapper{
+    ligands: *mut LigandCuda,
+    count: u32,
 }
 
 
