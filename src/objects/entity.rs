@@ -161,7 +161,7 @@ impl Entity {
         self.velocity -= &ad;
 
         // gravity
-        self.velocity.scaled_add(dt, &space.settings.gravity());
+        self.velocity.scaled_add(dt, &Array1::from_vec(space.settings.gravity()));
 
         // update the entity's position based on its velocity
         self.position.scaled_add(dt * space.settings.velocity(), &self.velocity);

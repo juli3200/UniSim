@@ -95,20 +95,24 @@ impl World {
 
         // check if if n is smaller than store capacity$
         // it isn't saved if too small
-        if n + self.buffer.len() < self.settings.store_capacity() {
-            eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");
-            if self.iteration == 0 {
-                eprintln!("Do you want to decrease the store capacity? (y/n)");
-                let mut input = String::new();   
-                std::io::stdin().read_line(&mut input).expect("Failed to read line");
-                if input.trim() == "y" {      
-                    use crate::edit_settings;
-                    edit_settings!(self, store_capacity = n + self.buffer.len());
-                    eprintln!("Store capacity set to {}", self.settings.store_capacity());
-                } else {
-                    eprintln!("Continuing without saving.");
-                }
-            }           
+        if !self.settings.is_init(){
+            if n + self.buffer.len() < self.settings.store_capacity() {
+                eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");
+                if self.iteration == 0 {
+                    eprintln!("Do you want to decrease the store capacity? (y/n)");
+                    let mut input = String::new();   
+                    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+                    if input.trim() == "y" {      
+                        use crate::edit_settings;
+                        edit_settings!(self, store_capacity = n + self.buffer.len());
+                        eprintln!("Store capacity set to {}", self.settings.store_capacity());
+                    } else {
+                        eprintln!("Continuing without saving.");
+                    }
+                }           
+            }
+
+            self.settings.init();
         }
 
         // Main loop for the world simulation

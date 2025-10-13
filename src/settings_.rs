@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
-use ndarray::Array1;
+use serde::Deserialize;
 
 // doesn't actually provide any security, just a deterrent
 const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are only done through macros
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     init: bool, // whether the settings have been initialized
 
@@ -29,22 +30,30 @@ pub struct Settings {
     // changeable settings
     fps: f32, // frames per second of the simulation
     velocity: f32, // default velocity of entities
-    gravity: Array1<f32>, // gravity of the world
+    gravity: Vec<f32>, // gravity of the world
     drag: f32, // drag/friction of the world
     tumble_chance: f64, // chance of tumbling
-    max_energy_ligand: f32,
+    max_energy_ligand: f32, // maximum energy of a ligand
+    movement_energy_cost: f32, // energy cost of movement
+    ligand_emission_energy_cost: f32, // threshold for emitting ligands
+
 
     // cuda settings
     #[cfg(feature = "cuda")]
     pub(crate) cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        Self::blueprint(100)
+    }
+}
+
 
 impl Settings {
     // initalized settings
     pub fn new(n: usize) -> Self {
-        let mut settings = Self::blueprint(n);
-        settings.init();
+        let settings = Self::blueprint(n);
         settings
     }
 
@@ -68,17 +77,23 @@ impl Settings {
             store_capacity: 1024,
             fps: 60.0,
             velocity: 3.0,
-            gravity: Array1::zeros(2),
+            gravity: vec![0.0, 0.0],
             drag: 0.0,
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
             tumble_chance: 0.3333,
-            max_energy_ligand: 1.0
+            max_energy_ligand: 1.0,
+            movement_energy_cost: 1.0,
+            ligand_emission_energy_cost: 0.001,
         }
     }
 
     pub fn init(&mut self) {
         self.init = true;
+    }
+
+    pub fn is_init(&self) -> bool {
+        self.init
     }
 
     //
@@ -153,7 +168,7 @@ impl Settings {
     }
 
     // returns gravity
-    pub fn gravity(&self) -> Array1<f32> {
+    pub fn gravity(&self) -> Vec<f32> {
         self.gravity.clone()
     }
 
@@ -348,12 +363,12 @@ impl Settings {
         self.velocity = velocity;
     }
 
-    pub fn set_gravity<T: Into<Array1<f32>>>(&mut self, gravity: T, key: u32) {
+    pub fn set_gravity(&mut self, gravity: Vec<f32>, key: u32) {
         if key != SECRET_KEY {
             eprint!("Only edit settings through macros");
             return;
         }
-        self.gravity = gravity.into();
+        self.gravity = gravity;
     }
 
     pub fn set_drag(&mut self, drag: f32, key: u32) {

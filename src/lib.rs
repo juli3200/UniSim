@@ -67,8 +67,29 @@ macro_rules! settings {
     () => {
         Settings::new(100)
     };
-    ( $n:expr ) => {
-        Settings::new($n)
+    ( $path:expr ) => {
+        {
+
+            fn open_json<S>(path: S) -> std::io::Result<Settings> 
+                where S: AsRef<std::path::Path>   
+                {
+
+                let file = std::fs::read_to_string(path)?;
+                let settings: Settings = serde_json::from_str(&file)?;
+
+                Ok(settings)
+            }
+
+            let settings = match open_json($path) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Failed to open settings file: {}", e);
+                    Settings::new(100)
+                }
+            };
+            settings
+        }
+
     };
     ($($setting:ident = $value:expr),+ $(,)?) => {
         {
@@ -80,7 +101,6 @@ macro_rules! settings {
                     settings.[<set_ $setting>]($value, key);
                 )+
             }
-            settings.init();
             settings
         }
     };
@@ -94,7 +114,7 @@ macro_rules! settings {
                     settings.[<set_ $setting>]($value, key);
                 )+
             }
-            settings.init();
+
             settings
         }
     };
