@@ -1,9 +1,11 @@
+use crate::prelude::Settings;
+
 use super::Genome;
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
 impl Genome {
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<u32>, reproduction_threshold: i16, receptor_dna: Vec<u64>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<(f32, u16)>, reproduction_threshold: i16, receptor_dna: Vec<u64>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
@@ -27,8 +29,8 @@ impl Genome {
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let reproduction_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
-        let ligands: Vec<u32> = (0..settings.ligand_types())
-            .map(|_| super::ligand::random_message())
+        let ligands: Vec<(f32, u16)> = (0..settings.ligand_types())
+            .map(|_| random_ligand(settings))
             .collect();
 
         let receptor_dna: Vec<u64> = (0..settings.different_receptors())
@@ -72,3 +74,14 @@ fn random_receptor_genome() -> u64 {
     value
 }
 
+fn random_ligand(settings: &Settings) -> (f32, u16){
+    let mut rng = rand::rng();
+
+    let energy: f32 = rng.random_range(0.0..settings.max_energy_ligand());
+
+    let spec = rng.random_range(0..=u16::MAX);
+
+    (energy, spec)
+
+
+}

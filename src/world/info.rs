@@ -15,11 +15,6 @@ impl World {
     pub fn ligands_count(&self) -> usize {
         self.ligands_count
     }
-    /// Returns the current counter value used for assigning unique IDs to new entities and ligands.
-    pub fn counter(&self) -> usize {
-        self.counter
-    }
-    
 }
 
 

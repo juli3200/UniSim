@@ -101,7 +101,7 @@ class Ligand:
     def __init__(self, bytes, index):
         self.x = struct.unpack('f', bytes[index:index + 4])[0]
         self.y = struct.unpack('f', bytes[index + 4:index + 8])[0]
-        self.message = int(bytes[index + 12])
+        
     
     def get_position(self):
         return [self.x, self.y]

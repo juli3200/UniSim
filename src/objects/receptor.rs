@@ -7,14 +7,15 @@ fn spec_match(spec1: u16, spec2: u16) -> bool{
     rand::random_bool(matches as f64 / SPEC_LENGTH)
 }
 
-pub fn bond(receptor: u32, message: u32) -> Option<(f32, i32)> {
-    // returns: (energy change, (new receptor type, new receptor strength))
+pub fn bond(receptor: u32, message_spec: u16) -> Option<i32> {
+    // returns: None if no bond formed
+    // Some(inner_protein)
     if receptor == 0 {
         return None; // no receptor
     }
 
     let (inner_protein, positive, receptor_spec) = sequence_receptor(receptor);
-    let (energy , message_spec) = sequence_message(message);
+
 
     let bonding = spec_match(receptor_spec, message_spec);
 
@@ -26,12 +27,14 @@ pub fn bond(receptor: u32, message: u32) -> Option<(f32, i32)> {
     // the abs value is the index
     let inner_protein: i32 =  if positive { inner_protein as i32 } else { -(inner_protein as i32) };
 
-    return Some((energy, inner_protein));
+    return Some(inner_protein);
     
 }
 
 pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f64> {
-
+    // returns a function that takes in x value and returns a probability (0..1)
+    // fn looks like: a*x^2 + b*x + c
+    // a, b, c are derived from the receptor_dna
 
     let bytes = receptor_dna.to_le_bytes();
 
@@ -66,13 +69,6 @@ fn sequence_receptor(receptor: u32) -> (u8, bool, u16) {
 
 }
 
-fn sequence_message(message: u32) -> (f32, u16) {
-    // returns the sequence of the message
-    let bytes = message.to_le_bytes();
-    let energy = u16::from_le_bytes([bytes[0], bytes[1]]) as f32 / u16::MAX as f32; // energy in range 0..1
-
-    (energy, u16::from_le_bytes([bytes[2], bytes[3]]))
-}
 
 
 

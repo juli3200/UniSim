@@ -86,8 +86,8 @@ impl World {
         Ok(())
     }
 
-    pub fn add_ligand_source<A: Into<Array1<f32>>>(&mut self, position: A, emission_rate: f32, ligand_message: u32) {
-        let source = objects::LigandSource::new(position.into(), emission_rate, ligand_message);
+    pub fn add_ligand_source<A: Into<Array1<f32>>>(&mut self, position: A, emission_rate: f32, ligand_spec: u16, ligand_energy: f32) {
+        let source = objects::LigandSource::new(position.into(), emission_rate, ligand_spec, ligand_energy);
         self.ligand_sources.push(source);
     }
 
@@ -547,7 +547,7 @@ impl World {
             let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
             // add ligand at random position
             // ensure position is within bounds
-            let ligand = objects::Ligand::new(usize::MAX, 0u32, position, norm_pos);
+            let ligand = objects::Ligand::new(usize::MAX, 0.2, 0u16, position, norm_pos);
             self.ligands.push(ligand);
             self.ligands_count += 1;
         }

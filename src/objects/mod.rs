@@ -18,7 +18,8 @@ pub(crate) enum ObjectType {
 pub struct LigandSource {
     position: Array1<f32>,
     emission_rate: f32, // ligands per second
-    ligand_message: u32,
+    ligand_spec: u16,
+    ligand_energy: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -26,7 +27,8 @@ pub(crate) struct Ligand {
     pub(crate) emitted_id: usize, // id of the entity that emitted the ligand
     pub(crate) position: Array1<f32>, // position in the world
     pub(crate) velocity: Array1<f32>, // velocity in the world
-    pub(crate) message: u32 // message carried by the ligand
+    pub(crate) spec: u16,
+    pub(crate) energy: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -34,7 +36,7 @@ pub(crate) struct Genome{
     // outputs 
     move_threshold: i16, // threshold for movement decision
     ligand_emission_threshold: i16, // threshold for ligand emission decision
-    ligands: Vec<u32>, // types of ligands the entity can emit -> size: settings.ligand_types()
+    ligands: Vec<(f32, u16)>, // (energy, spec) types of ligands the entity can emit -> size: settings.ligand_types()
     reproduction_threshold: i16, // threshold for reproduction decision, can be handled by a global setting (settings.reproduction_threshold() -> Option<i16>)
 
     // inputs

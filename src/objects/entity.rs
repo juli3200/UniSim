@@ -210,7 +210,7 @@ impl Entity {
             // determine what ligand to emit
             let step: i16 = ((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.ligand_types() as f32).floor() as i16;
             let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
-            let message = if l_index >= settings.ligand_types() as usize {
+            let (energy, spec) = if l_index >= settings.ligand_types() as usize {
                 self.genome.ligands[settings.ligand_types() as usize - 1]
             } else {
                 self.genome.ligands[l_index]
@@ -220,7 +220,7 @@ impl Entity {
             let position: Array1<f32> = &self.position + &direction * self.size; // emit from the edge of the entity
             let velocity: Array1<f32> = &self.velocity + &direction ;
 
-            self.ligands_to_emit.push(Ligand::new(self.id, message, position, velocity));
+            self.ligands_to_emit.push(Ligand::new(self.id, energy, spec, position, velocity));
 
         }
         // 2 REPRODUCTION
@@ -304,6 +304,10 @@ impl Entity {
         // Take the ligands from the entity and return them
         let ligands = self.ligands_to_emit.clone();
         self.ligands_to_emit.clear();
+        let energy_cost: f32 = ligands.iter().map(|x| x.energy).sum();
+
+        self.energy -= energy_cost;
+
         ligands
     }
 
@@ -325,15 +329,15 @@ impl Entity {
         let angle_index = (angle / std::f64::consts::PI * (settings.receptor_capacity() - 1) as f64).floor() as usize; // index in receptor array
 
         let receptor = self.receptors[angle_index];
-        let bond_result = super::receptor::bond(receptor, ligand.message);
+        let bond_result = super::receptor::bond(receptor, ligand.spec);
 
         if bond_result.is_none() {
             // bonding failed
             return false;
         }
 
-        let (energy_change, concentration_change) = bond_result.unwrap();
-        self.energy += energy_change;
+        let concentration_change = bond_result.unwrap();
+        self.energy += ligand.energy;
 
         // change concentration
         let index = concentration_change.abs() as usize;

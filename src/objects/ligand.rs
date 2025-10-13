@@ -5,11 +5,12 @@ use crate::{objects::Entity, world::{Border, Collision, Space}};
 use super::{Ligand, LigandSource};
 
 impl LigandSource {
-    pub fn new(position: Array1<f32>, emission_rate: f32, ligand_message: u32) -> Self {
+    pub fn new(position: Array1<f32>, emission_rate: f32, ligand_spec: u16, ligand_energy: f32) -> Self {
         Self {
             position,
             emission_rate,
-            ligand_message,
+            ligand_energy,
+            ligand_spec
         }
     }
 
@@ -41,7 +42,8 @@ impl LigandSource {
 
             ligands.push(Ligand::new(
                 usize::MAX, // no entity emitted this ligand
-                self.ligand_message,
+                self.ligand_energy,
+                self.ligand_spec,
                 self.position.clone(),
                 velocity
             ));
@@ -54,10 +56,11 @@ impl LigandSource {
 
 impl Ligand {
 
-    pub fn new(emitted_id: usize, message: u32, position: Array1<f32>, velocity: Array1<f32>) -> Self {
+    pub fn new(emitted_id: usize, energy: f32, spec:u16, position: Array1<f32>, velocity: Array1<f32>) -> Self {
         Self {
             emitted_id,
-            message,
+            spec,
+            energy,
             position,
             velocity,
         }
@@ -99,9 +102,4 @@ impl Ligand {
         self.velocity = -&self.velocity;
     }
 
-}
-
-pub(crate) fn random_message() -> u32 {
-    let mut rng = rand::rng();
-    rng.random_range(0..=u32::MAX)
 }

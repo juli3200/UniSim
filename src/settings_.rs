@@ -32,6 +32,7 @@ pub struct Settings {
     gravity: Array1<f32>, // gravity of the world
     drag: f32, // drag/friction of the world
     tumble_chance: f64, // chance of tumbling
+    max_energy_ligand: f32,
 
     // cuda settings
     #[cfg(feature = "cuda")]
@@ -72,6 +73,7 @@ impl Settings {
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
             tumble_chance: 0.3333,
+            max_energy_ligand: 1.0
         }
     }
 
@@ -166,6 +168,10 @@ impl Settings {
     }
     pub fn tumble_chance(&self) -> f64 {
         self.tumble_chance
+    }
+
+    pub fn max_energy_ligand(&self) -> f32 {
+        self.max_energy_ligand
     }
 
     //
@@ -377,6 +383,21 @@ impl Settings {
             return;
         }
         self.tumble_chance = chance;
+    }
+
+    pub fn set_max_energy_ligand(&mut self, energy: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        if energy <= 0.0 {
+            eprint!("Max energy of ligand must be positive");
+            return;
+        }
+        if energy > 10.0 {
+            eprint!("Warning: max energy of ligand is very high, may lead to instability");
+        }
+        self.max_energy_ligand = energy;
     }
 
 }

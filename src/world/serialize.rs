@@ -3,7 +3,7 @@ use crate::{objects::{Entity, Ligand}, prelude::Settings, world::World};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
-pub const LIGAND_BUF_SIZE: (usize, usize) = (12, 16);
+pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
 pub const HEADER_SIZE: usize = 53;
@@ -93,7 +93,7 @@ impl Save for Entity {
 
 impl Save for Ligand {
     fn serialize(&self) -> Result<Vec<u8>, String> {
-        let buffer_vec: Vec<u8> = self.position.iter().flat_map(|x| x.to_le_bytes()).chain(self.message.to_le_bytes()).collect();
+        let buffer_vec: Vec<u8> = self.position.iter().flat_map(|x| x.to_le_bytes()).chain(self.spec.to_le_bytes()).collect();
 
 
         if buffer_vec.len() != LIGAND_BUF_SIZE.0 {
@@ -109,7 +109,9 @@ impl Save for Ligand {
             // position 8 bytes
             self.position.iter().flat_map(|x| x.to_le_bytes()).chain(
             // velocity 8 bytes
-                self.velocity.iter().flat_map(|x| x.to_le_bytes())
+            self.velocity.iter().flat_map(|x| x.to_le_bytes()).chain(
+            self.energy.to_le_bytes()).chain(
+            self.spec.to_le_bytes())
             ).collect::<Vec<u8>>()
         };
 
