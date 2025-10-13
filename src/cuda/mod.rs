@@ -15,31 +15,33 @@ const BUFFER_SIZE: usize = 10 * 1024 * 1024; // 10 MB buffer for saving data fro
 
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub(crate) struct CollisionArraysHost {
-    pub(crate) collided_message: *mut u32,
-    pub(crate) collided_pos: *mut f32,
-    pub(crate) collided_entities: *mut u32,
-    pub(crate) counter: u32,
-}
+pub(crate) struct EntityCuda {
+    posx: f32, // x position of the entity
+    posy: f32, // y position of the entity
+    velx: f32, // x velocity of the entity
+    vely: f32, // y velocity of the entity
+    size: f32, // size of the entity
+    id: u32,   // id of the entity
 
-
-#[repr(C)]
-#[derive(Debug, Clone)]
-pub(crate) struct EntityArrays {
-    pos: *mut f32,
-    size: *mut f32,
-    id: *mut u32,
-    num_entities: usize,
+    // receptors are stored as pointer because it does not change 
+    // EntityCuda is copied to GPU memory every step
+    
 }
 
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub(crate) struct LigandArrays {
-    pub(crate) pos: *mut f32,
-    pub(crate) vel: *mut f32,
-    pub(crate) message: *mut u32,
+pub(crate) struct LigandCuda {
+    emitted_id: u32, // id of the entity that emitted the ligand
 
-    pub(crate) num_ligands: usize,
+    posx: f32, // x position of the ligand
+    posy: f32, // y position of the ligand
+    velx: f32, // x velocity of the ligand
+    vely: f32, // y velocity of the ligand
+
+    message: u32, // 1 uint32_t per ligand
+    spec: u16,
+    energy: f32,
+
 }
 
 #[repr(C)]
@@ -50,6 +52,12 @@ pub(crate) struct Dim{
     depth: u32,
 }
 
+
+pub(crate) enum IncreaseType{
+    Entity,
+    Ligand,
+    Grid
+}
 // if gpu is active positions, velocities, and sizes of the objects are each stored in a single array on gpu memory
 // this is to minimize the number of memory transfers between cpu and gpu
 #[derive(Debug, Clone)]
@@ -62,33 +70,22 @@ pub struct CUDAWorld{
     // 3D Array: grid[x][y][i] = index of the ligand at that position, or 0 if empty
     // the third dimension is a list of indices, to allow multiple ligands in the same cell
     // the size of the third dimension is fixed, settings.cuda_slots_per_cell
-    grid: *mut u32,
+    grid: *mut u16,
 
-    // Buffer to save data from GPU to CPU
-    save_buffer: *mut u8,
 
-    // capacity of entities
     entity_cap: u32,
+    entity_count: u32,
 
     // Entity data arrays
-    entities: EntityArrays,
+    entities: *mut EntityCuda,
 
-    // capacity of ligands
+    // receptor data arrays
+    receptors: *mut u16, // size: entity_cap * settings.receptor_capacity() (only spec stored)
+    
+
     ligand_cap: u32,
+    ligand_count: u32,
 
     // Ligand data arrays
-    ligands: LigandArrays,
-}
-
-// Test functions to access private fields
-#[allow(dead_code)]
-#[cfg(test)]
-impl CUDAWorld {
-    pub(crate) fn get_entity_arrays(&self) -> EntityArrays {
-        self.entities.clone()
-    }
-
-    pub(crate) fn get_ligand_arrays(&self) -> LigandArrays {
-        self.ligands.clone()
-    }
+    ligands: *mut LigandCuda,
 }

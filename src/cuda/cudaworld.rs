@@ -1,141 +1,83 @@
 use super::cuda_bindings;
 use super::*;
 
+use crate::objects::receptor::sequence_receptor;
+
+impl From<&Entity> for EntityCuda {
+    fn from(entity: &Entity) -> Self {
+        Self {
+            posx: entity.position[0],
+            posy: entity.position[1],
+            velx: entity.velocity[0],
+            vely: entity.velocity[1],
+            size: entity.size,
+            id: entity.id as u32,
+        }
+    }
+}
+
+
 impl CUDAWorld {
     pub(crate) fn new(settings: &Settings, entities: &Vec<Entity>, ligands: &Vec<Ligand>) -> Self {
 
         let entity_cap = (((entities.len()).max(settings.default_population()) as f32) * EXTRA_SPACE_ENTITY) as u32; 
         let ligand_cap = (((ligands.len()).max(MIN_SPACE_LIGAND) as f32) * EXTRA_SPACE_LIGAND) as u32; 
 
-        // create host-side vectors to hold data before copying to device
-        let mut entities_pos_h = Vec::with_capacity((entity_cap * 2) as usize);
 
-        let mut entities_size_h = Vec::with_capacity((entity_cap) as usize);
-        let mut entities_id_h = Vec::with_capacity((entity_cap) as usize);
-
-
-        for entity in entities {
-            entities_pos_h.push(entity.position[0]);
-            entities_pos_h.push(entity.position[1]);
-
-            entities_size_h.push(entity.size);
-            entities_id_h.push(entity.id as u32);
-
-        }
-
-
-        let mut ligands_pos_h = Vec::with_capacity((ligand_cap * 2) as usize);
-        let mut ligands_vel_h = Vec::with_capacity((ligand_cap * 2) as usize);
-        let mut ligands_message_h = Vec::with_capacity((ligand_cap) as usize); // not yet implemented
-        for ligand in ligands {
-            ligands_pos_h.push(ligand.position[0]);
-            ligands_pos_h.push(ligand.position[1]);
-
-            ligands_vel_h.push(ligand.velocity[0]);
-            ligands_vel_h.push(ligand.velocity[1]);
-
-            // --------------------------------------------------------------------------- not yet implemented ---------------------------------------------------------------------------
-            ligands_message_h.push(ligand.message);
-        }
-
-        // import cuda bindings with shorter names
+        // import cuda bindings with shorter name
         use cuda_bindings::memory_gpu as cu_mem;
 
         // define device pointers so they can be used in unsafe block and still be accessible later
-        let grid_d: *mut u32; 
-        let save_buffer_d: *mut u8;
+        let grid_d: *mut u16; 
+        let entities_d: *mut EntityCuda; // device pointer to entity array
+        let receptors_d: *mut u16; // device pointer to receptor array
+        let ligands_d: *mut LigandCuda; // device pointer to ligand array
 
-        let entities_pos_d: *mut f32; 
-        let entities_size_d: *mut f32; 
-        let entities_id_d: *mut u32; 
-
-        let ligands_pos_d: *mut f32; 
-        let ligands_vel_d: *mut f32; 
-        let ligands_message_d: *mut u32; // not yet implemented
-
-        // allocate device memory and copy data
+        // allocate device memory
         unsafe{
             // ----------------- grid -----------------
             let grid_size = settings.dimensions().0 * settings.dimensions().1 * settings.cuda_slots_per_cell() as u32;
-
             // allocate grid and set to zero
-            grid_d = cu_mem::alloc_u(grid_size);
-            cu_mem::clear_u(grid_d, grid_size);
-
-
-            // ----------------- save buffer -----------------
-            // allocate save buffer and set to zero
-            save_buffer_d = cu_mem::alloc_c(BUFFER_SIZE as u32);
-            cu_mem::clear_c(save_buffer_d, BUFFER_SIZE as u32);
-            cu_mem::copy_HtoD_c(save_buffer_d, vec![0u8; BUFFER_SIZE].as_mut_ptr(), BUFFER_SIZE as u32);
+            grid_d = cu_mem::alloc_u16(grid_size);
+            cu_mem::clear_u16(grid_d, grid_size);
 
 
             // ----------------- entities -----------------
-            let size_entity = entities.len() as u32 * 2; 
+            entities_d = cu_mem::alloc_entity(entity_cap);
+            cu_mem::clear_entity(entities_d, entity_cap);
 
-            // positions, allocate double the space for x and y of capacity
-            entities_pos_d = cu_mem::alloc_f(entity_cap * 2);
-            cu_mem::clear_f(entities_pos_d, entity_cap * 2);
-            cu_mem::copy_HtoD_f(entities_pos_d, entities_pos_h.as_mut_ptr(), size_entity); // data size is number of entities * 2, so there is space for more
-
-            // sizes
-            entities_size_d = cu_mem::alloc_f(entity_cap);
-            cu_mem::clear_f(entities_size_d, entity_cap);
-            cu_mem::copy_HtoD_f(entities_size_d, entities_size_h.as_mut_ptr(), size_entity / 2);
-
-            // ids
-            entities_id_d = cu_mem::alloc_u(entity_cap);
-            cu_mem::clear_u(entities_id_d, entity_cap);
-            cu_mem::copy_HtoD_u(entities_id_d, entities_id_h.as_mut_ptr(), size_entity / 2);
+            // ----------------- receptors -----------------
+            receptors_d = cu_mem::alloc_u16(entity_cap * settings.receptor_capacity() as u32);
+            cu_mem::clear_u16(receptors_d, entity_cap * settings.receptor_capacity() as u32);
 
 
             // ----------------- ligands -----------------
             // positions, allocate double the space for x and y of capacity
-            let size_ligand = ligands.len() as u32 * 2;
-
-            // positions
-            ligands_pos_d = cu_mem::alloc_f(ligand_cap * 2);
-            cu_mem::clear_f(ligands_pos_d, ligand_cap * 2);
-            cu_mem::copy_HtoD_f(ligands_pos_d, ligands_pos_h.as_mut_ptr(), size_ligand);
-
-            // velocities
-            ligands_vel_d = cu_mem::alloc_f(ligand_cap * 2);
-            cu_mem::clear_f(ligands_vel_d, ligand_cap * 2);
-            cu_mem::copy_HtoD_f(ligands_vel_d, ligands_vel_h.as_mut_ptr(), size_ligand);
-
-            // messages
-            ligands_message_d = cu_mem::alloc_u(ligand_cap);
-            cu_mem::clear_u(ligands_message_d, ligand_cap);
-            cu_mem::copy_HtoD_u(ligands_message_d, ligands_message_h.as_mut_ptr(), size_ligand / 2);
+            ligands_d = cu_mem::alloc_ligand(ligand_cap);
+            cu_mem::clear_ligand(ligands_d, ligand_cap);
 
         }
 
-        // create EntityArrays and LigandArrays structs
-        let entities = EntityArrays {
-            pos: entities_pos_d,
-            size: entities_size_d,
-            id: entities_id_d,
-            num_entities: entities.len(),
-        };
 
-        let ligands = LigandArrays {
-            pos: ligands_pos_d,
-            vel: ligands_vel_d,
-            message: ligands_message_d,
-            num_ligands: ligands.len(),
-        };
-
-
-
-        Self {
+        let mut cudaw = Self {
             settings: settings.clone(),
             grid: grid_d,
-            save_buffer: save_buffer_d,
             entity_cap,
-            entities,
+            entity_count: entities.len() as u32,
+            entities: entities_d,
+            receptors: receptors_d,
+            ligand_count: ligands.len() as u32,
             ligand_cap,
-            ligands,
-        }
+            ligands: ligands_d,
+        };
+
+        // fill data arrays
+        cudaw.fill_receptors(entities);
+
+
+        return cudaw;
+
+
     }
 
     pub(crate) fn free(&mut self) {
@@ -143,35 +85,36 @@ impl CUDAWorld {
 
         unsafe{
             // free grid
-            cu_mem::free_u(self.grid);
-
-            // free save buffer
-            cu_mem::free_c(self.save_buffer);
-
-            // free entities
-            cu_mem::free_f(self.entities.pos);
-            cu_mem::free_f(self.entities.size);
-            cu_mem::free_u(self.entities.id);
-
-            // free ligands
-            cu_mem::free_f(self.ligands.pos);
-            cu_mem::free_f(self.ligands.vel);
-            cu_mem::free_u(self.ligands.message);
+            cu_mem::free_u16(self.grid);
+            cu_mem::free_entity(self.entities);
+            cu_mem::free_u16(self.receptors);
+            cu_mem::free_ligand(self.ligands);
         }
     }
 
-    pub(crate) fn new_grid(&mut self) {
+    fn fill_receptors(&mut self, entities: &Vec<Entity>) {
         use cuda_bindings::memory_gpu as cu_mem;
+        // clear old receptors
 
+        let size_receptors = (entities.len() * self.settings.receptor_capacity()) as u32;
+
+        unsafe {
+            cu_mem::clear_u16(self.receptors, size_receptors);
+        }
+
+        // create host-side vector to hold data before copying to device
+        let mut receptors_h = Vec::with_capacity(entities.len() * self.settings.receptor_capacity());
+
+        for entity in entities {
+            for receptor in &entity.receptors {
+                let (_, _ , spec) = sequence_receptor(*receptor);
+                receptors_h.push(spec);
+            }
+        }
+
+        // copy to device
         unsafe{
-            let grid_size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
-
-            // free old grid
-            cu_mem::free_u(self.grid);
-
-            // allocate new grid and set to zero
-            self.grid = cu_mem::alloc_u(grid_size);
-            cu_mem::clear_u(self.grid, grid_size);
+            cu_mem::copy_HtoD_u16(self.receptors, receptors_h.as_mut_ptr(), size_receptors);
         }
     }
 
@@ -184,64 +127,32 @@ impl CUDAWorld {
         use cuda_bindings::memory_gpu as cu_mem;
 
         // create host-side vectors to hold data before copying to device
-        let mut entities_pos_h = Vec::with_capacity(entities.len() * 2);
-        let mut entities_size_h = Vec::with_capacity(entities.len());
-        let mut entities_id_h = Vec::with_capacity(entities.len());
-
-        for entity in entities {
-            entities_pos_h.push(entity.position[0]);
-            entities_pos_h.push(entity.position[1]);
-
-            entities_size_h.push(entity.size);
-            entities_id_h.push(entity.id as u32);
-        }
-
-        unsafe{
+        let mut entities_h: Vec<EntityCuda> = entities.iter().map(|e| EntityCuda::from(e)).collect();
+        
+        unsafe {
             let size_entity = entities.len() as u32;
-
-            // positions
-            cu_mem::copy_HtoD_f(self.entities.pos, entities_pos_h.as_mut_ptr(), size_entity * 2);
-
-            // sizes
-            cu_mem::copy_HtoD_f(self.entities.size, entities_size_h.as_mut_ptr(), size_entity);
-
-            // ids
-            cu_mem::copy_HtoD_u(self.entities.id, entities_id_h.as_mut_ptr(), size_entity);
+            cu_mem::copy_HtoD_entity(self.entities, entities_h.as_mut_ptr(), size_entity);
         }
-
-        self.entities.num_entities = entities.len();
 
     }
 
-    pub(crate) fn add_ligands(&mut self, ligands_pos: &mut Vec<f32>, ligands_vel: &mut Vec<f32>, ligands_content: &mut Vec<u32>) -> Result<(), i32> {
-        // checks if input vectors are of correct size
-        if ligands_pos.len() != ligands_vel.len() || ligands_pos.len() / 2 != ligands_content.len() {
-            return Err(-1);
-        }
+    pub(crate) fn add_ligands(&mut self, ligands: &Vec<LigandCuda>) -> Result<(), ()> {
         
         // checks if there is enough capacity
-        if self.ligands.num_ligands + ligands_content.len() > self.ligand_cap as usize {
-            return Err(-2);
+        if self.ligand_count as usize + ligands.len() > self.ligand_cap as usize {
+            return Err(());
         }
-
+        
         use cuda_bindings::memory_gpu as cu_mem;
 
-
         unsafe{
-            let start_index = self.ligands.num_ligands;
-            let size_ligand = ligands_pos.len() as u32;
+            let start_index = self.ligand_count as usize;
+            let size_ligand = ligands.len() as u32;
 
-            // positions
-            cu_mem::copy_HtoD_f(self.ligands.pos.add(start_index * 2), ligands_pos.as_mut_ptr(), size_ligand);
-
-            // velocities
-            cu_mem::copy_HtoD_f(self.ligands.vel.add(start_index * 2), ligands_vel.as_mut_ptr(), size_ligand);
-
-            // messages
-            cu_mem::copy_HtoD_u(self.ligands.message.add(start_index), ligands_content.as_mut_ptr(), size_ligand / 2);
+            cu_mem::copy_HtoD_ligand(self.ligands.add(start_index), ligands.as_ptr(), size_ligand);
         }
 
-        self.ligands.num_ligands += ligands_content.len();
+        self.ligand_count += ligands.len() as u32;
 
         Ok(())
 
@@ -259,80 +170,56 @@ impl CUDAWorld {
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
 
-            overflow = cu_grid::fill_grid(self.entities.num_entities as u32, dim, self.grid, self.entities.pos);
-            
+            overflow = cu_grid::fill_grid(self.entity_count, dim, self.grid, self.entities);
         }
 
         return overflow;
         
     }
 
-    pub(crate) fn increase_cap(&mut self, obj_type: objects::ObjectType) {
+    pub(crate) fn increase_cap(&mut self, obj_type: IncreaseType) {
 
         use cuda_bindings::memory_gpu as cu_mem;
 
         unsafe {
         match obj_type {
-            objects::ObjectType::Entity(_) => {
+            IncreaseType::Entity => {
                 let new_cap = (self.entity_cap as f32 * EXTRA_SPACE_ENTITY) as u32;
                 self.entity_cap = new_cap;
 
                 println!("Increasing entity capacity to {}", new_cap);
                 
                 // reallocate device memory
-                
-                // positions
-                let new_entities_pos = cu_mem::alloc_f(new_cap * 2);
-                cu_mem::clear_f(new_entities_pos, new_cap * 2);
-                cu_mem::copy_DtoD_f(new_entities_pos, self.entities.pos, self.entities.num_entities as u32  * 2);
-                cu_mem::free_f(self.entities.pos);
-                self.entities.pos = new_entities_pos;
-
-
-                // sizes
-                let new_entities_size = cu_mem::alloc_f(new_cap);
-                cu_mem::clear_f(new_entities_size, new_cap);
-                cu_mem::copy_DtoD_f(new_entities_size, self.entities.size, self.entities.num_entities as u32);
-                cu_mem::free_f(self.entities.size);
-                self.entities.size = new_entities_size;
-
-                // ids
-                let new_entities_id = cu_mem::alloc_u(new_cap);
-                cu_mem::clear_u(new_entities_id, new_cap);
-                cu_mem::copy_DtoD_u(new_entities_id, self.entities.id, self.entities.num_entities as u32);
-                cu_mem::free_u(self.entities.id);
-                self.entities.id = new_entities_id;
-
-
-
+                let new_entities = cu_mem::alloc_entity(new_cap);
+                cu_mem::copy_DtoD_entity(new_entities, self.entities, self.entity_count as u32);
+                cu_mem::free_entity(self.entities);
 
             },
-            objects::ObjectType::Ligand => {
+            IncreaseType::Ligand => {
                 let new_cap = (self.ligand_cap as f32 * EXTRA_SPACE_LIGAND) as u32;
                 self.ligand_cap = new_cap;
 
                 println!("Increasing ligand capacity to {}", new_cap);
                 
                 // reallocate device memory
+                let new_ligands = cu_mem::alloc_ligand(new_cap);
+                cu_mem::copy_DtoD_ligand(new_ligands, self.ligands, self.ligand_count as u32);
+                cu_mem::free_ligand(self.ligands);
+                self.ligands = new_ligands;
 
-                // positions
-                let new_ligands_pos = cu_mem::alloc_f(new_cap * 2);
-                cu_mem::copy_DtoD_f(new_ligands_pos, self.ligands.pos, self.ligands.num_ligands as u32 * 2);
-                cu_mem::free_f(self.ligands.pos);
-                self.ligands.pos = new_ligands_pos;
 
-                // velocities
-                let new_ligands_vel = cu_mem::alloc_f(new_cap * 2);
-                cu_mem::copy_DtoD_f(new_ligands_vel, self.ligands.vel, self.ligands.num_ligands as u32 * 2);
-                cu_mem::free_f(self.ligands.vel);
-                self.ligands.vel = new_ligands_vel;
-
-                // contents, not yet implemented
-                let new_ligands_message = cu_mem::alloc_u(new_cap);
-                cu_mem::copy_DtoD_u(new_ligands_message, self.ligands.message, self.ligands.num_ligands as u32);
-                cu_mem::free_u(self.ligands.message);
-                self.ligands.message = new_ligands_message;
             },
+            IncreaseType::Grid => {
+                
+                let grid_size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
+
+                // free old grid
+                cu_mem::free_u16(self.grid);
+
+                // allocate new grid and set to zero
+                self.grid = cu_mem::alloc_u16(grid_size);
+                cu_mem::clear_u16(self.grid, grid_size);
+            }
         }
         }
     }

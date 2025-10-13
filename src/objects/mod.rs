@@ -3,7 +3,7 @@ use ndarray::Array1;
 pub mod entity;
 pub mod ligand;
 pub mod genome;
-mod receptor;
+pub mod receptor;
 
 const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
 
@@ -23,6 +23,7 @@ pub struct LigandSource {
 }
 
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub(crate) struct Ligand {
     pub(crate) emitted_id: usize, // id of the entity that emitted the ligand
     pub(crate) position: Array1<f32>, // position in the world
@@ -60,7 +61,7 @@ pub(crate) struct Entity {
     // ************ sensors and inner proteins ************
 
     // receptors
-    receptors: Vec<u32>, // list of receptors (size: settings.receptor_capacity())
+    pub(crate) receptors: Vec<u32>, // list of receptors (size: settings.receptor_capacity())
 
     // inner proteins
     // range defined in settings.concentration_range()

@@ -59,7 +59,7 @@ pub fn extract_receptor_fns(receptor_dna: u64) -> Box<dyn Fn(f32) -> f64> {
 
 }
 
-fn sequence_receptor(receptor: u32) -> (u8, bool, u16) {
+pub(crate)fn sequence_receptor(receptor: u32) -> (u8, bool, u16) {
     // returns the sequence of the receptor
     // first byte: type of inner protein
     // second byte (bool): negative or positive

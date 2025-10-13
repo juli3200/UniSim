@@ -3,7 +3,6 @@
 
 #include "helper.hpp"
 
-#define u_long unsigned int
 #define ThreadsPerBlock 256
 
 template <typename T>
@@ -16,10 +15,10 @@ __global__ void clear_kernel(T* ptr, int size) {
 
 
 template <typename T>
-void clear_grid(T* grid, u_long size) {
+void clear_grid(T* grid, uint32_t size) {
 
     // define block sizes
-    u_long blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+    uint32_t blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
     // launch kernel
     clear_kernel<<<blockN, ThreadsPerBlock>>>(grid, size);
@@ -32,7 +31,7 @@ extern "C"{
     // ----------------float memory management functions----------------
 
     // allocates memory on the GPU and returns a pointer to it
-    float* alloc_f(u_long size){
+    float* alloc_f(uint32_t size){
         float* d_ptr;
         cudaMalloc((void**)&d_ptr, size * sizeof(float));
 
@@ -45,91 +44,113 @@ extern "C"{
     }
 
     // copies memory from host to device
-    void copy_HtoD_f(float* d_ptr, float* h_ptr, u_long size){
-        cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
+    void copy_HtoD_f(float* d_ptr, float* h_ptr, uint32_t size){
+        cudaMemcpy(d_ptr, h_ptr, size * sizeof(float), cudaMemcpyHostToDevice);
     }
 
     // copies memory from device to host
-    void copy_DtoH_f(float* h_ptr, float* d_ptr, u_long size){
-        cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    void copy_DtoH_f(float* h_ptr, float* d_ptr, uint32_t size){
+        cudaMemcpy(h_ptr, d_ptr, size * sizeof(float), cudaMemcpyDeviceToHost);
     }
 
     // copies memory from device to device
-    void copy_DtoD_f(float* target, float* origin, u_long size){
-        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    void copy_DtoD_f(float* target, float* origin, uint32_t size){
+        cudaMemcpy(target, origin, size * sizeof(float), cudaMemcpyDeviceToDevice);
     }
 
     // clears memory on the device by setting all bytes to 0
-    void clear_f(float* d_ptr, u_long size){
+    void clear_f(float* d_ptr, uint32_t size){
         clear_grid(d_ptr, size);
     }
 
-    // ----------------u_long memory management functions----------------
+    // ----------------uint32_t memory management functions----------------
 
     // allocates memory on the GPU and returns a pointer to it
-    u_long* alloc_u(u_long size){
-        u_long* d_ptr;
-        cudaMalloc((void**)&d_ptr, size * sizeof(u_long));
+    uint16_t* alloc_u16(uint32_t size){
+        uint16_t* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(uint16_t));
 
         return d_ptr;
     }
 
     // frees memory on the GPU
-    void free_u(u_long* d_ptr){
+    void free_u16(uint16_t* d_ptr){
         cudaFree(d_ptr);
     }
 
     // copies memory from host to device
-    void copy_HtoD_u(u_long* d_ptr, u_long* h_ptr, u_long size){
-        cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
+    void copy_HtoD_u16(uint16_t* d_ptr, uint16_t* h_ptr, uint32_t size){
+        cudaMemcpy(d_ptr, h_ptr, size * sizeof(uint16_t), cudaMemcpyHostToDevice);
     }
 
     // copies memory from device to host
-    void copy_DtoH_u(u_long* h_ptr, u_long* d_ptr, u_long size){
-        cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    void copy_DtoH_u16(uint16_t* h_ptr, uint16_t* d_ptr, uint32_t size){
+        cudaMemcpy(h_ptr, d_ptr, size * sizeof(uint16_t), cudaMemcpyDeviceToHost);
     }
 
     // copies memory from device to device
-    void copy_DtoD_u(u_long* target, u_long* origin, u_long size){
-        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    void copy_DtoD_u16(uint16_t* target, uint16_t* origin, uint32_t size){
+        cudaMemcpy(target, origin, size * sizeof(uint16_t), cudaMemcpyDeviceToDevice);
     }
 
     // clears memory on the device by setting all bytes to 0
-    void clear_u(u_long* d_ptr, u_long size){
+    void clear_u16(uint16_t* d_ptr, uint32_t size){
         clear_grid(d_ptr, size);
     }
 
-    // ----------------char memory management functions----------------
-    // allocates memory on the GPU and returns a pointer to it
-    char* alloc_c(u_long size){
-        char* d_ptr;
-        cudaMalloc((void**)&d_ptr, size * sizeof(char));
+    // ----------------EntityArray memory management functions----------------
+    EntityCuda* alloc_entity(uint32_t size){
+        EntityCuda* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(EntityCuda));
 
         return d_ptr;
     }
 
-    // frees memory on the GPU
-    void free_c(char* d_ptr){
+   void free_entity(EntityCuda* d_ptr){
         cudaFree(d_ptr);
     }
 
-    // copies memory from host to device
-    void copy_HtoD_c(char* d_ptr, char* h_ptr, u_long size){
-        cudaMemcpy(d_ptr, h_ptr, size, cudaMemcpyHostToDevice);
+    void copy_HtoD_entity(EntityCuda* d_ptr, EntityCuda* h_ptr, uint32_t size){
+        cudaMemcpy(d_ptr, h_ptr, size * sizeof(EntityCuda), cudaMemcpyHostToDevice);
     }
 
-    // copies memory from device to host
-    void copy_DtoH_c(char* h_ptr, char* d_ptr, u_long size){
-        cudaMemcpy(h_ptr, d_ptr, size, cudaMemcpyDeviceToHost);
+    void copy_DtoH_entity(EntityCuda* h_ptr, EntityCuda* d_ptr, uint32_t size){
+        cudaMemcpy(h_ptr, d_ptr, size * sizeof(EntityCuda), cudaMemcpyDeviceToHost);
     }
 
-    // copies memory from device to device
-    void copy_DtoD_c(char* target, char* origin, u_long size){
-        cudaMemcpy(target, origin, size, cudaMemcpyDeviceToDevice);
+    void copy_DtoD_entity(EntityCuda* target, EntityCuda* origin, uint32_t size){
+        cudaMemcpy(target, origin, size * sizeof(EntityCuda), cudaMemcpyDeviceToDevice);
     }
 
-    // clears memory on the device by setting all bytes to 0
-    void clear_c(char* d_ptr, u_long size){
+    void clear_entity(EntityCuda* d_ptr, uint32_t size){
+        clear_grid(d_ptr, size);
+    }
+
+    // ----------------LigandArray memory management functions----------------
+    LigandCuda* alloc_ligand(uint32_t size){
+        LigandCuda* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(LigandCuda));
+
+        return d_ptr;
+    }
+
+    void free_ligand(LigandCuda* d_ptr){
+          cudaFree(d_ptr);
+     }
+
+    void copy_HtoD_ligand(LigandCuda* d_ptr, LigandCuda* h_ptr, uint32_t size){
+        cudaMemcpy(d_ptr, h_ptr, size * sizeof(LigandCuda), cudaMemcpyHostToDevice);
+    }
+
+    void copy_DtoH_ligand(LigandCuda* h_ptr, LigandCuda* d_ptr, uint32_t size){
+        cudaMemcpy(h_ptr, d_ptr, size * sizeof(LigandCuda), cudaMemcpyDeviceToHost);
+    }
+
+    void copy_DtoD_ligand(LigandCuda* target, LigandCuda* origin, uint32_t size){
+        cudaMemcpy(target, origin, size * sizeof(LigandCuda), cudaMemcpyDeviceToDevice);
+    }
+
+    void clear_ligand(LigandCuda* d_ptr, uint32_t size){
         clear_grid(d_ptr, size);
     }
 
