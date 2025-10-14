@@ -91,5 +91,5 @@ pub struct CUDAWorld{
     pub(crate) ligand_count: u32,
 
     // Ligand data arrays
-    ligands: *mut LigandCuda,
+    pub(crate) ligands: *mut LigandCuda,
 }

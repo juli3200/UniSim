@@ -353,6 +353,7 @@ impl World {
                 let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
                 if let Some(entity) = entity_ref {
+                    // can go through the shortcut because the bond was already checked on the GPU
                     entity.receive_ligand_cuda_shortcut(energy, receptor_index, &self.settings);
                 }
             }
@@ -360,6 +361,13 @@ impl World {
         } else {
             eprintln!("Received null pointer from CUDA world");
         }
+
+        // if save ligands feature is active copy ligands from gpu to cpu
+        #[cfg(feature = "save_ligands")]
+        {
+            self.copy_ligands();
+        }
+
 
         // free the collision arrays
         unsafe {
@@ -556,4 +564,42 @@ impl World {
         }
     }
 
+}
+#[cfg(feature = "save_ligands")]
+// #[cfg(feature = "save_ligands")]
+// Test debugging impl block for World
+#[cfg(feature = "cuda")]
+impl World{
+
+    pub(crate) fn copy_ligands(&mut self){
+        use crate::cuda;
+
+        self.ligands.clear(); // daaaaaaaaaaaa
+
+        if self.cuda_world.is_none() {
+        return;
+        }
+
+        let cuda_world = self.cuda_world.as_mut().unwrap();
+
+        let ligands_h = unsafe { libc::malloc(cuda_world.ligand_count as usize * std::mem::size_of::<cuda::LigandCuda>()) as *mut cuda::LigandCuda };
+          
+        use cuda::cuda_bindings::memory_gpu as cu_mem;
+
+        unsafe{cu_mem::copy_DtoH_ligand(ligands_h, cuda_world.ligands, cuda_world.ligand_count);}
+
+        if ligands_h.is_null() {
+            eprintln!("Failed to allocate memory for ligands copy");
+            return;
+        }
+
+        let ligands_slice = unsafe { std::slice::from_raw_parts(ligands_h, cuda_world.ligand_count as usize) };
+
+        for i in 0..cuda_world.ligand_count as usize {
+            let ligand_cuda = &ligands_slice[i];
+            if let Ok(ligand) = ligand_cuda.try_into() {
+                self.ligands.push(ligand);
+            }
+        }
+    }
 }

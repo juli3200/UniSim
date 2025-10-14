@@ -175,13 +175,4 @@ mod cuda_tests {
 
 
 
-// Test debugging impl block for World
-#[cfg(feature = "cuda")]
-impl World{
-
-    pub(crate) fn copy_ligands(&mut self){
-          self.ligands.clear(); // daaaaaaaaaaaa
-        
-    }
-}
 

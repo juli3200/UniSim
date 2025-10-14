@@ -220,7 +220,7 @@ __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, u
                             col_arrays.receptor_ids[old_val] = receptor_index;
                             col_arrays.energies[old_val] = col_arrays.ligands[i].energy;
 
-                            // delete ligand by setting its message to 0
+                            // delete ligand by setting its message to 0xFFFFFFFF
                             col_arrays.ligands[i].emitted_id = 0XFFFFFFFF;
 
                         }

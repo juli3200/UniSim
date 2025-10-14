@@ -1,5 +1,6 @@
 use super::cuda_bindings;
 use super::*;
+use ndarray::Array1;
 
 
 use crate::objects::receptor::sequence_receptor;
@@ -31,6 +32,22 @@ impl From<&Ligand> for LigandCuda {
     }
 }
 
+impl TryInto<Ligand> for &LigandCuda {
+    type Error = &'static str;
+
+    fn try_into(self) -> Result<Ligand, Self::Error> {
+        if self.emitted_id == 0xFFFFFFFF {
+            return Err("Ligand was deleted");
+        }
+        Ok(Ligand {
+            emitted_id: self.emitted_id as usize,
+            position: Array1::from_vec(vec![self.posx, self.posy]),
+            velocity: Array1::from_vec(vec![self.velx, self.vely]),
+            spec: self.spec,
+            energy: self.energy,
+        })
+    }
+}
 
 impl CUDAWorld {
     pub(crate) fn new(settings: &Settings, entities: &Vec<Entity>, ligands: &Vec<Ligand>) -> Self {
