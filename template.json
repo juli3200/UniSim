@@ -1,3 +1,7 @@
 {
-    
+    "default_population": 100,
+    "fps" : 60.0,
+    "spawn_size": 1.0,
+    "give_start_vel": true,
+    "velocity": 3.0
 }

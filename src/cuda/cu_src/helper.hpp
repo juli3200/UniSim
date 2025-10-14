@@ -37,3 +37,17 @@ typedef struct{
     float* energies; // array of energies of the collided ligands
     uint32_t count; // number of collided ligands
 } LigandWrapper;
+
+// struct to hold all necessary arrays for collision detection
+typedef struct {
+    uint32_t* grid;
+    EntityCuda* entities;
+    LigandCuda* ligands;
+    uint16_t* receptors;
+
+    float* energies;
+    uint32_t* receptor_ids; // ids of receptors that were bound in receptor array
+    // entity ids of collided entities can be computed as receptor_ids[i] / n_receptors
+    uint32_t* counter;
+
+} CollisionUtils;

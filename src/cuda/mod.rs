@@ -74,7 +74,7 @@ pub struct CUDAWorld{
     // 3D Array: grid[x][y][i] = index of the ligand at that position, or 0 if empty
     // the third dimension is a list of indices, to allow multiple ligands in the same cell
     // the size of the third dimension is fixed, settings.cuda_slots_per_cell
-    grid: *mut u16,
+    grid: *mut u32,
 
 
     entity_cap: u32,

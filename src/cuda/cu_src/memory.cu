@@ -66,6 +66,41 @@ extern "C"{
     // ----------------uint32_t memory management functions----------------
 
     // allocates memory on the GPU and returns a pointer to it
+    uint32_t* alloc_u32(uint32_t size){
+        uint32_t* d_ptr;
+        cudaMalloc((void**)&d_ptr, size * sizeof(uint32_t));
+
+        return d_ptr;
+    }
+
+    // frees memory on the GPU
+    void free_u32(uint32_t* d_ptr){
+        cudaFree(d_ptr);
+    }
+
+    // copies memory from host to device
+    void copy_HtoD_u32(uint32_t* d_ptr, uint32_t* h_ptr, uint32_t size){
+        cudaMemcpy(d_ptr, h_ptr, size * sizeof(uint32_t), cudaMemcpyHostToDevice);
+    }
+
+    // copies memory from device to host
+    void copy_DtoH_u32(uint32_t* h_ptr, uint32_t* d_ptr, uint32_t size){
+        cudaMemcpy(h_ptr, d_ptr, size * sizeof(uint32_t), cudaMemcpyDeviceToHost);
+    }
+
+    // copies memory from device to device
+    void copy_DtoD_u32(uint32_t* target, uint32_t* origin, uint32_t size){
+        cudaMemcpy(target, origin, size * sizeof(uint32_t), cudaMemcpyDeviceToDevice);
+    }
+
+    // clears memory on the device by setting all bytes to 0
+    void clear_u32(uint32_t* d_ptr, uint32_t size){
+        clear_grid(d_ptr, size);
+    }
+
+    // ----------------uint16_t memory management functions----------------
+
+    // allocates memory on the GPU and returns a pointer to it
     uint16_t* alloc_u16(uint32_t size){
         uint16_t* d_ptr;
         cudaMalloc((void**)&d_ptr, size * sizeof(uint16_t));
@@ -122,10 +157,6 @@ extern "C"{
         cudaMemcpy(target, origin, size * sizeof(EntityCuda), cudaMemcpyDeviceToDevice);
     }
 
-    void clear_entity(EntityCuda* d_ptr, uint32_t size){
-        clear_grid(d_ptr, size);
-    }
-
     // ----------------LigandArray memory management functions----------------
     LigandCuda* alloc_ligand(uint32_t size){
         LigandCuda* d_ptr;
@@ -150,8 +181,6 @@ extern "C"{
         cudaMemcpy(target, origin, size * sizeof(LigandCuda), cudaMemcpyDeviceToDevice);
     }
 
-    void clear_ligand(LigandCuda* d_ptr, uint32_t size){
-        clear_grid(d_ptr, size);
-    }
+
 
 }

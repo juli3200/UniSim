@@ -9,7 +9,7 @@ __device__ __constant__ float reciptocal_pi = 0.31830988618; // 1/pi
 __device__ __constant__ float rec_two_pow_32 = 0.00000000023283064365386962890625; // 1/2^32
 
 
-__global__ void fill_grid_kernel(uint16_t* grid, Dim dim, uint16_t size, EntityCuda* entities, uint32_t* overflow) {
+__global__ void fill_grid_kernel(uint32_t* grid, Dim dim, uint16_t size, EntityCuda* entities, uint32_t* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
 
@@ -140,19 +140,7 @@ __device__ uint32_t entity_collision(int index, CollisionUtils col_arrays, uint3
     return 0xFFFFFFFF;
 }
 
-// struct to hold all necessary arrays for collision detection
-struct CollisionUtils {
-    uint32_t* grid;
-    EntityCuda* entities;
-    LigandCuda* ligands;
-    uint16_t* receptors;
 
-    float* energies;
-    uint32_t* receptor_ids; // ids of receptors that were bound in receptor array
-    // entity ids of collided entities can be computed as receptor_ids[i] / n_receptors
-    uint32_t* counter;
-
-};
 
 __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -255,7 +243,7 @@ extern "C" {
     
     // fills a 3D grid with a specified value
     // pointers are already device pointers
-    int fill_grid(uint32_t size, Dim dim, uint16_t* grid, EntityCuda* entities) {
+    int fill_grid(uint32_t size, Dim dim, uint32_t* grid, EntityCuda* entities) {
 
         bool error = false;
         printf("Size: %lu\n", size);

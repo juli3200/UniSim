@@ -2,14 +2,19 @@
 fn main() {
     use UniSim::prelude::*;
 
-    let settings: Settings = settings!(1, spawn_size = 1.0, give_start_vel = true, velocity = 20.0, fps = 60.0, store_capacity = 10000, dimensions=(100,100));
+    let settings: Settings = settings!("template.json");
+
     let mut world = World::new(settings);
 
-    //world.save("testfiles/test_cuda.bin").expect("Failed to save world");
+    edit_settings!(&mut world, store_capacity = 300, cuda_slots_per_cell = 10);
+
+    world.save("testfiles/test_cuda.bin").expect("Failed to save world");
     world.cuda_initialize().expect("Failed to initialize CUDA");
 
+    world.add_ligand_source(vec![1.0, 1.0], 10.0, 1786, 0.01);
 
-    world.run(10000);
+
+    world.run(300);
 }
 
 #[cfg(not(feature = "cuda"))]

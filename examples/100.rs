@@ -4,7 +4,6 @@ use UniSim::prelude::*;
 fn main() {
 
     let settings: Settings = settings!(100, spawn_size = 1.0, give_start_vel = true, velocity = 3.0, fps = 60.0, store_capacity = 5000, dimensions=(100,100));
-    settings!("5");
 
     let mut world = World::new(settings);
 

@@ -60,7 +60,7 @@ impl CUDAWorld {
         use cuda_bindings::memory_gpu as cu_mem;
 
         // define device pointers so they can be used in unsafe block and still be accessible later
-        let grid_d: *mut u16; 
+        let grid_d: *mut u32; 
         let entities_d: *mut EntityCuda; // device pointer to entity array
         let receptors_d: *mut u16; // device pointer to receptor array
         let ligands_d: *mut LigandCuda; // device pointer to ligand array
@@ -70,13 +70,12 @@ impl CUDAWorld {
             // ----------------- grid -----------------
             let grid_size = settings.dimensions().0 * settings.dimensions().1 * settings.cuda_slots_per_cell() as u32;
             // allocate grid and set to zero
-            grid_d = cu_mem::alloc_u16(grid_size);
-            cu_mem::clear_u16(grid_d, grid_size);
+            grid_d = cu_mem::alloc_u32(grid_size);
+            cu_mem::clear_u32(grid_d, grid_size);
 
 
             // ----------------- entities -----------------
             entities_d = cu_mem::alloc_entity(entity_cap);
-            cu_mem::clear_entity(entities_d, entity_cap);
 
             // ----------------- receptors -----------------
             receptors_d = cu_mem::alloc_u16(entity_cap * settings.receptor_capacity() as u32);
@@ -86,7 +85,6 @@ impl CUDAWorld {
             // ----------------- ligands -----------------
             // positions, allocate double the space for x and y of capacity
             ligands_d = cu_mem::alloc_ligand(ligand_cap);
-            cu_mem::clear_ligand(ligands_d, ligand_cap);
 
         }
 
@@ -117,7 +115,7 @@ impl CUDAWorld {
 
         unsafe{
             // free grid
-            cu_mem::free_u16(self.grid);
+            cu_mem::free_u32(self.grid);
             cu_mem::free_entity(self.entities);
             cu_mem::free_u16(self.receptors);
             cu_mem::free_ligand(self.ligands);
@@ -248,11 +246,11 @@ impl CUDAWorld {
                 let grid_size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
 
                 // free old grid
-                cu_mem::free_u16(self.grid);
+                cu_mem::free_u32(self.grid);
 
                 // allocate new grid and set to zero
-                self.grid = cu_mem::alloc_u16(grid_size);
-                cu_mem::clear_u16(self.grid, grid_size);
+                self.grid = cu_mem::alloc_u32(grid_size);
+                cu_mem::clear_u32(self.grid, grid_size);
             }
         }
         }
@@ -292,7 +290,7 @@ impl CUDAWorld {
         // clear grid
         let size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
         unsafe {
-            cu_mem::clear_u16(self.grid, size);
+            cu_mem::clear_u32(self.grid, size);
         }
 
         return (collisions, overflow);
