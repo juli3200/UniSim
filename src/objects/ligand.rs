@@ -54,7 +54,7 @@ impl LigandSource {
     }
 }
 
-#[repr(C)]
+
 impl Ligand {
 
     pub fn new(emitted_id: usize, energy: f32, spec:u16, position: Array1<f32>, velocity: Array1<f32>) -> Self {

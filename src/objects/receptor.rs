@@ -2,7 +2,7 @@ const SPEC_LENGTH: f64 = 16.0; // length of the specification in bits
 
 
 fn spec_match(spec1: u16, spec2: u16) -> bool{
-    let matches = (spec1 ^ spec2).count_ones();
+    let matches = (spec1 ^ spec2).count_zeros();
 
     rand::random_bool(matches as f64 / SPEC_LENGTH)
 }

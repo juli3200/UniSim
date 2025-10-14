@@ -22,7 +22,7 @@ typedef struct{
     float velx; // x velocity of the entity
     float vely; // y velocity of the entity
     float size; // size of the entity
-    uint32_t spec; // entity spec number
+    uint32_t id; // entity id
 
 } EntityCuda;
 
@@ -33,6 +33,7 @@ typedef struct{
 } Dim;
 
 typedef struct{
-    LigandCuda* ligands; // array of collided ligands
+    uint32_t* receptor_ids; // array of receptor ids that collided with ligands
+    float* energies; // array of energies of the collided ligands
     uint32_t count; // number of collided ligands
 } LigandWrapper;

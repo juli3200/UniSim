@@ -352,6 +352,23 @@ impl Entity {
 
     }
 
+    #[cfg(feature = "cuda")]
+    pub(crate) fn receive_ligand_cuda_shortcut(&mut self, energy: f32, receptor_index: usize, settings: &Settings) {
+        // change energy
+
+        use crate::objects::receptor;
+        self.energy += energy;
+
+        // change concentration
+
+        let (index, positive, _) = receptor::sequence_receptor(self.receptors[receptor_index]);
+
+        let change: i16 = if positive { 1 } else { -1 };
+
+        // change concentration and clamp to range
+        self.inner_protein_levels[index as usize] = (self.inner_protein_levels[index as usize] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
+    }
+
     pub(crate) fn print_stats(&self) {
         println!("Entity ID: {}", self.id);
         println!("Age: {}", self.age);

@@ -16,6 +16,20 @@ impl From<&Entity> for EntityCuda {
     }
 }
 
+impl From<&Ligand> for LigandCuda {
+    fn from(ligand: &Ligand) -> Self {
+        Self {
+            emitted_id: ligand.emitted_id as u32,
+            posx: ligand.position[0],
+            posy: ligand.position[1],
+            velx: ligand.velocity[0],
+            vely: ligand.velocity[1],
+            spec: ligand.spec,
+            energy: ligand.energy,
+        }
+    }
+}
+
 
 impl CUDAWorld {
     pub(crate) fn new(settings: &Settings, entities: &Vec<Entity>, ligands: &Vec<Ligand>) -> Self {
@@ -121,7 +135,7 @@ impl CUDAWorld {
     pub(crate) fn update_entities(&mut self, entities: &Vec<Entity>) {
         // checks if there is enough capacity
         if entities.len()  > self.entity_cap as usize {
-            self.increase_cap(objects::ObjectType::Entity(0));
+            self.increase_cap(IncreaseType::Entity);
         }
 
         use cuda_bindings::memory_gpu as cu_mem;
@@ -136,7 +150,7 @@ impl CUDAWorld {
 
     }
 
-    pub(crate) fn add_ligands(&mut self, ligands: &Vec<LigandCuda>) -> Result<(), ()> {
+    pub(crate) fn add_ligands(&mut self, ligands: &Vec<Ligand>) -> Result<(), ()> {
         
         // checks if there is enough capacity
         if self.ligand_count as usize + ligands.len() > self.ligand_cap as usize {
@@ -144,12 +158,14 @@ impl CUDAWorld {
         }
         
         use cuda_bindings::memory_gpu as cu_mem;
+        // make CudaLigand array
+        let ligands_cuda: Vec<LigandCuda> = ligands.iter().map(|l| LigandCuda::from(l)).collect();
 
         unsafe{
             let start_index = self.ligand_count as usize;
             let size_ligand = ligands.len() as u32;
 
-            cu_mem::copy_HtoD_ligand(self.ligands.add(start_index), ligands.as_ptr(), size_ligand);
+            cu_mem::copy_HtoD_ligand(self.ligands.add(start_index), ligands_cuda.as_ptr(), size_ligand);
         }
 
         self.ligand_count += ligands.len() as u32;
@@ -224,21 +240,22 @@ impl CUDAWorld {
         }
     }
 
-    pub(crate) fn update(&mut self, entities: &Vec<Entity>, search_radius: u32) -> (CollisionArraysHost, i32){
+    pub(crate) fn update(&mut self, entities: &Vec<Entity>, search_radius: u32) -> (LigandWrapper, i32){
 
         // first, update ligand positions based on their velocities
         use cuda_bindings::grid_gpu as cu_grid;
         use cuda_bindings::memory_gpu as cu_mem;
 
-        // update entities 
+        // load new entity data to gpu
         self.update_entities(entities);
 
         // update the grid with the new entity positions
         let overflow = self.add_to_grid();
 
+        // update ligand positions
         unsafe{
             let delta_time = 1.0 / self.settings.fps();
-            cu_grid::update_positions(self.ligands.clone(), delta_time);
+            cu_grid::update_positions(self.ligands, self.ligand_count, delta_time);
         }
         
         // then, handle collisions
@@ -249,13 +266,15 @@ impl CUDAWorld {
                 y: self.settings.dimensions().1,
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
-            collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities.clone(), self.ligands.clone());
+            let receptor_count = self.entity_count * self.settings.receptor_capacity() as u32;
+            collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities,
+                self.ligands, self.ligand_count, self.receptors, receptor_count);
         }
 
         // clear grid
         let size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
         unsafe {
-            cu_mem::clear_u(self.grid, size);
+            cu_mem::clear_u16(self.grid, size);
         }
 
         return (collisions, overflow);

@@ -28,7 +28,7 @@ impl World {
             time: 0.0,
             population_size: 0,
             ligands_count: 0,
-            counter: 0,
+            counter: 1, // start counting entities from 1 (0 is reserved for empty) (cuda)
             byte_counter: 0,
             iteration: 0,
 
@@ -185,15 +185,6 @@ impl World {
             }
         }
 
-        // DEBUGGING
-        #[cfg(all(feature = "cuda", test))]
-        {
-            if self.cuda_world.is_some(){
-                self.ligands = Vec::new(); // in test mode, clear the ligands so they are not added multiple times
-                self.ligands_count = 0;
-            }
-        }
-
 
     }
 
@@ -210,8 +201,6 @@ impl World {
         for i in 0..self.entities.len() {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
-
-
 
 
         // update all ligands positions and check for collisions
@@ -275,7 +264,6 @@ impl World {
     #[cfg(feature = "cuda")]
     fn gpu_update(&mut self) -> Result<(), String> {
 
-
         if self.cuda_world.is_none() {
             return Err("CUDA world is not initialized".to_string());
         }
@@ -285,57 +273,37 @@ impl World {
         // entities are updated on CPU
         // update all entities positions and receive Ligands
 
-        let mut new_ligands = Vec::new();
-
         for entity in  self.entities.iter_mut() {
             entity.update_physics(&mut self.space);
-            new_ligands.extend(entity.emit_ligands()); // collect new ligands from entities
         }
 
         let entities_clone = self.entities.clone();
 
-        // check for collisions
+        // check for collisions on CPU
         for i in 0..self.entities.len() {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
-        // ligands are updated on GPU
-        if cfg!(test) {
-            new_ligands = self.ligands.clone(); // in test mode, use the ligands from the world, so ligands can be added manually
-        }
+        // delete all ligands on host
+        self.ligands.clear();
+        self.ligands_count = 0;
 
-
-        // please improve this code
-        let mut ligands_pos: Vec<f32> = new_ligands.iter()
-            .flat_map(|l| l.position.iter())
-            .cloned()
-            .collect();
-        let mut ligands_vel: Vec<f32> = new_ligands.iter()
-            .flat_map(|l| l.velocity.iter())
-            .cloned()
-            .collect();
-        let mut ligands_content: Vec<u32> = new_ligands.iter()
-            .map(|l| l.message) 
-            .collect();
-
-        let err = self.cuda_world.as_mut().unwrap().add_ligands(&mut ligands_pos, &mut ligands_vel, &mut ligands_content);
+        // add new ligands to the cuda world
+        let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.ligands);
 
         // error handling for adding ligands
-        if let Err(e) = err {
-            if e == -1 {
-                return Err("Input ligand vectors have incorrect sizes".to_string());
-            } else {
-                // increase capacity 
-                println!("Increasing ligand capacity");
-                self.cuda_world.as_mut().unwrap().increase_cap(objects::ObjectType::Ligand);
-            }
+        if let Err(_) = err {
+            // increase capacity 
+            use crate::cuda;
+            println!("Increasing ligand capacity");
+            self.cuda_world.as_mut().unwrap().increase_cap(cuda::IncreaseType::Ligand);
         }
 
         // get the received ligands from the entities
         let (received_ligands, overflow) = self.cuda_world.as_mut().unwrap().update(&self.entities, self.space.max_size.ceil() as u32);
 
         if overflow > 0 {
-            use crate::edit_settings;
+            use crate::{cuda, edit_settings};
 
             println!("Warning: Grid overflow occurred, increasing grid size or slots per cell");
             let new_size = (self.settings.cuda_slots_per_cell() as f32 * 1.2) as usize;
@@ -344,60 +312,63 @@ impl World {
             edit_settings!(self, cuda_slots_per_cell = new_size);
 
             // recreate the grid with the new size
-            self.cuda_world.as_mut().unwrap().new_grid();
+            self.cuda_world.as_mut().unwrap().increase_cap(cuda::IncreaseType::Grid);
         }
 
 
-        let len = received_ligands.counter as usize;
+        let len = received_ligands.count as usize;
         dbg!(len);
         dbg!(overflow);
-        dbg!(received_ligands.collided_message.is_null());
+        dbg!(received_ligands.energies.is_null());
 
 
         // slice around the *mut pointers
-        let messages: &[u32];
-        let positions: &[f32];
-        let ids: &[u32];
+        let energies: &[f32];
+        let receptors: &[u32];
 
         unsafe {
-            messages = std::slice::from_raw_parts(received_ligands.collided_message, len);
-            positions = std::slice::from_raw_parts(received_ligands.collided_pos, len * 2);
-            ids = std::slice::from_raw_parts(received_ligands.collided_entities, len);
+            energies = std::slice::from_raw_parts(received_ligands.energies, len);
+            receptors = std::slice::from_raw_parts(received_ligands.receptor_ids, len * 2);
         }
 
         // add the ligands to entities and edit concentrations
         for i in 0..len {
-            
-
-            let pos = Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]);
-            let message = messages[i];
-            let entity_id = ids[i] as usize;
-
+            let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
+            let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
+            let energy = energies[i];
+    
             // find the entity with the corresponding id
             let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
             if let Some(entity) = entity_ref {
-                entity.receive_ligand(message, pos, 0, &self.settings); // emitted_id is 0 since we don't track it on GPU YET!
-            } else {
-                return Err(format!("Entity with ID {} not found", entity_id));
+                entity.receive_ligand_cuda_shortcut(energy, receptor_index, &self.settings);
             }
         }
 
 
-        // DEBUGGING
-        #[cfg(test)]
-        self.copy_ligands(positions, messages, len);
-
         // free the collision arrays
         unsafe {
-            libc::free(received_ligands.collided_message as *mut libc::c_void);
-            libc::free(received_ligands.collided_pos as *mut libc::c_void);
-            libc::free(received_ligands.collided_entities as *mut libc::c_void);
+            libc::free(received_ligands.receptor_ids as *mut libc::c_void);
+            libc::free(received_ligands.energies as *mut libc::c_void);
         }
 
+        let dt = 1.0 / self.settings.fps() as f32;
+        for entity in &mut self.entities {
+            entity.update_output(&self.settings);
+        }
 
+        // emit new ligands from entities
+        for entity in &mut self.entities {
+            let new_ligands = entity.emit_ligands();
+            self.ligands.extend(new_ligands);
+        }
 
-        
+        // emit new ligands from sources
+        for source in &self.ligand_sources {
+            let new_ligands = source.emit_ligands(dt);
+            self.ligands.extend(new_ligands);
+
+        }
 
         Ok(())
     }

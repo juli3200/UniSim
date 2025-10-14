@@ -1,5 +1,5 @@
 #![cfg(feature = "cuda")]
-use crate::{objects, settings_::Settings};
+use crate::settings_::Settings;
 use crate::objects::{Entity, Ligand};
 
 pub(crate) mod cuda_bindings;
@@ -38,7 +38,6 @@ pub(crate) struct LigandCuda {
     velx: f32, // x velocity of the ligand
     vely: f32, // y velocity of the ligand
 
-    message: u32, // 1 uint32_t per ligand
     spec: u16,
     energy: f32,
 
@@ -53,8 +52,9 @@ pub(crate) struct Dim{
 
 #[repr(C)]
 pub(crate) struct LigandWrapper{
-    ligands: *mut LigandCuda,
-    count: u32,
+    pub(crate) receptor_ids: *mut u32,
+    pub(crate) energies: *mut f32,
+    pub(crate) count: u32,
 }
 
 
