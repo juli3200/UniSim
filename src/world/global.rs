@@ -27,8 +27,7 @@ impl World {
             path: None,
             time: 0.0,
             population_size: 0,
-            ligands_count: 0,
-            counter: 1, // start counting entities from 1 (0 is reserved for empty) (cuda)
+            counter: 1, // start counting entities from 1 (0 is reserved for LigandSources)
             byte_counter: 0,
             iteration: 0,
 
@@ -197,7 +196,7 @@ impl World {
     fn cpu_update(&mut self) {
         // add new ligands to the world
         self.ligands.extend(self.new_ligands.drain(..));
-        self.ligands_count = self.ligands.len();
+
         // clear the new ligands vector
         self.new_ligands.clear();
 
@@ -242,7 +241,7 @@ impl World {
                         self.ligands.remove(i);
                     } else {
                         // re-emit the ligand
-                        self.ligands[i].re_emit();
+                        self.ligands[i].re_emit(entity , dt);
                     }
                 } else {
                     eprintln!("Entity with ID {} not found", entity_id);
@@ -257,7 +256,7 @@ impl World {
 
         // emit new ligands from entities
         for entity in &mut self.entities {
-            let new_ligands = entity.emit_ligands();
+            let new_ligands = entity.emit_ligands(&self.settings);
             self.new_ligands.extend(new_ligands);
         }
 
@@ -267,10 +266,6 @@ impl World {
             self.new_ligands.extend(new_ligands);
 
         }
-
-        self.ligands_count = self.ligands.len();
-
-        
 
     }
 
@@ -297,6 +292,7 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
+        dbg!(self.new_ligands.len());
         // add new ligands to the cuda world
         let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.new_ligands);
 
@@ -305,9 +301,8 @@ impl World {
         // error handling for adding ligands
         if let Err(_) = err {
             // increase capacity 
-            use crate::cuda;
             println!("Increasing ligand capacity");
-            self.cuda_world.as_mut().unwrap().increase_cap(cuda::IncreaseType::Ligand);
+            self.cuda_world.as_mut().unwrap().increase_cap(crate::cuda::IncreaseType::Ligand);
         }
 
         // get the received ligands from the entities
@@ -328,9 +323,7 @@ impl World {
 
 
         let len = received_ligands.count as usize;
-        dbg!(len);
-        dbg!(overflow);
-        dbg!(received_ligands.energies.is_null());
+
 
         // check if the pointers are null
         if !received_ligands.receptor_ids.is_null() & !received_ligands.energies.is_null() {
@@ -382,7 +375,7 @@ impl World {
 
         // emit new ligands from entities
         for entity in &mut self.entities {
-            let new_ligands = entity.emit_ligands();
+            let new_ligands = entity.emit_ligands(&self.settings);
             self.new_ligands.extend(new_ligands);
         }
 
@@ -545,9 +538,8 @@ impl World {
             let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
             // add ligand at random position
             // ensure position is within bounds
-            let ligand = objects::Ligand::new(usize::MAX, 0.2, 0u16, position, norm_pos);
-            self.ligands.push(ligand);
-            self.ligands_count += 1;
+            let ligand = objects::Ligand::new(0, 0.2, 0u16, position, norm_pos);
+            self.new_ligands.push(ligand);
         }
     }
 
@@ -574,7 +566,7 @@ impl World{
     pub(crate) fn copy_ligands(&mut self){
         use crate::cuda;
 
-        self.ligands.clear(); // daaaaaaaaaaaa
+        self.ligands.clear(); 
 
         if self.cuda_world.is_none() {
         return;
@@ -601,5 +593,7 @@ impl World{
                 self.ligands.push(ligand);
             }
         }
+
+        dbg!(self.ligands.len());
     }
 }

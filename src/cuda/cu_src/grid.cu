@@ -4,10 +4,16 @@
 #include "helper.hpp"
 
 #define ThreadsPerBlock 256
-#define COLLISION_SPACE_FACTOR 0.2 // factor to allocate more space for collided ligands
+#define COLLISION_SPACE_FACTOR 0.5 // factor to allocate more space for collided ligands
 __device__ __constant__ float reciptocal_pi = 0.31830988618; // 1/pi
 __device__ __constant__ float rec_two_pow_32 = 0.00000000023283064365386962890625; // 1/2^32
 
+struct floatdebug {
+    float x1;
+    float y1;
+    float x2;
+    float y2;
+};
 
 __global__ void fill_grid_kernel(uint32_t* grid, Dim dim, uint16_t size, EntityCuda* entities, uint32_t* overflow) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -50,6 +56,10 @@ __global__ void update_positions_kernel(LigandCuda* ligands, uint32_t size, floa
 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
+        if (ligands[i].emitted_id == 0xFFFFFFFF) {
+            // skip if ligand is already collided
+            return;
+        }
         ligands[i].posx += ligands[i].velx * delta_time;
         ligands[i].posy += ligands[i].vely * delta_time;
         
@@ -96,7 +106,26 @@ __device__ float pseudo_random(uint32_t x) {
 }
 
 // check if ligand can bind to entity based on specs and angle of incidence
-__device__ uint32_t entity_collision(int index, CollisionUtils col_arrays, uint32_t entity_index, uint32_t n_receptors, float dx, float dy) {
+__device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t entity_index, uint32_t n_receptors, float x, float y, floatdebug* debug_array) {
+    // return: collission occured
+
+    // compute distance
+    float dx = col_arrays.entities[entity_index].posx - x;
+    float dy = col_arrays.entities[entity_index].posy - y;
+    float dist_sq = dx * dx + dy * dy;
+
+    float size_sq = col_arrays.entities[entity_index].size * col_arrays.entities[entity_index].size;
+
+    if (index == 0) {
+        debug_array[index] = {x, y, col_arrays.entities[entity_index].posx, col_arrays.entities[entity_index].posy};
+    }
+
+    // check if collided
+    if (dist_sq > size_sq) {
+        // no collision
+        return false;
+    }
+
     // check if ligand can bind to entity
     uint16_t ligand_spec = col_arrays.ligands[index].spec;
     uint32_t receptor_start_index = entity_index * n_receptors;
@@ -134,93 +163,108 @@ __device__ uint32_t entity_collision(int index, CollisionUtils col_arrays, uint3
     float rand = pseudo_random(col_arrays.ligands[index].emitted_id + index + entity_index);
 
     if (rand < match_prob) {
-        // ligand can bind to entity
-        return relative_index;
+        // register collision
+        int old_val = atomicAdd(col_arrays.counter, 1);
+        col_arrays.receptor_ids[old_val] = receptor_index;
+        col_arrays.energies[old_val] = col_arrays.ligands[index].energy;
+
+        // delete ligand by setting its message to 0xFFFFFFFF
+        col_arrays.ligands[index].emitted_id = 0XFFFFFFFF;
+        return true;
+    } else {
+        // reflect ligand and continue
+
+        // reflect on circle -> v- 2*(v*n)*n where n is the normal
+        // (dx, dy)/size is the normal
+
+        float size_recip = 1.0f / col_arrays.entities[entity_index].size;
+
+        float normal_x = dx * size_recip;
+        float normal_y = dy * size_recip;
+
+        float v_dot_n = velx * normal_x + vely * normal_y;
+
+        col_arrays.ligands[index].velx = velx - 2.0f * v_dot_n * normal_x;
+        col_arrays.ligands[index].vely = vely - 2.0f * v_dot_n * normal_y;
+
+        return true;
     }
-    return 0xFFFFFFFF;
+
 }
 
 
 
-__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays) {
+__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays, floatdebug* debug_array) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (i < size) {
+    // check bounds
+    if (i >= size) {
+        return;
+    }
 
-        if (col_arrays.ligands[i].emitted_id== 0xFFFFFFFF) {
-            // skip if ligand is already collided
-            return;
+    if (col_arrays.ligands[i].emitted_id== 0xFFFFFFFF) {
+        
+        return;
+    }
+
+
+    uint32_t dim_x = dim.x;
+    uint32_t dim_y = dim.y;
+    uint32_t depth = dim.depth;
+
+
+    // check for collisions with borders and reflect velocity if necessary
+    if (border_collision(col_arrays.ligands, i, dim_x, dim_y)) {
+        return; // skip collision detection if border collision occurred
+    }
+
+    float x = col_arrays.ligands[i].posx;
+    float y = col_arrays.ligands[i].posy;
+
+    if (i == 0){
+        debug_array[i] = {x, y, (float)-search_radius, 0.0f};
+    }
+
+    // iterate over search area
+    for (int dx = -(int)(search_radius); dx <= (int)(search_radius); dx++) {
+            if (i == 0){
+                debug_array[i] = {x, y, -1.0f, 0.0f};
+            }
+        // skip if out of bounds
+        if ((int)x + dx < 0 || (int)x + dx >= (int)dim_x) {
+            continue;
         }
-
-
-        uint32_t dim_x = dim.x;
-        uint32_t dim_y = dim.y;
-        uint32_t depth = dim.depth;
-
-
-        // check for collisions with borders and reflect velocity if necessary
-        if (border_collision(col_arrays.ligands, i, dim_x, dim_y)) {
-            return; // skip collision detection if border collision occurred
+        if (i == 0){
+            debug_array[i] = {x, y, -1.0f, -1.0f};
         }
-
-        float x = col_arrays.ligands[i].posx;
-        float y = col_arrays.ligands[i].posy;
-
-        // iterate over search area
-        for (int dx = -search_radius; dx <= search_radius; dx++) {
+        for (int dy = -(int)(search_radius); dy <= (int)(search_radius); dy++){
             // skip if out of bounds
-            if ((int)x + dx < 0 || (int)x + dx >= (int)dim_x) {
+            if ((int)y + dy < 0 || (int)y + dy >= (int)dim_y) {
                 continue;
             }
-            for (int dy = -search_radius; dy <= search_radius; dy ++){
-                // skip if out of bounds
-                if ((int)y + dy < 0 || (int)y + dy >= (int)dim_y) {
-                    continue;
+
+            // compute grid index: (y * dim_x + x) * depth
+            int index = (((int)y + dy) * dim_x + (int)x + dx) * depth;
+        
+            // check collisions in this cell
+            // iterate over depth
+            for (int slot = 0; slot < depth; slot++) {
+                uint32_t entity_index = col_arrays.grid[index + slot];
+                if (entity_index == 0) {
+                    // empty slot, no more entities in this cell
+                    break;
                 }
 
-                // compute grid index: (y * dim_x + x) * depth
-                int index = (((int)y + dy) * dim_x + (int)x + dx) * depth;
 
-                // check collisions in this cell
-                // iterate over depth
-                for (int slot = 0; slot < depth; slot++) {
-                    uint32_t entity_index = col_arrays.grid[index + slot];
-                    if (entity_index != 0) {
-                        // compute distance
-                        float dx = col_arrays.entities[entity_index].posx - x;
-                        float dy = col_arrays.entities[entity_index].posy - y;
-                        float dist_sq = dx * dx + dy * dy;
-
-                        // check if collided
-                        if (dist_sq <= search_radius * search_radius) {
-                            // check if ligand can bind to entity
-                            uint32_t receptor_index = entity_collision(i, col_arrays, entity_index, n_receptors, dx, dy);
-                            if (receptor_index == 0xFFFFFFFF) {
-                                // cannot bind, reflect ligand and continue
-                                // simple reflection( send it back the way it came)
-                                col_arrays.ligands[i].velx = -col_arrays.ligands[i].velx;
-                                col_arrays.ligands[i].vely = -col_arrays.ligands[i].vely;
-                                continue;
-                            }
-
-                            // register collision
-                            int old_val = atomicAdd(col_arrays.counter, 1);
-                            col_arrays.receptor_ids[old_val] = receptor_index;
-                            col_arrays.energies[old_val] = col_arrays.ligands[i].energy;
-
-                            // delete ligand by setting its message to 0xFFFFFFFF
-                            col_arrays.ligands[i].emitted_id = 0XFFFFFFFF;
-
-                        }
-                    }
-                }
-
+                // check if ligand collides with entity and resolve collision
+                if (entity_collision(i, col_arrays, entity_index, n_receptors, x, y, debug_array)) {
+                    return;
+                } else {
+                    continue; // no collision, check next entity
+                }          
             }
+
         }
-
-
-
-
     }
 }
 
@@ -246,8 +290,6 @@ extern "C" {
     int fill_grid(uint32_t size, Dim dim, uint32_t* grid, EntityCuda* entities) {
 
         bool error = false;
-        printf("Size: %lu\n", size);
-        printf("Dim: %lu x %lu x %lu\n", dim.x, dim.y, dim.depth);
 
         // allocate overflow counter
         uint32_t* d_overflow;
@@ -292,7 +334,13 @@ extern "C" {
         // allocate memory for collided ligands
         cudaMalloc((void**)&energies, sizeof(float) * (uint32_t)(ligands_size * COLLISION_SPACE_FACTOR));
         cudaMalloc((void**)&receptor_ids, sizeof(uint32_t) * (uint32_t)(ligands_size * COLLISION_SPACE_FACTOR));
+        cudaMalloc((void**)&counter, sizeof(uint32_t));
         cudaMemset(&counter, sizeof(uint32_t), 0); // initialize counter to 0
+
+        //DEBUG
+        floatdebug* debug_array;
+        cudaMalloc((void**)&debug_array, sizeof(floatdebug));
+        cudaMemset(debug_array, 0, sizeof(floatdebug));
 
         // define struct to hold all necessary arrays
         CollisionUtils col_arrays;
@@ -307,7 +355,7 @@ extern "C" {
 
         // launch kernel
         uint32_t blockN = (ligands_size + ThreadsPerBlock - 1) / ThreadsPerBlock;
-        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(ligands_size, search_radius, n_receptors, dim, col_arrays);
+        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(ligands_size, search_radius, n_receptors, dim, col_arrays, debug_array);
         cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors
@@ -318,20 +366,29 @@ extern "C" {
         }
 
         // copy counter back to host
-        uint32_t h_counter;
-        cudaMemcpy(&h_counter, counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
-        if (h_counter > ligands_size * COLLISION_SPACE_FACTOR) {
+        uint32_t* h_counter = new uint32_t;
+        cudaMemcpy(h_counter, col_arrays.counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        if (*h_counter > ligands_size * COLLISION_SPACE_FACTOR) {
             // overflow, too many collisions
             printf("Error: counter exceeds allocated size: Overflow\n");
+
             return error_return(energies, receptor_ids, counter);
         }
+        printf("Collisions: %u\n", *h_counter);
 
         // copy collided ligand data back to host
-        float* h_energies = (float*)malloc(sizeof(float) * h_counter);
-        uint32_t* h_receptor_ids = (uint32_t*)malloc(sizeof(uint32_t) * h_counter);
-        cudaMemcpy(h_energies, energies, sizeof(float) * h_counter, cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_receptor_ids, receptor_ids, sizeof(uint32_t) * h_counter, cudaMemcpyDeviceToHost);
+        float* h_energies = (float*)malloc(sizeof(float) * *h_counter);
+        uint32_t* h_receptor_ids = (uint32_t*)malloc(sizeof(uint32_t) * *h_counter);
+        cudaMemcpy(h_energies, energies, sizeof(float) * *h_counter, cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_receptor_ids, receptor_ids, sizeof(uint32_t) * *h_counter, cudaMemcpyDeviceToHost);
 
+
+        //DEBUG
+        floatdebug* h_debug = (floatdebug*)malloc(sizeof(floatdebug));
+        cudaMemcpy(h_debug, debug_array, sizeof(floatdebug), cudaMemcpyDeviceToHost);
+        cudaFree(debug_array);
+        printf("Debug: %f, %f, %f, %f\n", h_debug->x1, h_debug->y1, h_debug->x2, h_debug->y2);
+        free(h_debug);
 
         // free device memory
         cudaFree(counter);
@@ -342,7 +399,7 @@ extern "C" {
         LigandWrapper h_collided;
         h_collided.energies = h_energies;
         h_collided.receptor_ids = h_receptor_ids;
-        h_collided.count = h_counter;
+        h_collided.count = *h_counter;
 
         return h_collided;
 

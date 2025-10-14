@@ -41,7 +41,7 @@ impl LigandSource {
             
 
             ligands.push(Ligand::new(
-                usize::MAX, // no entity emitted this ligand
+                0, // no entity emitted this ligand
                 self.ligand_energy,
                 self.ligand_spec,
                 self.position.clone(),
@@ -70,7 +70,7 @@ impl Ligand {
     pub(crate) fn update(&mut self, space: &Space, entities: &Vec<Entity>, dt: f32) -> Option<usize> {
         // update position based on velocity and dt
         // position = position + velocity * dt * space.settings.velocity()
-        self.position.scaled_add(dt* space.settings.velocity(), &self.velocity);
+        self.position.scaled_add(dt* space.settings.ligand_velocity(), &self.velocity);
 
         // check for collisions
         let collision = space.check_position(self.position.clone(), None, None, entities);
@@ -99,8 +99,19 @@ impl Ligand {
 
     }
 
-    pub(crate ) fn re_emit(&mut self) {
-        self.velocity = -&self.velocity;
+    pub(crate ) fn re_emit(&mut self, entity: & Entity, dt: f32) {
+
+        let dx_normal = (self.position[0] - entity.position[0])/ entity.size;
+        let dy_normal = (self.position[1] - entity.position[1])/ entity.size;
+
+        let dot = self.velocity[0] * dx_normal + self.velocity[1] * dy_normal;
+        self.velocity[0] = self.velocity[0] - 2.0 * dot * dx_normal;
+        self.velocity[1] = self.velocity[1] - 2.0 * dot * dy_normal;
+
+        // move the ligand two steps away from the entity to avoid immediate re-collision
+        self.position.scaled_add(2.0 * dt, &self.velocity);
+
+
     }
 
 }

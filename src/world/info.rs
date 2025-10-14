@@ -13,7 +13,7 @@ impl World {
     }
     /// Returns the current count of ligands in the world.
     pub fn ligands_count(&self) -> usize {
-        self.ligands_count
+        self.ligands.len()
     }
 }
 

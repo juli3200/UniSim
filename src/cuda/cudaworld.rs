@@ -5,8 +5,9 @@ use ndarray::Array1;
 
 use crate::objects::receptor::sequence_receptor;
 
-impl From<&Entity> for EntityCuda {
-    fn from(entity: &Entity) -> Self {
+
+impl EntityCuda {
+    pub fn from_entity(entity: &Entity) -> Self {
         Self {
             posx: entity.position[0],
             posy: entity.position[1],
@@ -18,14 +19,15 @@ impl From<&Entity> for EntityCuda {
     }
 }
 
-impl From<&Ligand> for LigandCuda {
-    fn from(ligand: &Ligand) -> Self {
+
+impl LigandCuda {
+    fn from_ligand(ligand: &Ligand, settings: &Settings) -> Self {
         Self {
             emitted_id: ligand.emitted_id as u32,
             posx: ligand.position[0],
             posy: ligand.position[1],
-            velx: ligand.velocity[0],
-            vely: ligand.velocity[1],
+            velx: ligand.velocity[0] * settings.ligand_velocity(),
+            vely: ligand.velocity[1] * settings.ligand_velocity(),
             spec: ligand.spec,
             energy: ligand.energy,
         }
@@ -38,6 +40,7 @@ impl TryInto<Ligand> for &LigandCuda {
     fn try_into(self) -> Result<Ligand, Self::Error> {
         if self.emitted_id == 0xFFFFFFFF {
             return Err("Ligand was deleted");
+            
         }
         Ok(Ligand {
             emitted_id: self.emitted_id as usize,
@@ -157,7 +160,7 @@ impl CUDAWorld {
         use cuda_bindings::memory_gpu as cu_mem;
 
         // create host-side vectors to hold data before copying to device
-        let mut entities_h: Vec<EntityCuda> = entities.iter().map(|e| EntityCuda::from(e)).collect();
+        let mut entities_h: Vec<EntityCuda> = entities.iter().map(|e| EntityCuda::from_entity(e)).collect();
         
         unsafe {
             let size_entity = entities.len() as u32;
@@ -175,7 +178,7 @@ impl CUDAWorld {
         
         use cuda_bindings::memory_gpu as cu_mem;
         // make CudaLigand array
-        let ligands_cuda: Vec<LigandCuda> = ligands.iter().map(|l| LigandCuda::from(l)).collect();
+        let ligands_cuda: Vec<LigandCuda> = ligands.iter().map(|l| LigandCuda::from_ligand(l, &self.settings)).collect();
 
         unsafe{
             let start_index = self.ligand_count as usize;

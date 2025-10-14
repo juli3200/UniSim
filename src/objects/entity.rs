@@ -300,12 +300,16 @@ impl Entity {
     }
 
         // TODOOOOOOOOO ligand function
-    pub(crate) fn emit_ligands(&mut self) -> Vec<Ligand> {
+    pub(crate) fn emit_ligands(&mut self, settings: &Settings) -> Vec<Ligand> {
         // Take the ligands from the entity and return them
         let ligands = self.ligands_to_emit.clone();
         self.ligands_to_emit.clear();
         let energy_cost: f32 = ligands.iter().map(|x| x.energy).sum();
 
+        // check settings to see if ligand emission is enabled
+        if !settings.enable_entity_ligand_emission() {
+            return vec![];
+        }
         self.energy -= energy_cost;
 
         ligands

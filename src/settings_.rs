@@ -30,8 +30,12 @@ pub struct Settings {
     // changeable settings
     fps: f32, // frames per second of the simulation
     velocity: f32, // default velocity of entities
+    ligand_velocity: f32, // default velocity of ligands
     gravity: Vec<f32>, // gravity of the world
     drag: f32, // drag/friction of the world
+
+    enable_entity_ligand_emission: bool,
+
     tumble_chance: f64, // chance of tumbling
     max_energy_ligand: f32, // maximum energy of a ligand
     movement_energy_cost: f32, // energy cost of movement
@@ -77,10 +81,15 @@ impl Settings {
             store_capacity: 1024,
             fps: 60.0,
             velocity: 3.0,
+            ligand_velocity: 5.0,
             gravity: vec![0.0, 0.0],
             drag: 0.0,
+
+            enable_entity_ligand_emission: true,
+
             #[cfg(feature = "cuda")]
             cuda_slots_per_cell: 10,
+
             tumble_chance: 0.3333,
             max_energy_ligand: 1.0,
             movement_energy_cost: 1.0,
@@ -189,6 +198,13 @@ impl Settings {
         self.max_energy_ligand
     }
 
+    pub fn enable_entity_ligand_emission(&self) -> bool{
+        self.enable_entity_ligand_emission
+    }
+
+    pub fn ligand_velocity(&self) -> f32 {
+        self.ligand_velocity
+    }
     //
     //
     // setter fn
@@ -413,6 +429,22 @@ impl Settings {
             eprint!("Warning: max energy of ligand is very high, may lead to instability");
         }
         self.max_energy_ligand = energy;
+    }
+
+    pub fn set_enable_entity_ligand_emmision(&mut self, enable: bool, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        self.enable_entity_ligand_emission = enable;
+    }
+
+    pub fn set_ligand_velocity(&mut self, velocity: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        self.ligand_velocity = velocity;
     }
 
 }
