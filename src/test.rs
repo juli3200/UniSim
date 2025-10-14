@@ -1,11 +1,13 @@
 #![cfg(all(test, feature = "debug"))]
 
+#[cfg( feature = "cuda")]
+use crate::cuda::LigandCuda;
 use crate::prelude::*;
 
 #[cfg(feature = "cuda")]
 use ndarray::Array1;
 #[cfg(feature = "cuda")]
-use crate::objects;
+use crate::{cuda::CUDAWorld, objects};
 
 
 mod general{
@@ -177,69 +179,9 @@ mod cuda_tests {
 #[cfg(feature = "cuda")]
 impl World{
 
-    pub(crate) fn copy_ligands(&mut self, positions: &[f32], messages: &[u32], len: usize){
-        {   
-            // print the received ligands
-            let mut ligands = vec![];
-            for i in 0..len {
-                use crate::objects::Ligand;
-
-                let ligand = Ligand {
-                    emitted_id: self.ligands_count,
-                    position: Array1::from_vec(vec![positions[i * 2], positions[i * 2 + 1]]),
-                    velocity: Array1::from_vec(vec![0.0, 0.0]), // velocity is not tracked after collision
-                    message: messages[i+1]
-                };
-                ligands.push(ligand);
-            }
-            
-            for ligand in ligands {
-                println!("message: {}, position: {:?}", ligand.message, ligand.position);
-            }
-
-            self.ligands = vec![];
-            self.ligands_count = 0;
-
-            unsafe {
-            // get ligands to host
-            let device_ligands = self.cuda_world.as_mut().unwrap().get_ligand_arrays();
-            let message_pointer = libc::malloc(device_ligands.num_ligands * std::mem::size_of::<u32>()) as *mut u32;
-            let position_pointer = libc::malloc(device_ligands.num_ligands * 2 * std::mem::size_of::<f32>()) as *mut f32;
-
+    pub(crate) fn copy_ligands(&mut self){
+          self.ligands.clear(); // daaaaaaaaaaaa
         
-            use crate::cuda::cuda_bindings::memory_gpu as mem;
-            mem::copy_DtoH_u(message_pointer, device_ligands.message, device_ligands.num_ligands as u32);
-            mem::copy_DtoH_f(position_pointer, device_ligands.pos, device_ligands.num_ligands as u32 * 2);
-
-            let messages_host = std::slice::from_raw_parts(message_pointer, device_ligands.num_ligands);
-            let positions_host = std::slice::from_raw_parts(position_pointer, device_ligands.num_ligands * 2);
-
-            for i in 0..device_ligands.num_ligands {
-                if messages_host[i] == 0 {
-                    if i == 0 {
-                        println!("Empty ligand at index {}", i);
-                    } 
-                    continue; // skip empty, collided ligands
-                }
-                let pos = [positions_host[i * 2], positions_host[i * 2 + 1]];
-                if i == device_ligands.num_ligands - 1 {
-                    println!("Last ligand pos: {:?}", pos);
-                }
-                
-                self.ligands.push(objects::Ligand {
-                    emitted_id: 0, // emitted_id is not important here
-                    position: Array1::from_vec(vec![pos[0], pos[1]]),
-                    velocity: Array1::from_vec(vec![0.0, 0.0]), // velocity is not tracked after collision
-                    message: messages_host[i],
-                });
-                self.ligands_count += 1;
-            }
-
-            libc::free(message_pointer as *mut libc::c_void);
-            libc::free(position_pointer as *mut libc::c_void);
-            }
-
-
-        }
     }
 }
+

@@ -1,6 +1,7 @@
 use super::cuda_bindings;
 use super::*;
 
+
 use crate::objects::receptor::sequence_receptor;
 
 impl From<&Entity> for EntityCuda {

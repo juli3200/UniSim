@@ -8,7 +8,6 @@ pub(crate) mod cudaworld;
 const EXTRA_SPACE_ENTITY: f32 = 1.2; // allocate 20% more space than needed for entities
 const EXTRA_SPACE_LIGAND: f32 = 2.0; // allocate 100% more space than needed for ligands
 const MIN_SPACE_LIGAND: usize = 1_000_000; // minimum space for ligands
-const BUFFER_SIZE: usize = 10 * 1024 * 1024; // 10 MB buffer for saving data from GPU (remove const later)
 
 /// CUDA-related structures and functions
 /// e.g as CUDA arrays, kernels links, etc.
@@ -89,7 +88,7 @@ pub struct CUDAWorld{
     
 
     ligand_cap: u32,
-    ligand_count: u32,
+    pub(crate) ligand_count: u32,
 
     // Ligand data arrays
     ligands: *mut LigandCuda,

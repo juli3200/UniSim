@@ -36,6 +36,8 @@ pub struct World {
     pub(crate) ligands: Vec<objects::Ligand>,
     pub(crate) ligand_sources: Vec<objects::LigandSource>,
 
+    pub(crate) new_ligands: Vec<objects::Ligand>, // new ligands to be added to the world at the end of the step
+
     pub space: Space, // the space is used to store the entities and ligands in a 2D grid
 
     #[cfg(feature = "cuda")]

@@ -36,6 +36,7 @@ impl World {
             entities: Vec::new(),
             ligands: Vec::new(),
             ligand_sources: Vec::new(),
+            new_ligands: Vec::new(),
             space: Space::empty(),
 
             #[cfg(feature = "cuda")]
@@ -121,7 +122,12 @@ impl World {
             if i % 100 == 0 {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
-                {
+                {   
+                    #[cfg(feature = "cuda")]
+                    if let Some(cuda_world) = &self.cuda_world {
+
+                        println!("Entities: {}, Ligands: {}, CUDA active", self.entities.len(), cuda_world.ligand_count);
+                    }
                     println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
                 }
             }
@@ -189,6 +195,13 @@ impl World {
     }
 
     fn cpu_update(&mut self) {
+        // add new ligands to the world
+        self.ligands.extend(self.new_ligands.drain(..));
+        self.ligands_count = self.ligands.len();
+        // clear the new ligands vector
+        self.new_ligands.clear();
+
+
         // Update the world using CPU processing
         // update all entities positions
         for entity in &mut self.entities {
@@ -245,13 +258,13 @@ impl World {
         // emit new ligands from entities
         for entity in &mut self.entities {
             let new_ligands = entity.emit_ligands();
-            self.ligands.extend(new_ligands);
+            self.new_ligands.extend(new_ligands);
         }
 
         // emit new ligands from sources
         for source in &self.ligand_sources {
             let new_ligands = source.emit_ligands(dt);
-            self.ligands.extend(new_ligands);
+            self.new_ligands.extend(new_ligands);
 
         }
 
@@ -284,12 +297,10 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
-        // delete all ligands on host
-        self.ligands.clear();
-        self.ligands_count = 0;
-
         // add new ligands to the cuda world
-        let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.ligands);
+        let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.new_ligands);
+
+        self.new_ligands.clear();
 
         // error handling for adding ligands
         if let Err(_) = err {
@@ -321,30 +332,34 @@ impl World {
         dbg!(overflow);
         dbg!(received_ligands.energies.is_null());
 
+        // check if the pointers are null
+        if !received_ligands.receptor_ids.is_null() & !received_ligands.energies.is_null() {
+            // slice around the *mut pointers
+            let energies: &[f32];
+            let receptors: &[u32];
 
-        // slice around the *mut pointers
-        let energies: &[f32];
-        let receptors: &[u32];
-
-        unsafe {
-            energies = std::slice::from_raw_parts(received_ligands.energies, len);
-            receptors = std::slice::from_raw_parts(received_ligands.receptor_ids, len * 2);
-        }
-
-        // add the ligands to entities and edit concentrations
-        for i in 0..len {
-            let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
-            let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
-            let energy = energies[i];
-    
-            // find the entity with the corresponding id
-            let entity_ref = get_entity_mut(&mut self.entities, entity_id);
-
-            if let Some(entity) = entity_ref {
-                entity.receive_ligand_cuda_shortcut(energy, receptor_index, &self.settings);
+            unsafe {
+                energies = std::slice::from_raw_parts(received_ligands.energies, len);
+                receptors = std::slice::from_raw_parts(received_ligands.receptor_ids, len * 2);
             }
-        }
 
+            // add the ligands to entities and edit concentrations
+            for i in 0..len {
+                let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
+                let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
+                let energy = energies[i];
+        
+                // find the entity with the corresponding id
+                let entity_ref = get_entity_mut(&mut self.entities, entity_id);
+
+                if let Some(entity) = entity_ref {
+                    entity.receive_ligand_cuda_shortcut(energy, receptor_index, &self.settings);
+                }
+            }
+
+        } else {
+            eprintln!("Received null pointer from CUDA world");
+        }
 
         // free the collision arrays
         unsafe {
@@ -360,13 +375,13 @@ impl World {
         // emit new ligands from entities
         for entity in &mut self.entities {
             let new_ligands = entity.emit_ligands();
-            self.ligands.extend(new_ligands);
+            self.new_ligands.extend(new_ligands);
         }
 
         // emit new ligands from sources
         for source in &self.ligand_sources {
             let new_ligands = source.emit_ligands(dt);
-            self.ligands.extend(new_ligands);
+            self.new_ligands.extend(new_ligands);
 
         }
 
