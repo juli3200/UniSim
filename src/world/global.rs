@@ -313,8 +313,9 @@ impl World {
         // error handling for adding ligands
         if let Err(_) = err {
             // increase capacity 
-            println!("Increasing ligand capacity");
+            eprintln!("Increasing ligand capacity");
             self.cuda_world.as_mut().unwrap().increase_cap(crate::cuda::IncreaseType::Ligand);
+            
         }
 
         // get the received ligands from the entities
@@ -323,8 +324,8 @@ impl World {
         if overflow > 0 {
             use crate::{cuda, edit_settings};
 
-            println!("Warning: Grid overflow occurred, increasing grid size or slots per cell");
-            let new_size = (self.settings.cuda_slots_per_cell() as f32 * 1.2) as usize;
+            eprintln!("Warning: Grid overflow occurred, increasing grid size and slots per cell; Overflow count: {}", overflow);
+            let new_size = self.settings.cuda_slots_per_cell() * 2;
 
             // edit the settings to increase the grid size
             edit_settings!(self, cuda_slots_per_cell = new_size);
