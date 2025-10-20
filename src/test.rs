@@ -1,17 +1,8 @@
 #![cfg(all(test, feature = "debug"))]
 
-#[cfg( feature = "cuda")]
-use crate::cuda::LigandCuda;
-use crate::prelude::*;
-
-#[cfg(feature = "cuda")]
-use ndarray::Array1;
-#[cfg(feature = "cuda")]
-use crate::{cuda::CUDAWorld, objects};
-
-
 mod general{
-    use super::*;
+
+    use crate::prelude::*;
 
 
     #[test]
@@ -81,14 +72,13 @@ mod general{
 }
 
 mod io_tests {
-    use crate::world;
-    use super::*;
+    use crate::prelude::*;
 
 
     #[test]
     fn test_save(){
         let n = 10000;
-        let mut world = world::World::new(settings!(100, spawn_size = 5.0));
+        let mut world = World::new(settings!(100, spawn_size = 5.0));
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 
@@ -100,7 +90,7 @@ mod io_tests {
 }
 
 mod dna_tests {
-    use super::*;
+    use crate::prelude::*;
 
 
     #[test]
@@ -118,7 +108,7 @@ mod dna_tests {
 
 #[cfg(feature = "cuda")]
 mod cuda_tests {
-    use super::*;
+    use crate::prelude::*;
     
     #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests_gpu as cb;

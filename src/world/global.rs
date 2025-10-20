@@ -1,8 +1,10 @@
 use crate::world::serialize::Save;
 use crate::world::info::{get_entity, get_entity_mut};
 use crate::prelude::*;
-use rayon::prelude::*;
 use super::*;
+
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
 
 #[cfg(feature = "cuda")]
 use libc;
@@ -136,6 +138,7 @@ impl World {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
                 {   
+                    #[allow(unused_mut)]
                     let mut no_cuda = true;
 
                     #[cfg(feature = "cuda")]
@@ -218,11 +221,28 @@ impl World {
         // clear the new ligands vector
         self.new_ligands.clear();
 
+        let old_positions: Vec<Array1<f32>>;
 
         // Update the world using CPU processing
-        // update all entities positions
-        for entity in &mut self.entities {
-            entity.update_physics(&mut self.space);
+        #[cfg(feature = "rayon")]
+        {
+            // update all entities positions in parallel
+            old_positions = self.entities.par_iter_mut().map(|entity| {
+                entity.update_physics(&self.space)
+            }).collect();
+        }
+
+        #[cfg(not(feature = "rayon"))]
+        {
+            // update all entities positions
+            old_positions = self.entities.iter_mut().map(|entity| {
+                entity.update_physics(&self.space)
+            }).collect();
+        }
+
+        // update the positions of all entities in the space grid
+        for (i, old_pos) in old_positions.iter().enumerate() {
+            self.space.update_entity_position(self.entities[i].id, old_pos.clone(), self.entities[i].position.clone());
         }
 
         let entities_clone = self.entities.clone();
@@ -234,13 +254,26 @@ impl World {
 
 
         // update all ligands positions and check for collisions
+        #[allow(unused_assignments)]
         let mut collided = vec![None; self.ligands.len()];
 
         let dt = 1.0 / self.settings.fps() as f32;
 
-        for (i, ligand) in self.ligands.iter_mut().enumerate() {
-            if let Some(entity_id) = ligand.update(&self.space, &entities_clone, dt) {
-                collided[i] = Some(entity_id);
+        #[cfg(feature = "rayon")]
+        {
+            let mut cloned_ligands = self.ligands.clone();
+            // update all ligands positions in parallel
+            collided = cloned_ligands.par_iter_mut().map(|ligand| 
+                ligand.update(&self.space, &entities_clone, dt)).collect();
+        }
+
+        #[cfg(not(feature = "rayon"))]
+        {
+            // update all ligands positions
+            for (i, ligand) in self.ligands.iter_mut().enumerate() {
+                if let Some(entity_id) = ligand.update(&self.space, &entities_clone, dt) {
+                    collided[i] = Some(entity_id);
+                }
             }
         }
 
@@ -267,10 +300,21 @@ impl World {
             }
         }
 
-        for entity in &mut self.entities {
-            entity.update_output(&self.settings);
+        #[cfg(feature = "rayon")]
+        {
+            // update output concentrations in parallel
+            self.entities.par_iter_mut().for_each(|entity| {
+                entity.update_output(&self.settings);
+            });
         }
 
+        #[cfg(not(feature = "rayon"))]
+        {
+            // update output concentrations
+            for entity in &mut self.entities {
+                entity.update_output(&self.settings);
+            }
+        }
 
         // emit new ligands from entities
         for entity in &mut self.entities {
@@ -282,13 +326,13 @@ impl World {
         for source in &self.ligand_sources {
             let new_ligands = source.emit_ligands(dt);
             self.new_ligands.extend(new_ligands);
-
         }
 
     }
 
     #[cfg(feature = "cuda")]
     fn gpu_update(&mut self) -> Result<(), String> {
+        // rayon is always enabled with cuda feature
 
         if self.cuda_world.is_none() {
             return Err("CUDA world is not initialized".to_string());
@@ -297,10 +341,14 @@ impl World {
         // Update the world using GPU processing
 
         // entities are updated on CPU
-        // update all entities positions and receive Ligands
+        // update all entities positions in parallel
+        let old_positions: Vec<Array1<f32>> = self.entities.par_iter_mut().map(|entity| {
+            entity.update_physics(&self.space)
+        }).collect();
 
-        for entity in  self.entities.iter_mut() {
-            entity.update_physics(&mut self.space);
+        // update the positions of all entities in the space grid
+        for (i, old_pos) in old_positions.iter().enumerate() {
+            self.space.update_entity_position(self.entities[i].id, old_pos.clone(), self.entities[i].position.clone());
         }
 
         let entities_clone = self.entities.clone();
@@ -533,8 +581,6 @@ impl World{
     }
 
 } 
-
-// debug features
 
 #[cfg(feature = "debug")]
 impl World {

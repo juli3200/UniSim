@@ -123,7 +123,7 @@ impl Entity {
 
     }
 
-    pub(crate) fn update_physics(&mut self, space: &mut Space) {
+    pub(crate) fn update_physics(&mut self, space: &Space) -> Array1<f32> {
 
         // update last_collision timer
         // timer is set by constant: IDLE_COLLISION_TIMER
@@ -168,7 +168,7 @@ impl Entity {
 
         let old_position: Array1<f32> = self.position.clone();
 
-        space.update_entity_position(self.id, old_position, self.position.clone());
+        old_position
 
     }
 
