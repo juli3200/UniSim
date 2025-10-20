@@ -45,7 +45,7 @@ impl World {
         world
     }
 
-    fn initialize(&mut self) -> Result<(), String> {
+    pub fn initialize(&mut self) -> Result<(), String> {
         if self.init {
             return Err("World already initialized".to_string());
         }
@@ -109,19 +109,21 @@ impl World {
         // it isn't saved if too small
         if !self.settings.is_init(){
             if n + self.buffer.len() < self.settings.store_capacity() {
-                eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");
-                if self.iteration == 0 {
-                    eprintln!("Do you want to decrease the store capacity? (y/n)");
-                    let mut input = String::new();   
-                    std::io::stdin().read_line(&mut input).expect("Failed to read line");
-                    if input.trim() == "y" {      
-                        use crate::edit_settings;
-                        edit_settings!(self, store_capacity = n + self.buffer.len());
-                        eprintln!("Store capacity set to {}", self.settings.store_capacity());
-                    } else {
-                        eprintln!("Continuing without saving.");
-                    }
-                }           
+                if self.path.is_some() {
+                    eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");
+                    if self.iteration == 0 {
+                        eprintln!("Do you want to decrease the store capacity? (y/n)");
+                        let mut input = String::new();   
+                        std::io::stdin().read_line(&mut input).expect("Failed to read line");
+                        if input.trim() == "y" {      
+                            use crate::edit_settings;
+                            edit_settings!(self, store_capacity = n + self.buffer.len());
+                            eprintln!("Store capacity set to {}", self.settings.store_capacity());
+                        } else {
+                            eprintln!("Continuing without saving.");
+                        }
+                    }           
+                }
             }
 
             self.settings.init();
@@ -130,16 +132,20 @@ impl World {
         // Main loop for the world simulation
         for i in 0..n {
             self.update();
-            if i % 100 == 0 {
+            if i % 1999 == 0 {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
                 {   
+                    let mut no_cuda = true;
+
                     #[cfg(feature = "cuda")]
                     if let Some(cuda_world) = &self.cuda_world {
-
+                        no_cuda = false;
                         println!("Entities: {}, Ligands: {}, CUDA active", self.entities.len(), cuda_world.ligand_count);
                     }
-                    println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
+                    if no_cuda {
+                        println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
+                    }
                 }
             }
         }
@@ -313,7 +319,6 @@ impl World {
         // error handling for adding ligands
         if let Err(_) = err {
             // increase capacity 
-            eprintln!("Increasing ligand capacity");
             self.cuda_world.as_mut().unwrap().increase_cap(crate::cuda::IncreaseType::Ligand);
             
         }
@@ -537,6 +542,10 @@ impl World {
     // add n ligands at random positions
     // only for testing purposes
     pub fn add_ligands(&mut self, n: usize) {
+        if self.init == false {
+            eprintln!("World not initialized, cannot add ligands");
+            return;
+        }
         use rand::Rng;
 
         let mut rng = rand::rng();
