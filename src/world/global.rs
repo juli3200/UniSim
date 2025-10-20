@@ -19,12 +19,13 @@ impl World {
     // creates and initializes the World with specified settings
     pub fn new(settings: Settings) -> Self {
 
-        let buffer = Vec::with_capacity(settings.store_capacity() * 1024); // 1 MB buffer
+        let buffer = Vec::with_capacity(settings.store_capacity() * 2048); // 2 MB buffer
 
-        let mut world = Self {
+        let world = Self {
             settings: settings,
             buffer: buffer,
             path: None,
+            init: false,
             time: 0.0,
             population_size: 0,
             counter: 1, // start counting entities from 1 (0 is reserved for LigandSources)
@@ -42,13 +43,12 @@ impl World {
             cuda_world: None, // CUDA world is initialized later if GPU is active
         };
         world
-            .initialize()
-            .expect("Failed to initialize world");
-
-        world
     }
 
     fn initialize(&mut self) -> Result<(), String> {
+        if self.init {
+            return Err("World already initialized".to_string());
+        }
 
         // Initialize the space
         self.space = Space::new(&self.settings)?;
@@ -62,14 +62,16 @@ impl World {
 
         self.population_size = self.settings.default_population();
 
-
-
+        self.init = true;
 
         Ok(())
     }
 
     #[cfg(feature = "cuda")]
     pub fn cuda_initialize(&mut self) -> Result<(), String> {
+        if !self.init {
+            self.initialize()?;
+        }
         // Initialize the CUDA world and activate GPU processing
         if self.cuda_world.is_some() {
             return Err("CUDA world is already initialized".to_string());
@@ -92,6 +94,16 @@ impl World {
     }
 
     pub fn run(&mut self, n: usize) {
+
+        if !self.init {
+            match self.initialize() {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Failed to initialize world: {}", e);
+                    return;
+                }
+            }
+        }
 
         // check if if n is smaller than store capacity$
         // it isn't saved if too small
@@ -292,7 +304,7 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
-        dbg!(self.new_ligands.len());
+
         // add new ligands to the cuda world
         let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.new_ligands);
 
@@ -594,6 +606,5 @@ impl World{
             }
         }
 
-        dbg!(self.ligands.len());
     }
 }

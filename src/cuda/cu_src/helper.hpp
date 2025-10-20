@@ -12,7 +12,7 @@ typedef struct{
     float velx; // x velocity of the ligand
     float vely; // y velocity of the ligand
 
-    uint16_t spec; // ligand spec number
+    uint32_t spec; // ligand spec number
     float energy; // ligand energy
 } LigandCuda;
 
@@ -43,7 +43,7 @@ typedef struct {
     uint32_t* grid;
     EntityCuda* entities;
     LigandCuda* ligands;
-    uint16_t* receptors;
+    uint32_t* receptors;
 
     float* energies;
     uint32_t* receptor_ids; // ids of receptors that were bound in receptor array

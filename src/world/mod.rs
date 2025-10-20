@@ -23,6 +23,7 @@ pub struct World {
     path: Option<PathBuf>,
 
     // variables
+    init: bool,
     pub(crate) time: f32, // current time in the simulation
     pub(crate) population_size: usize, // current population size of entities
 

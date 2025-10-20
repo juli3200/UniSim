@@ -28,7 +28,7 @@ impl LigandCuda {
             posy: ligand.position[1],
             velx: ligand.velocity[0] * settings.ligand_velocity(),
             vely: ligand.velocity[1] * settings.ligand_velocity(),
-            spec: ligand.spec,
+            spec: ligand.spec as u32,
             energy: ligand.energy,
         }
     }
@@ -46,7 +46,7 @@ impl TryInto<Ligand> for &LigandCuda {
             emitted_id: self.emitted_id as usize,
             position: Array1::from_vec(vec![self.posx, self.posy]),
             velocity: Array1::from_vec(vec![self.velx, self.vely]),
-            spec: self.spec,
+            spec: self.spec as u16,
             energy: self.energy,
         })
     }
@@ -61,11 +61,12 @@ impl CUDAWorld {
 
         // import cuda bindings with shorter name
         use cuda_bindings::memory_gpu as cu_mem;
+        use cuda_bindings::grid_gpu as cu_grid;
 
         // define device pointers so they can be used in unsafe block and still be accessible later
         let grid_d: *mut u32; 
         let entities_d: *mut EntityCuda; // device pointer to entity array
-        let receptors_d: *mut u16; // device pointer to receptor array
+        let receptors_d: *mut u32; // device pointer to receptor array
         let ligands_d: *mut LigandCuda; // device pointer to ligand array
 
         // allocate device memory
@@ -74,15 +75,14 @@ impl CUDAWorld {
             let grid_size = settings.dimensions().0 * settings.dimensions().1 * settings.cuda_slots_per_cell() as u32;
             // allocate grid and set to zero
             grid_d = cu_mem::alloc_u32(grid_size);
-            cu_mem::clear_u32(grid_d, grid_size);
+            cu_grid::clear_grid(grid_d, grid_size);
 
 
             // ----------------- entities -----------------
             entities_d = cu_mem::alloc_entity(entity_cap);
 
             // ----------------- receptors -----------------
-            receptors_d = cu_mem::alloc_u16(entity_cap * settings.receptor_capacity() as u32);
-            cu_mem::clear_u16(receptors_d, entity_cap * settings.receptor_capacity() as u32);
+            receptors_d = cu_mem::alloc_u32(entity_cap * settings.receptor_capacity() as u32);
 
 
             // ----------------- ligands -----------------
@@ -120,20 +120,15 @@ impl CUDAWorld {
             // free grid
             cu_mem::free_u32(self.grid);
             cu_mem::free_entity(self.entities);
-            cu_mem::free_u16(self.receptors);
+            cu_mem::free_u32(self.receptors);
             cu_mem::free_ligand(self.ligands);
         }
     }
 
     fn fill_receptors(&mut self, entities: &Vec<Entity>) {
         use cuda_bindings::memory_gpu as cu_mem;
-        // clear old receptors
 
         let size_receptors = (entities.len() * self.settings.receptor_capacity()) as u32;
-
-        unsafe {
-            cu_mem::clear_u16(self.receptors, size_receptors);
-        }
 
         // create host-side vector to hold data before copying to device
         let mut receptors_h = Vec::with_capacity(entities.len() * self.settings.receptor_capacity());
@@ -141,13 +136,15 @@ impl CUDAWorld {
         for entity in entities {
             for receptor in &entity.receptors {
                 let (_, _ , spec) = sequence_receptor(*receptor);
-                receptors_h.push(spec);
+                receptors_h.push(spec as u32);
             }
         }
 
+        assert_eq!(receptors_h.len(), size_receptors as usize);
+
         // copy to device
         unsafe{
-            cu_mem::copy_HtoD_u16(self.receptors, receptors_h.as_mut_ptr(), size_receptors);
+            cu_mem::copy_HtoD_u32(self.receptors, receptors_h.as_ptr(), size_receptors);
         }
     }
 
@@ -215,6 +212,7 @@ impl CUDAWorld {
     pub(crate) fn increase_cap(&mut self, obj_type: IncreaseType) {
 
         use cuda_bindings::memory_gpu as cu_mem;
+        use cuda_bindings::grid_gpu as cu_grid;
 
         unsafe {
         match obj_type {
@@ -253,7 +251,7 @@ impl CUDAWorld {
 
                 // allocate new grid and set to zero
                 self.grid = cu_mem::alloc_u32(grid_size);
-                cu_mem::clear_u32(self.grid, grid_size);
+                cu_grid::clear_grid(self.grid, grid_size);
             }
         }
         }
@@ -263,7 +261,6 @@ impl CUDAWorld {
 
         // first, update ligand positions based on their velocities
         use cuda_bindings::grid_gpu as cu_grid;
-        use cuda_bindings::memory_gpu as cu_mem;
 
         // load new entity data to gpu
         self.update_entities(entities);
@@ -285,7 +282,7 @@ impl CUDAWorld {
                 y: self.settings.dimensions().1,
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
-            let receptor_count = self.entity_count * self.settings.receptor_capacity() as u32;
+            let receptor_count = self.settings.receptor_capacity() as u32;
             collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities,
                 self.ligands, self.ligand_count, self.receptors, receptor_count);
         }
@@ -293,7 +290,7 @@ impl CUDAWorld {
         // clear grid
         let size = self.settings.dimensions().0 * self.settings.dimensions().1 * self.settings.cuda_slots_per_cell() as u32;
         unsafe {
-            cu_mem::clear_u32(self.grid, size);
+            cu_grid::clear_grid(self.grid, size);
         }
 
         return (collisions, overflow);

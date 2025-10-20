@@ -37,7 +37,7 @@ pub(crate) struct LigandCuda {
     velx: f32, // x velocity of the ligand
     vely: f32, // y velocity of the ligand
 
-    spec: u16,
+    spec: u32,
     energy: f32,
 
 }
@@ -84,7 +84,7 @@ pub struct CUDAWorld{
     entities: *mut EntityCuda,
 
     // receptor data arrays
-    receptors: *mut u16, // size: entity_cap * settings.receptor_capacity() (only spec stored)
+    receptors: *mut u32, // size: entity_cap * settings.receptor_capacity() (only spec stored)
     
 
     ligand_cap: u32,
