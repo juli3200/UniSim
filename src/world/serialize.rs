@@ -1,3 +1,5 @@
+#![allow(unused_mut)]
+
 use crate::{objects::{Entity, Ligand}, prelude::Settings, world::World};
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -43,7 +45,7 @@ pub trait Save {
     // used to store the object position size ... to be displayed
     fn serialize(&self) -> Result<Vec<u8>, String>;
     // used store the whole object
-    fn pause_serialize(&self) -> Result<Vec<u8>, String>;
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String>;
 }
 
 impl<T: Save> Save for Vec<T> {
@@ -55,7 +57,7 @@ impl<T: Save> Save for Vec<T> {
         Ok(buffer)
     }
 
-    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
         for item in self {
             buffer.extend(item.pause_serialize()?);
@@ -85,7 +87,7 @@ impl Save for Entity {
         Ok(buffer_vec)
     }
 
-    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         self.serialize()
     }
 
@@ -103,7 +105,7 @@ impl Save for Ligand {
         Ok(buffer_vec)
     }
 
-    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         // collect all the data
         let buffer_vec = {
             // position 8 bytes
@@ -171,7 +173,7 @@ impl Save for World {
         Ok(buffer)
     }
 
-    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         buffer.push(true as u8); // pause file 1 byte
@@ -189,6 +191,10 @@ impl Save for World {
         buffer.extend(self.entities.serialize()?);
 
         // ligands
+        #[cfg(feature = "cuda")]
+        {
+            self.copy_ligands();
+        }
         buffer.extend(&(self.ligands.len() as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.ligands.serialize()?);
 
@@ -214,7 +220,7 @@ impl Save for Settings{
         Ok(buffer)
     }
 
-    fn pause_serialize(&self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         // fps 4 bytes

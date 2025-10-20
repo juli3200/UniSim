@@ -95,6 +95,18 @@ impl World {
         self.ligand_sources.push(source);
     }
 
+    pub fn close(&mut self) {
+        // save and close the world
+        if self.path.is_some() {
+            match self.save_buffer() {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("Failed to save state on close: {}", e);
+                }
+            }
+        }
+    }
+
     pub fn run(&mut self, n: usize) {
 
         if !self.init {
@@ -469,6 +481,7 @@ impl World {
 
 use std::io::{self, Write};
 use std::fs::OpenOptions;
+use std::io::Seek;
 
 
 // save impl Block
@@ -521,6 +534,30 @@ impl World{
         file.write_all(&flat_buffer)?;
 
 
+        // save the pause state -------------------------
+
+
+        if let Ok(buffer) = self.pause_serialize() {
+            // append the pause state to the file
+            let mut file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .open(self.path.as_ref().unwrap())?;
+
+            file.write_all(&buffer)?;
+
+            // update save jumper in the header
+            let mut file = OpenOptions::new()
+                .write(true)
+                .open(self.path.as_ref().unwrap())?;
+
+            file.seek(std::io::SeekFrom::Start(1))?;
+            file.write_all(&(self.byte_counter as u32).to_le_bytes())?;
+        } else {
+            eprintln!("Failed to serialize pause state");
+        }
+
+
         println!("State saved successfully");
 
         Ok(())
@@ -533,7 +570,7 @@ impl World{
         // copy the bytes written to this number for the jumper locations
         let mut bytes_written = self.byte_counter + (self.settings.store_capacity()+ 1) * 4; // add space for all the jumpers and the jumper for the next jumper
 
-        let mut jumper_table = Vec::with_capacity((self.settings.store_capacity() + 1)* 4); // 4 bytes per entry -> u32 + 4 bytes for next jumper table
+        let mut jumper_table = Vec::with_capacity((self.settings.store_capacity() + 1)* 4); // store capacity + save jumper + next jumper
 
         // fill the jumper_table with the addresses for the jumper
         for i in 0..self.settings.store_capacity(){
@@ -580,6 +617,40 @@ impl World{
         Ok(())
     }
 
+    #[cfg(feature = "cuda")]
+    pub(crate) fn copy_ligands(&mut self){
+        use crate::cuda;
+
+        self.ligands.clear(); 
+
+        if self.cuda_world.is_none() {
+        return;
+        }
+
+        let cuda_world = self.cuda_world.as_mut().unwrap();
+
+        let ligands_h = unsafe { libc::malloc(cuda_world.ligand_count as usize * std::mem::size_of::<cuda::LigandCuda>()) as *mut cuda::LigandCuda };
+          
+        use cuda::cuda_bindings::memory_gpu as cu_mem;
+
+        unsafe{cu_mem::copy_DtoH_ligand(ligands_h, cuda_world.ligands, cuda_world.ligand_count);}
+
+        if ligands_h.is_null() {
+            eprintln!("Failed to allocate memory for ligands copy");
+            return;
+        }
+
+        let ligands_slice = unsafe { std::slice::from_raw_parts(ligands_h, cuda_world.ligand_count as usize) };
+
+        for i in 0..cuda_world.ligand_count as usize {
+            let ligand_cuda = &ligands_slice[i];
+            if let Ok(ligand) = ligand_cuda.try_into() {
+                self.ligands.push(ligand);
+            }
+        }
+
+    }
+
 } 
 
 #[cfg(feature = "debug")]
@@ -624,43 +695,4 @@ impl World {
         }
     }
 
-}
-#[cfg(feature = "save_ligands")]
-// #[cfg(feature = "save_ligands")]
-// Test debugging impl block for World
-#[cfg(feature = "cuda")]
-impl World{
-
-    pub(crate) fn copy_ligands(&mut self){
-        use crate::cuda;
-
-        self.ligands.clear(); 
-
-        if self.cuda_world.is_none() {
-        return;
-        }
-
-        let cuda_world = self.cuda_world.as_mut().unwrap();
-
-        let ligands_h = unsafe { libc::malloc(cuda_world.ligand_count as usize * std::mem::size_of::<cuda::LigandCuda>()) as *mut cuda::LigandCuda };
-          
-        use cuda::cuda_bindings::memory_gpu as cu_mem;
-
-        unsafe{cu_mem::copy_DtoH_ligand(ligands_h, cuda_world.ligands, cuda_world.ligand_count);}
-
-        if ligands_h.is_null() {
-            eprintln!("Failed to allocate memory for ligands copy");
-            return;
-        }
-
-        let ligands_slice = unsafe { std::slice::from_raw_parts(ligands_h, cuda_world.ligand_count as usize) };
-
-        for i in 0..cuda_world.ligand_count as usize {
-            let ligand_cuda = &ligands_slice[i];
-            if let Ok(ligand) = ligand_cuda.try_into() {
-                self.ligands.push(ligand);
-            }
-        }
-
-    }
 }
