@@ -6,15 +6,14 @@ fn main() {
 
     let mut world = World::new(settings);
 
-    edit_settings!(&mut world, store_capacity = 10000, cuda_slots_per_cell = 5);
+    edit_settings!(&mut world, store_capacity = 100, cuda_slots_per_cell = 5);
 
     world.save("testfiles/test_cuda.bin").expect("Failed to save world");
     world.cuda_initialize().expect("Failed to initialize CUDA");
 
     world.add_ligand_source(vec![10.0, 10.0], 10000.0, 1, 0.0001);
-    //world.add_ligands(1);
 
-    world.run(10000);
+    world.run(100);
 }
 
 #[cfg(not(feature = "cuda"))]

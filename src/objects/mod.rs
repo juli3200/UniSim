@@ -5,7 +5,7 @@ pub mod ligand;
 pub mod genome;
 pub mod receptor;
 
-const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
+pub(crate) const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
 
 #[derive(Debug, Clone)]
 pub struct LigandSource {
@@ -63,6 +63,7 @@ pub(crate) struct Entity {
 
     // during update emit ligands
     ligands_to_emit: Vec<Ligand>, // ligands to emit
+    pub(crate) received_ligands: Vec<u8>, // received ligands used for storing (angle from which ligand was received (in degrees from 0 - 180))
 
     // ******************* physics ***********************
     pub(crate) position: Array1<f32>, // position in the world
@@ -74,7 +75,7 @@ pub(crate) struct Entity {
     pub(crate) last_entity_collision: (usize, usize), // ids of the last collided entity and when it happened 
     pub(crate) last_border_collision: usize, // when the last border collision happened
 
-    // ******************** cuda **********************
+    // ******************** cuda ************************
     #[cfg(feature = "cuda")]
     pub(crate) cuda_receptor_index: Option<u32>, // index of the entity receptors in the CUDA memory
 }

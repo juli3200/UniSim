@@ -23,6 +23,8 @@ class World:
         self.ligand_bytes_0 = int(self.bytes[51])
         self.ligand_bytes_1 = int(self.bytes[52])
 
+        self.protein_n = int(self.bytes[53])
+
         self.counter = 0
 
     def get_state(self, n= None):
@@ -51,29 +53,24 @@ class State:
             self.entities = []
             self.ligands = []
 
-
-
-            #size = struct.unpack('I', self.world.bytes[address:address + 4])[0]
-            #print("size:", size)
-            size = struct.unpack('I', self.world.bytes[address:address + 4])[0]
-            save = int(self.world.bytes[address + 4])
-
-
+            save = int(self.world.bytes[address])
+            size = struct.unpack('I', self.world.bytes[address+1:address + 5])[0]
 
             time = struct.unpack('f', self.world.bytes[address + 5:address + 9])[0]
 
-
             entity_n = struct.unpack('I', self.world.bytes[address + 9:address + 13])[0]
+            index = address + 13
+            for _ in range(entity_n):
+                e = Entity(self.world.bytes, index, world.protein_n)
+                index+= e.bytes_size
+                self.entities.append(e)
 
-            for i in range(entity_n):
-                index = address + 13 + i * self.world.entity_bytes_0
-                self.entities.append(Entity(self.world.bytes, index))
+            ligand_n = struct.unpack('I', self.world.bytes[index:index + 4])[0]
+            index += 4
 
-            ligand_n = struct.unpack('I', self.world.bytes[address + 13 + entity_n * self.world.entity_bytes_0:address + 17 + entity_n * self.world.entity_bytes_0])[0]
-
-            for i in range(ligand_n):
-                index = address + 17 + entity_n * self.world.entity_bytes_0 + i * self.world.ligand_bytes_0
+            for _ in range(ligand_n):
                 self.ligands.append(Ligand(self.world.bytes, index))
+                index += world.ligand_bytes_0
             
                 
 
@@ -83,14 +80,30 @@ class State:
 
 
 class Entity:
-    def __init__(self, bytes, index):
+    def __init__(self, bytes, index, protein_n):
         self.x = struct.unpack('f', bytes[index:index + 4])[0]
         self.y = struct.unpack('f', bytes[index + 4:index + 8])[0]
-        self.size = struct.unpack('f', bytes[index + 8:index + 12])[0]
-        self.velx = struct.unpack('f', bytes[index + 12:index + 16])[0]
-        self.vely = struct.unpack('f', bytes[index + 16:index + 20])[0]
+        self.velx = struct.unpack('f', bytes[index + 8:index + 12])[0]
+        self.vely = struct.unpack('f', bytes[index + 12:index + 16])[0]
+        self.size = struct.unpack('f', bytes[index + 16:index + 20])[0]
+        self.energy = struct.unpack('f', bytes[index + 20:index + 24])[0]
 
+        self.id = struct.unpack('I', bytes[index + 24:index + 28])[0]
 
+        self.inner_protein_levels = []
+        for i in range(protein_n):
+            level = struct.unpack('h', bytes[index + 28 + i * 2:index + 30 + i * 2])[0]
+            self.inner_protein_levels.append(level)
+
+        i = 28 + protein_n * 2
+        received_n = struct.unpack('I', bytes[index + i:index + i + 4])[0]
+
+        # getting received ligands angles in degrees (0 - 180)
+        i += 4
+        self.received_ligands = [int(bytes[index + j]) for j in range(i, i + received_n)]
+
+        i += received_n
+        self.bytes_size = i
 
     def get_position(self):
         return [self.x, self.y]

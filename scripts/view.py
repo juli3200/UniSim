@@ -16,7 +16,7 @@ def get_fps(fps):
     return fps
 
 
-
+## TODO make entities clickable to show info
 
 class RealTimePlotter(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget, world: extract.World):

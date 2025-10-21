@@ -4,11 +4,11 @@ use crate::{objects::{Entity, Ligand}, prelude::Settings, world::World};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const ENTITY_BUF_SIZE: (usize, usize) = (20, 20);
+pub const ENTITY_BUF_SIZE: (usize, usize) = (32 + super::objects::OUTPUTS * 2, 0);
 pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
-pub const HEADER_SIZE: usize = 53;
+pub const HEADER_SIZE: usize = 54;
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -37,6 +37,8 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&(ENTITY_BUF_SIZE.1 as u8).to_le_bytes());
     buffer.extend(&(LIGAND_BUF_SIZE.0 as u8).to_le_bytes());
     buffer.extend(&(LIGAND_BUF_SIZE.1 as u8).to_le_bytes());
+
+    buffer.push(super::objects::OUTPUTS as u8); // number of inner proteins 1 byte
 
     Ok(buffer)
 }
@@ -68,19 +70,22 @@ impl<T: Save> Save for Vec<T> {
 
 impl Save for Entity {
     fn serialize(&self) -> Result<Vec<u8>, String> {
-        // collect all the data
-        let buffer_vec = {
-            // position 8 bytes
-            self.position.iter().flat_map(|x| x.to_le_bytes()).chain(
-            // size 4 bytes
-                self.size.to_le_bytes().iter().cloned()
-            ).chain(
-            // velocity 8 bytes
-                self.velocity.iter().flat_map(|x| x.to_le_bytes())
-            ).collect::<Vec<u8>>()
-        };
+        let mut buffer_vec = vec![];
+        buffer_vec.extend(self.position.iter().flat_map(|x| x.to_le_bytes())); // position 8 bytes
+        buffer_vec.extend(self.velocity.iter().flat_map(|x| x.to_le_bytes())); // velocity 8 bytes
+        buffer_vec.extend(self.size.to_le_bytes()); // size 4 bytes
+        buffer_vec.extend(self.energy.to_le_bytes()); // energy 4 bytes
 
-        if buffer_vec.len() != ENTITY_BUF_SIZE.0 {
+        buffer_vec.extend((self.id as u32).to_le_bytes()); // id 4 bytes
+
+        for level in self.inner_protein_levels.iter() {
+            buffer_vec.extend(level.to_le_bytes()); // concentration levels 2 bytes each
+        }
+
+        buffer_vec.extend((self.received_ligands.len() as u32).to_le_bytes()); // number of received ligands 4 bytes
+        buffer_vec.extend(&self.received_ligands);
+
+        if buffer_vec.len() != ENTITY_BUF_SIZE.0  + self.received_ligands.len() {
             return Err("Invalid buffer length entity".to_string());
         }
 

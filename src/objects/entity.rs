@@ -58,6 +58,7 @@ impl Entity {
             inner_protein_levels: [0; super::OUTPUTS],
 
             ligands_to_emit: vec![],
+            received_ligands: vec![],
 
             position,
             size: settings.spawn_size(),
@@ -152,6 +153,7 @@ impl Entity {
             receptors: Vec::with_capacity(settings.receptor_capacity()),
             inner_protein_levels: [0; super::OUTPUTS],
             ligands_to_emit: vec![],
+            received_ligands: vec![],
             position,
             size,
             velocity,
@@ -170,6 +172,9 @@ impl Entity {
     }
 
     pub(crate) fn update_physics(&mut self, space: &Space) -> Array1<f32> {
+
+        // clear received ligands
+        self.received_ligands.clear();
 
         // update last_collision timer
         // timer is set by constant: IDLE_COLLISION_TIMER
@@ -436,6 +441,11 @@ impl Entity {
 
         // change concentration and clamp to range
         self.inner_protein_levels[index] = (self.inner_protein_levels[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
+
+        // add angle to received_ligands for statistics
+        let angle: f32 = (angle_index as f32 / settings.receptor_capacity() as f32) *180.0; // angle in degrees from 0 to 180
+        self.received_ligands.push(angle as u8);
+
         return true;
 
 
@@ -456,6 +466,10 @@ impl Entity {
 
         // change concentration and clamp to range
         self.inner_protein_levels[index as usize] = (self.inner_protein_levels[index as usize] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
+
+        // add angle to received_ligands for statistics
+        let angle: f32 = (receptor_index as f32 / settings.receptor_capacity() as f32) *180.0; // angle in degrees from 0 to 180
+        self.received_ligands.push(angle as u8);
     }
 
     pub(crate) fn print_stats(&self) {
