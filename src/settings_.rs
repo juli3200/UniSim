@@ -22,6 +22,8 @@ pub struct Settings {
     receptor_capacity: usize, // number of total receptors per entity
     different_receptors: usize, // number of different receptor types
     different_ligands: usize, // number of different ligand types an entity can emit
+    reproduction_threshold: Option<i16>, // reproduction threshold for entities
+    reproduction_probability: f64, // probability of reproduction when threshold is met
 
     standard_deviation: f64, // standard deviation for random values
     mean: f64, // mean for random values
@@ -33,6 +35,7 @@ pub struct Settings {
     ligand_velocity: f32, // default velocity of ligands
     gravity: Vec<f32>, // gravity of the world
     drag: f32, // drag/friction of the world
+    idle_energy_cost: f32, // energy cost per second depending on Area
 
     enable_entity_ligand_emission: bool,
 
@@ -74,6 +77,8 @@ impl Settings {
             receptor_capacity: 10_000, // 10_000 receptors
             different_receptors: 10, // 10 different receptor types
             different_ligands: 10, // 10 different ligand types
+            reproduction_threshold: None, // default reproduction threshold
+            reproduction_probability: 0.5, // 50% chance of reproduction
 
             standard_deviation: 10.0,
             mean: 0.0,
@@ -84,6 +89,7 @@ impl Settings {
             ligand_velocity: 5.0,
             gravity: vec![0.0, 0.0],
             drag: 0.0,
+            idle_energy_cost: 1e-3,
 
             enable_entity_ligand_emission: true,
 
@@ -204,6 +210,18 @@ impl Settings {
 
     pub fn ligand_velocity(&self) -> f32 {
         self.ligand_velocity
+    }
+
+    pub fn reproduction_threshold(&self) -> Option<i16> {
+        self.reproduction_threshold
+    }
+
+    pub fn reproduction_probability(&self) -> f64 {
+        self.reproduction_probability
+    }
+
+    pub fn idle_energy_cost(&self) -> f32 {
+        self.idle_energy_cost
     }
     //
     //
@@ -447,5 +465,36 @@ impl Settings {
         self.ligand_velocity = velocity;
     }
 
+    pub fn set_reproduction_threshold(&mut self, threshold: Option<i16>, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        self.reproduction_threshold = threshold;
+    }
+
+    pub fn set_reproduction_probability(&mut self, probability: f64, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        if probability < 0.0 || probability > 1.0 {
+            eprint!("Reproduction probability must be between 0.0 and 1.0");
+            return;
+        }
+        self.reproduction_probability = probability;
+    }
+
+    pub fn set_idle_energy_cost(&mut self, cost: f32, key: u32) {
+        if key != SECRET_KEY {
+            eprint!("Only edit settings through macros");
+            return;
+        }
+        if cost < 0.0 {
+            eprint!("Idle energy cost must be non-negative");
+            return;
+        }
+        self.idle_energy_cost = cost;
+    }
 }
 

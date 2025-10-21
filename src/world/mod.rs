@@ -69,5 +69,5 @@ pub struct Space {
     pub width: u32,
     pub height: u32,
     pub max_size: f32, // the biggest size of an entity in the world (used for efficient space checking)
-    grid: Vec<Vec<Vec<objects::ObjectType>>>, // 2D grid of indices of entities and ligands
+    grid: Vec<Vec<Vec<usize>>>, // 2D grid of indices of entities ids
 }

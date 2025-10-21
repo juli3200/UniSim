@@ -1,7 +1,7 @@
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QFileDialog, QSlider
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui
+import pyqtgraph as pg # type: ignore
+from pyqtgraph.Qt import QtWidgets, QtCore, QtGui  # type: ignore
 import sys
 import extract
 
@@ -122,18 +122,6 @@ class MainWindow(QtWidgets.QMainWindow):
         layout.addWidget(self.pauseButton)
 
         self.real_time_plotter = RealTimePlotter(self,  world)
-
-        # Get the width and height of the widget in pixels
-        width = self.real_time_plotter.size().width()
-        height = self.real_time_plotter.size().height()
-
-        if world.dimx > world.dimy:
-            self.real_time_plotter.setFixedWidth(width)
-            self.real_time_plotter.setFixedHeight(int(width * world.dimy / world.dimx))
-        
-        if world.dimx < world.dimy:
-            self.real_time_plotter.setFixedWidth(int(height * world.dimx / world.dimy))
-            self.real_time_plotter.setFixedHeight(height)
         
         layout.addWidget(self.real_time_plotter)
 
@@ -171,6 +159,7 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(world)
-    window.resize(800, 800)
+    ratio = world.dimy / world.dimx
+    window.resize(800, int(800 * ratio))
     window.show()
     sys.exit(app.exec())

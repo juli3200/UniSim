@@ -57,7 +57,7 @@ impl Entity {
             genome,
 
             id,
-            energy: 0.0,
+            energy: settings.spawn_size().powi(2) * std::f32::consts::PI, // initial energy set to area of the entity
 
             age: 0,
 
@@ -135,10 +135,13 @@ impl Entity {
             self.last_border_collision -= 1;
         }
 
-
         let dt = 1.0 / space.settings.fps();
 
-        
+        // idle energy cost
+        // energy cost proportional to area
+        // todo: make this more biologically accurate
+        self.energy -= space.settings.idle_energy_cost() * self.size.powi(2) * dt;
+
         // acceleration
         self.velocity.scaled_add(dt, &self.acceleration);
 
@@ -228,6 +231,26 @@ impl Entity {
 
         }
         // 2 REPRODUCTION
+        let mut reproduce: bool = false;
+        if let Some(threshold) = settings.reproduction_threshold() {
+            if self.inner_protein_levels[2] > threshold {
+                // mark entity for reproduction
+                reproduce = true;
+            }
+        } else {
+            if self.inner_protein_levels[2] > self.genome.reproduction_threshold {
+                // mark entity for reproduction
+                reproduce = true;
+            }
+        }
+
+        if reproduce && rng.random_bool(settings.reproduction_probability()) {
+            self.inner_protein_levels[2] = 0; // reset concentration to avoid multiple reproductions in one update
+
+        }
+
+        // RESIZE ENTITY
+        // todo
 
 
 

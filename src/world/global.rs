@@ -98,11 +98,12 @@ impl World {
     pub fn close(&mut self) {
         // save and close the world
         if self.path.is_some() {
-            match self.save_buffer() {
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!("Failed to save state on close: {}", e);
-                }
+            self.pause_save().unwrap_or_else(|e| {
+                eprintln!("Failed to save pause state: {}", e);
+            });
+
+            if self.cuda_world.is_some() {
+                self.cuda_world.as_mut().unwrap().free();
             }
         }
     }
@@ -533,10 +534,16 @@ impl World{
             .open(self.path.as_ref().unwrap())?;
         file.write_all(&flat_buffer)?;
 
+        self.pause_save()?;
 
+        println!("State saved successfully");
+
+        Ok(())
+    }
+
+    fn pause_save(&mut self) -> io::Result<()> {
+        
         // save the pause state -------------------------
-
-
         if let Ok(buffer) = self.pause_serialize() {
             // append the pause state to the file
             let mut file = OpenOptions::new()
@@ -556,9 +563,6 @@ impl World{
         } else {
             eprintln!("Failed to serialize pause state");
         }
-
-
-        println!("State saved successfully");
 
         Ok(())
     }

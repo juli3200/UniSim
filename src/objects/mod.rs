@@ -7,13 +7,6 @@ pub mod receptor;
 
 const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
 
-
-#[derive(Debug, Clone)]
-pub(crate) enum ObjectType {
-    Entity(usize),
-    Ligand,
-}
-
 #[derive(Debug, Clone)]
 pub struct LigandSource {
     position: Array1<f32>,

@@ -9,8 +9,8 @@ class World:
         self.save_jumper = struct.unpack('I', self.bytes[1:5])[0]
         self.time = struct.unpack('Q', self.bytes[5:13])[0]
 
-        self.dimy = struct.unpack('I', self.bytes[13:17])[0]
-        self.dimx = struct.unpack('I', self.bytes[17:21])[0]
+        self.dimx = struct.unpack('I', self.bytes[13:17])[0]
+        self.dimy = struct.unpack('I', self.bytes[17:21])[0]
         self.spawn_size = struct.unpack('f', self.bytes[21:25])[0]
         self.store_capacity = struct.unpack('I', self.bytes[25:29])[0]
         self.fps = struct.unpack('f', self.bytes[29:33])[0]

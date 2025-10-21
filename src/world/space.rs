@@ -44,10 +44,7 @@ impl Space{
         let old_y = old_position[1].floor().max(0.0).min(self.height as f32 - 1.0) as usize;
 
         // delete the entity from the old position in the grid
-        self.grid[old_x][old_y].retain(|obj| match obj {
-            objects::ObjectType::Entity(e_id) => *e_id != id,
-            _ => true,
-        });
+        self.grid[old_x][old_y].retain(|e_id|  *e_id != id);
         
 
         // then, add the entity to the new position in the grid
@@ -60,7 +57,7 @@ impl Space{
         let x = position[0].floor().max(0.0).min(self.width as f32 - 1.0) as usize;
         let y = position[1].floor().max(0.0).min(self.height as f32 - 1.0) as usize;
         if x < self.width as usize && y < self.height as usize {
-            self.grid[x][y].push(objects::ObjectType::Entity(id));
+            self.grid[x][y].push(id);
         }
     }
 
@@ -136,37 +133,32 @@ impl Space{
                 let objects = &self.grid[x as usize][y as usize];
                 
                 for object in objects {
-                    match object {
-                        objects::ObjectType::Entity(e_id) => {
-                            let entity_ref = get_entity(entities, *e_id);
 
-                            // check if entity_ref is None
-                            if entity_ref.is_none() {
-                                continue;
-                            }
+                    let entity_ref = get_entity(entities, *object);
 
-                            let entity = entity_ref.unwrap();
-
-                            if entity.id == id.unwrap_or(usize::MAX){
-                                continue;
-                            }
-
-                            let dx = entity.position[0] - position[0];
-                            let dy = entity.position[1] - position[1];
-
-                            let check_size = size + entity.size;
-
-                            if dx.abs() > check_size || dy.abs() > check_size {
-                                continue; // skip if the distance is greater than check_size
-                            }
-
-                            // I dont multiply by PI because its would be divided again later
-                            return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone(), entity.id);
-                            // return the velocity and mass of the collision
-
-                        }
-                        _ => {}
+                    // check if entity_ref is None
+                    if entity_ref.is_none() {
+                        continue;
                     }
+
+                    let entity = entity_ref.unwrap();
+
+                    if entity.id == id.unwrap_or(usize::MAX){
+                        continue;
+                    }
+
+                    let dx = entity.position[0] - position[0];
+                    let dy = entity.position[1] - position[1];
+
+                    let check_size = size + entity.size;
+
+                    if dx.abs() > check_size || dy.abs() > check_size {
+                        continue; // skip if the distance is greater than check_size
+                    }
+
+                    // I dont multiply by PI because its would be divided again later
+                    return Collision::EntityCollision(entity.velocity.clone(), entity.size.powi(2) /*  *std::f32::consts::PI*/, entity.position.clone(), entity.id);
+                    // return the velocity and mass of the collision                    
                 }
             
             }
