@@ -20,7 +20,7 @@ pub(crate) struct EntityCuda {
     velx: f32, // x velocity of the entity
     vely: f32, // y velocity of the entity
     size: f32, // size of the entity
-    id: u32,   // id of the entity
+    receptor_id: u32,   // id of the entity
 
     // receptors are stored as pointer because it does not change 
     // EntityCuda is copied to GPU memory every step
@@ -85,7 +85,7 @@ pub struct CUDAWorld{
 
     // receptor data arrays
     receptors: *mut u32, // size: entity_cap * settings.receptor_capacity() (only spec stored)
-    
+    pub(crate) receptor_index: u32, // next free index in receptors array
 
     ligand_cap: u32,
     pub(crate) ligand_count: u32,

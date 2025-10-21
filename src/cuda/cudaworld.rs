@@ -14,7 +14,7 @@ impl EntityCuda {
             velx: entity.velocity[0],
             vely: entity.velocity[1],
             size: entity.size,
-            id: entity.id as u32,
+            receptor_id: entity.cuda_receptor_index.unwrap_or(0),
         }
     }
 }
@@ -99,6 +99,7 @@ impl CUDAWorld {
             entity_count: entities.len() as u32,
             entities: entities_d,
             receptors: receptors_d,
+            receptor_index: entities.len() as u32,
             ligand_count: ligands.len() as u32,
             ligand_cap,
             ligands: ligands_d,

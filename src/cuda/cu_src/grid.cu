@@ -145,7 +145,7 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
     uint32_t ligand_spec = col_arrays.ligands[index].spec;
     
     // where the receptor specs for this entity start
-    uint32_t receptor_start_index = entity_index * n_receptors;
+    uint32_t receptor_start_index = col_arrays.entities[entity_index].receptor_id * n_receptors;
 
     float velx = col_arrays.entities[entity_index].velx;
     float vely = col_arrays.entities[entity_index].vely;

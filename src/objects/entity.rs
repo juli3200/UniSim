@@ -73,6 +73,9 @@ impl Entity {
             acceleration: Array1::zeros(2),
             last_entity_collision: (0,0),
             last_border_collision: 0,
+
+            #[cfg(feature = "cuda")]
+            cuda_receptor_index: None,
         };
 
         e.init_receptors(settings);

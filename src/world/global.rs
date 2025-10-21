@@ -83,6 +83,10 @@ impl World {
         if unsafe{crate::cuda::cuda_bindings::tests_gpu::cuda_test() != 0} {
             return Err("CUDA is not available on this system".to_string());
         }
+
+        for i in  0..self.entities.len() {
+            self.entities[i].cuda_receptor_index = Some(i as u32);
+        }
         
         let cuda_world = crate::cuda::CUDAWorld::new(&self.settings, &self.entities, &self.ligands);
         self.cuda_world = Some(cuda_world);
@@ -147,7 +151,7 @@ impl World {
         // Main loop for the world simulation
         for i in 0..n {
             self.update();
-            if i % 1999 == 0 {
+            if i % 1000 == 0 {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
                 {   
@@ -464,6 +468,11 @@ impl World {
             self.new_ligands.extend(new_ligands);
 
         }
+
+        // remove dead entities
+        self.entities.retain(|entity| entity.energy > 0.0);
+
+        // when new entities were added, update their cuda receptor indices!!!!!!!!!!!!!!!!!!!!!!!
 
         Ok(())
     }

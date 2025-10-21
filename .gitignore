@@ -1,9 +1,8 @@
 /target
 /.vscode
-/alpha.bin
-/test.bin
 *.bin
 /.idea
 /lib/*
-scripts/__pycache__
-testfiles/*
+scripts/__pycache__/
+
+Cargo.lock

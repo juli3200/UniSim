@@ -48,7 +48,7 @@ pub(crate) struct Entity {
     pub(crate) genome: Genome, // GENOME of the entity
 
 
-    energy: f32, // energy level of the entity
+    pub(crate) energy: f32, // energy level of the entity
     age: usize, // age of the entity in simulation steps
 
     // ************ sensors and inner proteins ************
@@ -73,5 +73,9 @@ pub(crate) struct Entity {
 
     pub(crate) last_entity_collision: (usize, usize), // ids of the last collided entity and when it happened 
     pub(crate) last_border_collision: usize, // when the last border collision happened
+
+    // ******************** cuda **********************
+    #[cfg(feature = "cuda")]
+    pub(crate) cuda_receptor_index: Option<u32>, // index of the entity receptors in the CUDA memory
 }
 

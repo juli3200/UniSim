@@ -22,7 +22,7 @@ typedef struct{
     float velx; // x velocity of the entity
     float vely; // y velocity of the entity
     float size; // size of the entity
-    uint32_t id; // entity id
+    uint32_t receptor_id; // receptor id in the global receptor array
 
 } EntityCuda;
 
