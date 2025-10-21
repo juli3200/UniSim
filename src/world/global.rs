@@ -57,7 +57,7 @@ impl World {
 
         // Initialize the world with default population size
         for _ in 0..self.settings.default_population() {
-            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings, None)?;
+            let entity = objects::Entity::new(self.counter, &mut self.space, &self.entities, &self.settings)?;
             self.entities.push(entity);
             self.counter += 1;
         }
@@ -345,6 +345,9 @@ impl World {
             self.new_ligands.extend(new_ligands);
         }
 
+        // remove dead entities
+        self.entities.retain(|entity| entity.energy > 0.0);
+
     }
 
     #[cfg(feature = "cuda")]
@@ -452,9 +455,18 @@ impl World {
         }
 
         let dt = 1.0 / self.settings.fps() as f32;
-        for entity in &mut self.entities {
-            entity.update_output(&self.settings);
+        for entity in 0..self.entities.len() {
+            if self.entities[entity].update_output(&self.settings) {
+                // emit new entity
+                let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &self.entities, &self.settings);
+                if let Some(mut e) = new_entity {
+                    e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
+                    self.entities.push(e);
+                    self.counter += 1;
+                }
+            }
         }
+
 
         // emit new ligands from entities
         for entity in &mut self.entities {
@@ -472,7 +484,7 @@ impl World {
         // remove dead entities
         self.entities.retain(|entity| entity.energy > 0.0);
 
-        // when new entities were added, update their cuda receptor indices!!!!!!!!!!!!!!!!!!!!!!!
+        self.population_size = self.entities.len();
 
         Ok(())
     }

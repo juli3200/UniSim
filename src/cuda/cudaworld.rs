@@ -126,6 +126,12 @@ impl CUDAWorld {
         }
     }
 
+    pub(crate) fn receptor_index(&mut self) -> u32 {
+        // returns current receptor index and increments it
+        self.receptor_index += 1;
+        self.receptor_index - 1
+    }
+
     fn fill_receptors(&mut self, entities: &Vec<Entity>) {
         use cuda_bindings::memory_gpu as cu_mem;
 

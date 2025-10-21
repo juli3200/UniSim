@@ -30,16 +30,9 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f64 {
 
 
 impl Entity {
-    pub(crate) fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings, genome: Option<Genome>) -> Result<Self, String> {
-        let genome = match genome {
-            Some(g) => g,
-            None => Genome::random(settings),
-        };
-
-
-        let position = space
-            .get_random_position(settings.spawn_size(), entities)?;
-
+    pub(crate) fn new(id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Result<Self, String> {
+        let genome = Genome::random(settings);
+        let position: Array1<f32> = space.get_random_position(settings.spawn_size(), entities)?;
 
         // add the entity to the space
         space.add_entity(id, position.clone());
@@ -126,6 +119,56 @@ impl Entity {
 
     }
 
+    pub(crate) fn reproduce(&self, id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Option<Self> {
+        let mut rng = rand::rng();
+
+        let energy = self.energy; // offspring gets all the energy from the parent (parent already halved its energy)
+        let size = (energy/ std::f32::consts::PI).sqrt(); // offspring has the default size for its energy
+
+        let mut c = 0;
+        let (position, velocity) = loop {
+            c += 1;
+            if c > 1000 {
+                return None; // failed to find a position
+            }
+            let angle: f32 = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
+            let direction: Array1<f32> = vec![angle.cos(), angle.sin()].into();
+            let position: Array1<f32> = &self.position + &direction * self.size * 2.0; // spawn at a distance of 2x size from parent
+            let velocity: Array1<f32> = self.speed * &direction;
+
+            if let Collision::NoCollision = space.check_position(position.clone(), Some(size), None, entities) {
+                break (position, velocity);
+            }
+        };
+
+        // add the entity to the space
+        space.add_entity(id, position.clone());
+
+        let mut e = Self {
+            id: id,
+            genome: self.genome.mutate(),
+            energy,
+            age: 0,
+            receptors: Vec::with_capacity(settings.receptor_capacity()),
+            inner_protein_levels: [0; super::OUTPUTS],
+            ligands_to_emit: vec![],
+            position,
+            size,
+            velocity,
+            speed: self.speed,
+            acceleration: Array1::zeros(2),
+            last_entity_collision: (0,0),
+            last_border_collision: 0,
+            #[cfg(feature = "cuda")]
+            cuda_receptor_index: None,
+        };
+
+        e.init_receptors(settings);
+
+        Some(e)
+
+    }
+
     pub(crate) fn update_physics(&mut self, space: &Space) -> Array1<f32> {
 
         // update last_collision timer
@@ -178,7 +221,7 @@ impl Entity {
 
     }
 
-    pub(crate) fn update_output(&mut self, settings: &Settings){
+    pub(crate) fn update_output(&mut self, settings: &Settings) -> bool{
 
         let mut rng = rand::rng();
 
@@ -188,8 +231,10 @@ impl Entity {
         // 0 MOVEMENT
         if self.inner_protein_levels[0] > self.genome.move_threshold {
             // run
-            // TODOOOOOOOOOOOOOOOO how mutch acceleration?
-            self.acceleration = &self.velocity * 0.1 / (self.size * 2.0); // acceleration proportional to velocity and inversely proportional to size
+            // TODOO how mutch acceleration? and energy cost?
+
+            self.acceleration = &self.velocity / self.speed * 0.1 / (self.size * 2.0); // acceleration is 1 divided by size (so smaller entities accelerate faster)
+            self.energy -= 0.01;
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
@@ -206,7 +251,7 @@ impl Entity {
 
             self.velocity = rotation_matrix.dot(&self.velocity);
             }
-            
+            self.energy -= 0.01;
 
         }
 
@@ -239,17 +284,26 @@ impl Entity {
             if self.inner_protein_levels[2] > threshold {
                 // mark entity for reproduction
                 reproduce = true;
+                self.inner_protein_levels[2] = threshold - 10; // prevent multiple reproductions in one update
             }
         } else {
             if self.inner_protein_levels[2] > self.genome.reproduction_threshold {
                 // mark entity for reproduction
                 reproduce = true;
+                self.inner_protein_levels[2] = self.genome.reproduction_threshold - 10; // prevent multiple reproductions in one update
             }
         }
 
         if reproduce && rng.random_bool(settings.reproduction_probability()) {
+            self.energy /= 2.0; // split energy with offspring
+
+            // todo adjust size 
+
+            // mutate offspring genome
             self.inner_protein_levels[2] = 0; // reset concentration to avoid multiple reproductions in one update
 
+        } else {
+            reproduce = false;
         }
 
         // RESIZE ENTITY
@@ -259,7 +313,7 @@ impl Entity {
 
         // (FUTURE: KILLING OTHER ENTITIES)
 
-
+        reproduce
 
     }
 
@@ -302,7 +356,8 @@ impl Entity {
                 assert!(new_v1.len() == 2, "Velocity should be a 2D vector");
                 self.velocity = new_v1;
                 if self.velocity[0].is_nan() || self.velocity[1].is_nan() {
-                    panic!("NaN velocity detected after collision resolution");
+                    eprintln!("NaN velocity detected after collision resolution");
+                    self.velocity = Array1::zeros(2);
                 }
 
                 self.last_entity_collision = (id, IDLE_COLLISION_TIMER);

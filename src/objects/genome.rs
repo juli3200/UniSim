@@ -5,6 +5,7 @@ use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
 impl Genome {
+    #[allow(dead_code)]
     pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<(f32, u16)>, reproduction_threshold: i16, receptor_dna: Vec<u64>) -> Self {
         Self {
             move_threshold,
@@ -13,6 +14,39 @@ impl Genome {
             reproduction_threshold,
             receptor_dna,
         }
+    }
+
+    pub fn mutate(&self) -> Self {
+        let mut rng = rand::rng();
+
+        let mut new_genome = self.clone();
+
+        // change MUTATION MODE !!!!!!!!!!
+        // todo
+
+        new_genome.move_threshold += rng.random_range(-2..=2);
+        new_genome.ligand_emission_threshold += rng.random_range(-2..=2);
+        new_genome.reproduction_threshold += rng.random_range(-2..=2);
+
+        // mutate ligands
+        for ligand in &mut new_genome.ligands {
+            if rng.random_bool(0.1) {
+                ligand.0 = (ligand.0 + rng.random_range(-0.5..=0.5)).max(0.1); // mutate energy
+            
+            }
+            if rng.random_bool(0.05) {
+                ligand.1 = rng.random_range(0..=u16::MAX); // mutate spec
+            }
+        }
+
+        // mutate receptor DNA
+        for receptor in &mut new_genome.receptor_dna {
+            if rng.random_bool(0.1) {
+                *receptor ^= 1 << rng.random_range(0..64); // flip a random bit
+            }
+        }
+
+        new_genome
     }
 
     pub fn random(settings: &crate::settings_::Settings) -> Self {
