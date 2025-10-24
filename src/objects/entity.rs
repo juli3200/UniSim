@@ -239,7 +239,7 @@ impl Entity {
             // TODOO how mutch acceleration? and energy cost?
 
             self.acceleration = &self.velocity / self.speed * 0.1 / (self.size * 2.0); // acceleration is 1 divided by size (so smaller entities accelerate faster)
-            self.energy -= 0.01;
+            self.energy -= 0.001;
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
@@ -256,7 +256,7 @@ impl Entity {
 
             self.velocity = rotation_matrix.dot(&self.velocity);
             }
-            self.energy -= 0.01;
+            self.energy -= 0.001;
 
         }
 
