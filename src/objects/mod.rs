@@ -23,6 +23,7 @@ pub(crate) struct Ligand {
     pub(crate) velocity: Array1<f32>, // velocity in the world
     pub(crate) spec: u16,
     pub(crate) energy: f32,
+    pub(crate) lifetime: u32, // lifetime in simulation steps remaining
 }
 
 #[derive(Debug, Clone)]

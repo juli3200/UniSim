@@ -34,7 +34,9 @@ class RealTimePlotter(QtWidgets.QWidget):
         self.update_interval = self.plot_fps / self.fps
         self.counter = 0
 
-        
+
+        self.clicked_on = None
+
         self.entities = []
 
 
@@ -63,6 +65,17 @@ class RealTimePlotter(QtWidgets.QWidget):
         self.points_l_plot = pg.ScatterPlotItem(pxMode=False)
 
 
+        # highlight item for clicked entity (transparent fill, colored outline)
+        self.highlight_plot = pg.ScatterPlotItem(pxMode=False)
+        self.highlight_plot.setBrush(pg.mkBrush(0,0,0,0))
+        self.highlight_plot.setPen(pg.mkPen(255,0,0, width=2))
+        self.plot_widget.addItem(self.highlight_plot)
+
+        # info label shown when an entity is selected
+        self.info_label = QtWidgets.QLabel(self.plot_widget)
+        self.info_label.setStyleSheet("background-color: rgba(255,255,255,230); padding:4px; border: 1px solid #333;")
+        self.info_label.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        self.info_label.hide()
 
         # Add plot items to the plot widget
         self.plot_widget.addItem(self.points_e_plot)
@@ -73,7 +86,50 @@ class RealTimePlotter(QtWidgets.QWidget):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(int(1000/self.plot_fps / 2))  # 20 FPS
+    
+        # connect mouse click on the plot to handler
+        self.plot_widget.scene().sigMouseClicked.connect(self.on_click)
 
+    # GPT 5 generated
+    def on_click(self, event):
+        """Handle mouse click on plot, find nearest entity and print its id."""
+        # map scene position to plot coordinates
+        pos = event.scenePos()
+        vb = self.plot_widget.plotItem.vb
+        view_pos = vb.mapSceneToView(pos)
+        x_click = view_pos.x()
+        y_click = view_pos.y()
+
+        if not hasattr(self, "entities") or len(self.entities) == 0:
+            # clear selection
+            self.clicked_on = None
+            self.highlight_plot.clear()
+            self.info_label.hide()
+            return
+
+        closest = None
+        closest_dist2 = float("inf")
+        for e in self.entities:
+            dx = e.x - x_click
+            dy = e.y - y_click
+            dist2 = dx*dx + dy*dy
+            size = getattr(e, "size", 1.0)
+            threshold2 = max((size * 2.0) ** 2, 9.0)  # squared threshold (min radius 3)
+            if dist2 <= threshold2 and dist2 < closest_dist2:
+                closest_dist2 = dist2
+                closest = e
+
+        if closest is not None:
+            eid = getattr(closest, "id", None)
+            print(f"Clicked entity id: {eid}")
+            self.clicked_on = eid
+        else:
+            # clicked empty space => clear selection
+            self.clicked_on = None
+            self.highlight_plot.clear()
+            self.info_label.hide()
+
+    
 
     def update_plot(self):
         if self.counter % self.update_interval == 0:
@@ -103,6 +159,31 @@ class RealTimePlotter(QtWidgets.QWidget):
 
         self.counter += 1
 
+        # update highlight + info box if an entity is selected
+        if getattr(self, "clicked_on", None) is not None:
+            ent = next((e for e in self.entities if e.id == self.clicked_on), None)
+            if ent is not None:
+                self.highlight_plot.setData(
+                    x=[ent.x],
+                    y=[ent.y],
+                    size=[max(ent.size * 2 + 4, 8)],
+                    brush=[pg.mkBrush(0,0,0,0)],
+                    pen=[pg.mkPen(255,0,0, width=2)],
+                )
+                # update and show info label
+                self.info_label.setText(f"id: {ent.id}\n x: {ent.x:.2f}\n y: {ent.y:.2f}\n size: {ent.size:.2f}")
+                self.info_label.adjustSize()
+                # place label in top-left of plot area (10px padding)
+                self.info_label.move(10, 10)
+                self.info_label.show()
+            else:
+                # selected id not present anymore
+                self.clicked_on = None
+                self.highlight_plot.clear()
+                self.info_label.hide()
+        else:
+            self.highlight_plot.clear()
+            self.info_label.hide()
 
 
         
