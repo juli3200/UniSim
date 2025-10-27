@@ -4,6 +4,7 @@ import pyqtgraph as pg # type: ignore
 from pyqtgraph.Qt import QtWidgets, QtCore, QtGui  # type: ignore
 import sys
 import extract
+import math
 
 LIGANDS = True
 LSIZE = 5
@@ -16,7 +17,109 @@ def get_fps(fps):
     return fps
 
 
-## TODO make entities clickable to show info
+
+class EntityCanvas(QtWidgets.QWidget):
+    """A small widget that only draws the entity (the canvas part)."""
+    def __init__(self, entity: extract.Entity):
+        super().__init__()
+        self.entity = entity
+        self.setMinimumSize(300, 300)
+
+    def update_entity(self, entity: extract.Entity):
+        self.entity = entity
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        # Background
+        painter.fillRect(self.rect(), self.palette().brush(QtGui.QPalette.Window))
+
+        if not self.entity:
+            return
+
+        # Draw entity as a circle
+        center_x = self.width() / 2
+        center_y = self.height() / 2
+        radius = self.width() / 2
+
+        painter.setBrush(QtGui.QBrush(QtCore.Qt.black))
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        painter.drawEllipse(QtCore.QPointF(center_x, center_y), radius, radius)
+
+        # Points on circumference
+        angles_deg = getattr(self.entity, "received_ligands", [])
+
+        if angles_deg:
+            point_radius = 4  # radius of the little dot to draw
+            painter.setBrush(QtGui.QBrush(QtCore.Qt.red))
+            painter.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+
+            for deg in angles_deg:
+                try:
+                    a = float(deg)
+                except Exception:
+                    continue  # skip non-numeric entries
+
+                # convert degrees to radians (Qt coordinate: +x right, +y down)
+                rad = math.radians(a)
+
+                # compute point on circumference
+                x = center_x + (radius - point_radius - 1) * math.cos(rad)
+                y = center_y + (radius - point_radius - 1) * math.sin(rad)
+
+                # draw small filled circle for the point
+                painter.drawEllipse(QtCore.QPointF(x, y), point_radius, point_radius)
+
+
+
+        painter.end()
+
+
+class VisualizeEntity(QtWidgets.QWidget):
+    """A composite widget that contains the entity canvas and text labels."""
+    def __init__(self, entity: extract.Entity):
+        super().__init__()
+        self.entity = entity
+        self.init_ui()
+
+    def init_ui(self):
+        # Create layout
+        layout = QtWidgets.QVBoxLayout(self)
+
+        # Canvas on top
+        self.canvas = EntityCanvas(self.entity)
+        layout.addWidget(self.canvas, alignment=QtCore.Qt.AlignCenter)
+
+        # Labels below
+        self.name_label = QtWidgets.QLabel()
+        self.size_label = QtWidgets.QLabel()
+        self.energy_label = QtWidgets.QLabel()
+
+        # Sub-layout for labels
+        label_layout = QtWidgets.QVBoxLayout()
+        label_layout.addWidget(self.name_label)
+        label_layout.addWidget(self.size_label)
+        label_layout.addWidget(self.energy_label)
+        layout.addLayout(label_layout)
+
+        self.update_labels()
+
+    def update_labels(self):
+        if not self.entity:
+            return
+        self.name_label.setText(f"Name: {getattr(self.entity, 'name', 'Unknown')}")
+        self.size_label.setText(f"Size: {self.entity.size:.2f}")
+        self.energy_label.setText(f"Energy: {getattr(self.entity, 'energy', 0):.2f}")
+
+    def update_entity(self, entity: extract.Entity):
+        if not entity:
+            return
+        self.entity = entity
+        self.canvas.update_entity(entity)
+        self.update_labels()
+
 
 class RealTimePlotter(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget, world: extract.World):
@@ -71,11 +174,6 @@ class RealTimePlotter(QtWidgets.QWidget):
         self.highlight_plot.setPen(pg.mkPen(255,0,0, width=2))
         self.plot_widget.addItem(self.highlight_plot)
 
-        # info label shown when an entity is selected
-        self.info_label = QtWidgets.QLabel(self.plot_widget)
-        self.info_label.setStyleSheet("background-color: rgba(255,255,255,230); padding:4px; border: 1px solid #333;")
-        self.info_label.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-        self.info_label.hide()
 
         # Add plot items to the plot widget
         self.plot_widget.addItem(self.points_e_plot)
@@ -126,8 +224,6 @@ class RealTimePlotter(QtWidgets.QWidget):
         else:
             # clicked empty space => clear selection
             self.clicked_on = None
-            self.highlight_plot.clear()
-            self.info_label.hide()
 
     
 
@@ -171,19 +267,16 @@ class RealTimePlotter(QtWidgets.QWidget):
                     pen=[pg.mkPen(255,0,0, width=2)],
                 )
                 # update and show info label
-                self.info_label.setText(f"id: {ent.id}\n x: {ent.x:.2f}\n y: {ent.y:.2f}\n size: {ent.size:.2f}")
-                self.info_label.adjustSize()
-                # place label in top-left of plot area (10px padding)
-                self.info_label.move(10, 10)
-                self.info_label.show()
+                self.parent.show_info(ent)
             else:
                 # selected id not present anymore
                 self.clicked_on = None
                 self.highlight_plot.clear()
-                self.info_label.hide()
+                self.parent.hide_info()
         else:
             self.highlight_plot.clear()
-            self.info_label.hide()
+            self.parent.hide_info()
+
 
 
         
@@ -191,7 +284,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, world: extract.World):
         super().__init__()
 
-        self.setWindowTitle("evolvE")
+        self.setWindowTitle("UniSim")
+
+        ratio = world.dimy / world.dimx
+        self.original_size = QtCore.QSize(800, int(800 * ratio) + 50)
+        self.resize(self.original_size)
 
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
@@ -206,9 +303,49 @@ class MainWindow(QtWidgets.QMainWindow):
         
         layout.addWidget(self.real_time_plotter)
 
+        # Create a horizontal layout to place the plotter and info box side by side
+        horizontal_layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(horizontal_layout)
+
+        # Add the real-time plotter to the left side
+        horizontal_layout.addWidget(self.real_time_plotter)
+
+        # Create an info box to display entity details
+        self.info_label = VisualizeEntity(None)
+        self.info_label.hide()  # Initially hidden
+        horizontal_layout.addWidget(self.info_label)
+
+        self.info_shown = False
 
 
+    def show_info(self, entity: extract.Entity):
+        """Show the info box with details of the given entity."""
+        if not entity:
+            return
+                  
+        self.info_label.update_entity(entity)
 
+        if self.info_shown:
+            return
+
+        self.info_label.show()
+
+        # resize window to fit info box
+        self.resize(self.width() + self.info_label.width(), self.height())
+
+        self.info_shown = True
+
+    def hide_info(self):
+        """Hide the info box."""
+        if not self.info_shown:
+            return
+
+        self.info_label.hide()
+
+        # resize window to remove info box
+        self.resize(self.original_size)
+
+        self.info_shown = False
         
     def toggle_pause(self):
         """Toggle the paused state of the real-time plotter."""
@@ -240,7 +377,5 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(world)
-    ratio = world.dimy / world.dimx
-    window.resize(800, int(800 * ratio))
     window.show()
     sys.exit(app.exec())
