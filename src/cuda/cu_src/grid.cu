@@ -374,7 +374,6 @@ extern "C" {
         if (err != cudaSuccess) {
             printf("ligand_collision failed\n");
             printf("Launch error: %s\n", cudaGetErrorString(err));
-            exit(1);
             return error_return(energies, receptor_ids, counter);
         }
 

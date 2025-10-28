@@ -79,12 +79,12 @@ class EntityCanvas(QtWidgets.QWidget):
 
 class VisualizeEntity(QtWidgets.QWidget):
     """A composite widget that contains the entity canvas and text labels."""
-    def __init__(self, entity: extract.Entity):
+    def __init__(self, entity: extract.Entity, n_proteins):
         super().__init__()
         self.entity = entity
-        self.init_ui()
+        self.init_ui(n_proteins)
 
-    def init_ui(self):
+    def init_ui(self, n_proteins):
         # Create layout
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -96,22 +96,41 @@ class VisualizeEntity(QtWidgets.QWidget):
         self.name_label = QtWidgets.QLabel()
         self.size_label = QtWidgets.QLabel()
         self.energy_label = QtWidgets.QLabel()
+        # Concentration levels label
+        self.conc_label = QtWidgets.QLabel("Concentration Levels")
+        layout.addWidget(self.conc_label)
+
+        # Concentration levels values
+        self.conc_values = QtWidgets.QLabel()
+
+        # Add concentration levels to the horizontal layout
+        horizontal_layout = QtWidgets.QHBoxLayout()
+        self.conc_labels = []
+        for i, level in enumerate(getattr(self.entity, "inner_protein_levels", [])):
+            self.conc_labels.append(QtWidgets.QLabel(f"P{i}: {level}"))
+            horizontal_layout.addWidget(self.conc_labels[i])
 
         # Sub-layout for labels
         label_layout = QtWidgets.QVBoxLayout()
         label_layout.addWidget(self.name_label)
         label_layout.addWidget(self.size_label)
         label_layout.addWidget(self.energy_label)
+        layout.addWidget(self.conc_values)
+        
         layout.addLayout(label_layout)
+        layout.addLayout(horizontal_layout)
 
         self.update_labels()
 
     def update_labels(self):
         if not self.entity:
             return
-        self.name_label.setText(f"Name: {getattr(self.entity, 'name', 'Unknown')}")
+        self.name_label.setText(f"Id: {getattr(self.entity, 'id', 'Unknown')}")
         self.size_label.setText(f"Size: {self.entity.size:.2f}")
         self.energy_label.setText(f"Energy: {getattr(self.entity, 'energy', 0):.2f}")
+        for i, label in enumerate(self.conc_labels):
+            label.setText(f"P{i}: {getattr(self.entity, 'inner_protein_levels', [])[i] if i < len(getattr(self.entity, 'inner_protein_levels', [])) else 0}")
+
 
     def update_entity(self, entity: extract.Entity):
         if not entity:
@@ -311,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
         horizontal_layout.addWidget(self.real_time_plotter)
 
         # Create an info box to display entity details
-        self.info_label = VisualizeEntity(None)
+        self.info_label = VisualizeEntity(None, len(world.get_state(0).entities[0].inner_protein_levels) if world.get_state(0).entities else 0)
         self.info_label.hide()  # Initially hidden
         horizontal_layout.addWidget(self.info_label)
 

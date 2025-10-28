@@ -84,8 +84,8 @@ mod performance {
         let mut cpu_durations = Vec::new();
         let mut gpu_durations = Vec::new();
 
-        let numbers = [100, 1000, 10_000, 100_000];
-        let ligand_source_numbers = [1.0, 10.0, 100.0, 1000.0];
+        let numbers = [0; 6];
+        let ligand_source_numbers = [1.0, 10.0, 100.0, 1000.0, 10_000.0, 100_000.0];
 
         for ligands in 0..numbers.len() {
             println!("Testing with {} ligands and {} Ligands per second emission", numbers[ligands], ligand_source_numbers[ligands]);
