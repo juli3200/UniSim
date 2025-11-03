@@ -136,7 +136,7 @@ mod cuda_tests {
         }
     }
 
-    #[cfg(feature = "cuda")]
+    #[cfg(all(feature = "cuda", feature = "save_ligands"))]
     #[test]
     fn ligands_test(){
 
