@@ -126,7 +126,7 @@ impl World {
 
         // check if if n is smaller than store capacity$
         // it isn't saved if too small
-        if !self.settings.is_init(){
+        if !self.settings.init(){
             if n + self.buffer.len() < self.settings.store_capacity() {
                 if self.path.is_some() {
                     eprint!("Warning: Number of steps to run is smaller than store capacity, state will not be saved.");

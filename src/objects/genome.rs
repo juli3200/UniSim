@@ -63,7 +63,7 @@ impl Genome {
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let reproduction_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
-        let ligands: Vec<(f32, u16)> = (0..settings.ligand_types())
+        let ligands: Vec<(f32, u16)> = (0..settings.different_ligands())
             .map(|_| random_ligand(settings))
             .collect();
 

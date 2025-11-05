@@ -265,13 +265,13 @@ impl Entity {
         if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
             // determine what ligand to emit
             // step is the range in which the same ligand is emitted (e.g. if concentration range is 0-100 and there are 5 ligand types, step is 20)
-            let step: i16 = (((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.ligand_types() as f32).floor() as i16).max(1);
+            let step: i16 = (((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.different_ligands() as f32).floor() as i16).max(1);
             // find which ligand to emit based on concentration
             let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
 
             // get energy and spec of the ligand to emit
-            let (energy, spec) = if l_index >= settings.ligand_types() as usize {
-                self.genome.ligands[settings.ligand_types() as usize - 1]
+            let (energy, spec) = if l_index >= settings.different_ligands() as usize {
+                self.genome.ligands[settings.different_ligands() as usize - 1]
             } else {
                 self.genome.ligands[l_index]
             };

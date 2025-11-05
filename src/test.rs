@@ -7,7 +7,7 @@ mod general{
 
     #[test]
     fn create_world(){
-        let _world = World::new(settings!(100, spawn_size = 5.0));
+        let mut _world = World::new(settings!(100, spawn_size = 5.0));
         
     }
 
