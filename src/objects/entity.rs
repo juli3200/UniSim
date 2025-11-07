@@ -147,7 +147,7 @@ impl Entity {
 
         let mut e = Self {
             id: id,
-            genome: self.genome.mutate(),
+            genome: self.genome.mutate(&space.settings),
             energy,
             age: 0,
             receptors: Vec::with_capacity(settings.receptor_capacity()),
@@ -389,7 +389,6 @@ impl Entity {
         }
     }
 
-        // TODOOOOOOOOO ligand function
     pub(crate) fn emit_ligands(&mut self, settings: &Settings) -> Vec<Ligand> {
         // Take the ligands from the entity and return them
         let ligands = self.ligands_to_emit.clone();

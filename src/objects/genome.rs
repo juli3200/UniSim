@@ -16,7 +16,7 @@ impl Genome {
         }
     }
 
-    pub fn mutate(&self) -> Self {
+    pub fn mutate(&self, settings: &crate::settings_::Settings) -> Self {
         let mut rng = rand::rng();
 
         let mut new_genome = self.clone();
@@ -43,6 +43,14 @@ impl Genome {
         for receptor in &mut new_genome.receptor_dna {
             if rng.random_bool(0.1) {
                 *receptor ^= 1 << rng.random_range(0..64); // flip a random bit
+
+                // Ensure spec (bits 48-63) is still in range
+                let spec_mask = 0xFFFFu64 << 48;
+                let spec = ((*receptor & spec_mask) >> 48) as u16;
+                let max_spec = settings.possible_ligands() as u16;
+                if spec > max_spec {
+                    *receptor = (*receptor & !spec_mask) | ((max_spec as u64) << 48);
+                }
             }
         }
 
@@ -68,7 +76,7 @@ impl Genome {
             .collect();
 
         let receptor_dna: Vec<u64> = (0..settings.different_receptors())
-            .map(|_| random_receptor_genome())
+            .map(|_| random_receptor_genome(settings))
             .collect();
 
         Self {
@@ -83,7 +91,7 @@ impl Genome {
 
 
 
-fn random_receptor_genome() -> u64 {
+fn random_receptor_genome(settings: &Settings) -> u64 {
     let mut rng = rand::rng();
 
     let info = 0u8;
@@ -93,7 +101,7 @@ fn random_receptor_genome() -> u64 {
 
     let what = rng.random_range(0..super::OUTPUTS as u8); // which inner protein does this receptor bind to
     let how_mutch: u8 = if rand::random_bool(0.5) { 1 } else { 0 }; // does it increase or decrease the concentration of the inner protein
-    let spec = rng.random_range(0..=u16::MAX); // specificity of the receptor
+    let spec = rng.random_range(0..=settings.possible_ligands()); // specificity of the receptor
 
     // Pack all fields into a u64 in little-endian order
     // Layout: [info (8 bits)][a (8)][b (8)][c (8)][what (8)][how_mutch (8)][spec (16)]
@@ -113,7 +121,7 @@ fn random_ligand(settings: &Settings) -> (f32, u16){
 
     let energy: f32 = rng.random_range(0.0..settings.max_energy_ligand());
 
-    let spec = rng.random_range(0..=u16::MAX);
+    let spec = rng.random_range(0..=settings.possible_ligands() as u16);
 
     (energy, spec)
 

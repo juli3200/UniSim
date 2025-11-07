@@ -12,7 +12,7 @@ const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are 
 macro_rules! get_set_maker{
     (struct $struct_name: ident{
         $(
-            $field_name: ident : $field_type: ty $( { $check:ident } )?
+            $field_name: ident : $field_type: ty $( { $($check:ident),* } )?
         ),* $(,)?
     }) => {
 
@@ -40,7 +40,9 @@ macro_rules! get_set_maker{
                             eprintln!("Only edit settings through macros");
                             return;
                         }
-                        $( $check!(self, value, $field_name)  )?;
+                        $(
+                            $($check!(self, value, $field_name);)*
+                        )?
                         self.$field_name = value;
                     }
                 )*
@@ -70,11 +72,6 @@ macro_rules! std_dev {
 
 macro_rules! conc_range {
     ($s:ident, $v:ident, $name:ident) => {
-        if $s.init {
-            eprint!("Cannot change {} after initialization", stringify!($name));
-            return;
-        }
-
         if $v.0 >= $v.1 {
             eprint!("Invalid {}: start must be less than end", stringify!($name));
             return;
@@ -112,49 +109,65 @@ macro_rules! energy {
         }
     };
 }
+
+macro_rules! possible_ligands {
+    ($s:ident, $v:ident, $name:ident) => {
+        if $s.init {
+            eprint!("Cannot change {} after initialization", stringify!($name));
+            return;
+        }
+
+        if ($v as u32).count_ones() != 1 {
+            eprint!("Invalid {}: must be a power of 2", stringify!($name));
+            return;
+        }
+    };
+}
 get_set_maker!(
-struct Settings {
-    init: bool {reject_init},
+    struct Settings {
+        init: bool {reject_init},
 
-    // unchangeable settings
-    default_population: usize {reject_init}, // default population size of entities
-    dimensions: (u32, u32) {reject_init}, // width, height of the world
-    spawn_size: f32 {reject_init}, // size of the entities when they are spawned
-    store_capacity: usize {reject_init}, // capacity of the save file
-    give_start_vel: bool {reject_init}, // whether to give entities a starting velocity
+        // unchangeable settings
+        default_population: usize {reject_init}, // default population size of entities
+        dimensions: (u32, u32) {reject_init}, // width, height of the world
+        spawn_size: f32 {reject_init}, // size of the entities when they are spawned
+        store_capacity: usize {reject_init}, // capacity of the save file
+        give_start_vel: bool {reject_init}, // whether to give entities a starting velocity
 
-    concentration_range: (i16, i16) {conc_range}, // range of concentrations for inner proteins
-    fps: f32 {reject_init}, // frames per second of the simulation
+        concentration_range: (i16, i16) {reject_init, conc_range}, // range of concentrations for inner proteins
+        fps: f32 {reject_init}, // frames per second of the simulation
 
-    receptor_capacity: usize {reject_init}, // number of total receptors per entity
-    different_receptors: usize, // number of different receptor types
-    different_ligands: usize, // number of different ligand types an entity can emit
-    reproduction_threshold: Option<i16>, // reproduction threshold for entities
-    reproduction_probability: f64 {prob}, // probability of reproduction when threshold is met
+        receptor_capacity: usize {reject_init}, // number of total receptors per entity
 
-    standard_deviation: f64 {std_dev}, // standard deviation for random values
-    mean: f64, // mean for random values
+        // mutable settings
+        possible_ligands: usize {possible_ligands}, // number of possible ligands an entity can emit
+        different_receptors: usize, // number of different receptor types
+        different_ligands: usize, // number of different ligand types an entity can emit
+        reproduction_threshold: Option<i16>, // reproduction threshold for entities
+        reproduction_probability: f64 {prob}, // probability of reproduction when threshold is met
+
+        standard_deviation: f64 {std_dev}, // standard deviation for random values
+        mean: f64, // mean for random values
+
+        velocity: f32, // default velocity of entities
+        ligand_velocity: f32, // default velocity of ligands
+        gravity: Vec<f32>, // gravity of the world
+        drag: f32, // drag/friction of the world
+        idle_energy_cost: f32, // energy cost per second depending on Area
+
+        enable_entity_ligand_emission: bool,
+
+        tumble_chance: f64 {prob}, // chance of tumbling
+        max_energy_ligand: f32 {energy}, // maximum energy of a ligand
+        movement_energy_cost: f32, // energy cost of movement
+        ligand_emission_energy_cost: f32, // threshold for emitting ligands
 
 
-    // changeable settings
-    velocity: f32, // default velocity of entities
-    ligand_velocity: f32, // default velocity of ligands
-    gravity: Vec<f32>, // gravity of the world
-    drag: f32, // drag/friction of the world
-    idle_energy_cost: f32, // energy cost per second depending on Area
-
-    enable_entity_ligand_emission: bool,
-
-    tumble_chance: f64 {prob}, // chance of tumbling
-    max_energy_ligand: f32 {energy}, // maximum energy of a ligand
-    movement_energy_cost: f32, // energy cost of movement
-    ligand_emission_energy_cost: f32, // threshold for emitting ligands
-
-
-    // cuda settings
-    //#[cfg(feature = "cuda")]
-    cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
-});
+        // cuda settings
+        //#[cfg(feature = "cuda")]
+        cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
+    }
+);
 
 
 
@@ -209,6 +222,7 @@ impl Settings {
             max_energy_ligand: 1.0,
             movement_energy_cost: 1.0,
             ligand_emission_energy_cost: 0.001,
+            possible_ligands: 16, // must be a power of 2
         }
     }
 

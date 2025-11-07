@@ -187,18 +187,20 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
         return true;
     }
 
+    /* old method to
     // match specs
     // first 16 bits are ignored because they are always 0
     int ones = __popc((uint32_t)(ligand_spec ^ col_arrays.receptors[receptor_index]));
     int matches = 16 - ones; // number of matching bits
     float match_prob = (float)matches / 16.0f;
-
     // generate pseudo-random number with unique seed between 0 and 1
     // seed = (x + y - dy) * 50000 + entity_index + index (just some values to mix it up)
     float rand = pseudo_random((int)((x + y - dy) * 50000) + entity_index + index );
+    */
 
+    // new method: exact match required
 
-    if (rand < match_prob) {
+    if (ligand_spec == col_arrays.receptors[receptor_index]) {
         // register collision
         int old_val = atomicAdd(col_arrays.counter, 1);
         col_arrays.receptor_ids[old_val] = receptor_index;
