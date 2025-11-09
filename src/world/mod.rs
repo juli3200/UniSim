@@ -25,7 +25,6 @@ pub struct World {
     // variables
     init: bool,
     pub(crate) time: f32, // current time in the simulation
-    pub(crate) population_size: usize, // current population size of entities
 
     pub(crate) counter: usize, // the counter is used to assign unique IDs to new entities and ligands
     pub(crate) byte_counter: usize, // used for jumper in save file

@@ -142,7 +142,7 @@ impl Save for World {
 
 
         // entities
-        buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(&(self.population_size() as u32).to_le_bytes()); // 4 bytes
         let serial_entities = self.entities.serialize()?;
         buffer.extend(&serial_entities);
 
@@ -193,7 +193,7 @@ impl Save for World {
 
 
         // entities
-        buffer.extend(&(self.population_size as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(&(self.population_size() as u32).to_le_bytes()); // 4 bytes
         buffer.extend(self.entities.serialize()?);
 
         // ligands
@@ -208,7 +208,7 @@ impl Save for World {
         buffer.splice(0..0, total_len.iter().cloned()); 
 
 
-        if buffer.len() != self.population_size * ENTITY_BUF_SIZE.0 + // entities
+        if buffer.len() != self.population_size() * ENTITY_BUF_SIZE.0 + // entities
             self.ligands.len() * LIGAND_BUF_SIZE.0 /* ligands */ + WORLD_BUF_ADD.1 {
                 return Err("Invalid buffer length world".to_string());
         }

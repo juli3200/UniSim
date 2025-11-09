@@ -1,17 +1,16 @@
 use crate::prelude::Settings;
-
+use crate::objects::receptor::sequence_receptor;
 use super::Genome;
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<(f32, u16)>, reproduction_threshold: i16, receptor_dna: Vec<u64>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<(f32, u16)>, receptor_dna: Vec<u64>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
             ligands,
-            reproduction_threshold,
             receptor_dna,
         }
     }
@@ -26,7 +25,6 @@ impl Genome {
 
         new_genome.move_threshold += rng.random_range(-2..=2);
         new_genome.ligand_emission_threshold += rng.random_range(-2..=2);
-        new_genome.reproduction_threshold += rng.random_range(-2..=2);
 
         // mutate ligands
         for ligand in &mut new_genome.ligands {
@@ -41,7 +39,33 @@ impl Genome {
 
         // mutate receptor DNA
         for receptor in &mut new_genome.receptor_dna {
-            if rng.random_bool(0.1) {
+            // mutate each bit with probability mutation_rate
+            // ensure resulting receptor is valid
+            // if not do it again
+
+            let mut c = 0;
+
+            *receptor = loop {
+                let mut mutate_rec = *receptor;
+
+                for i in 0..64 {
+                    if rng.random_bool(settings.mutation_rate()) {
+                        mutate_rec ^= 1 << i; // flip bit i
+                    }
+                }
+
+                if valid_rec_gene((mutate_rec & 0xFFFF_FFFF) as u32, settings) {
+                    break mutate_rec;
+                }
+
+                c += 1;
+                if c > 100 {
+                    eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
+                    break *receptor; // give up and return original
+                }
+            };
+
+            if rng.random_bool(settings.mutation_rate() * 64.0) {
                 *receptor ^= 1 << rng.random_range(0..64); // flip a random bit
 
                 // Ensure spec (bits 48-63) is still in range
@@ -51,6 +75,10 @@ impl Genome {
                 if spec > max_spec {
                     *receptor = (*receptor & !spec_mask) | ((max_spec as u64) << 48);
                 }
+
+                // ensure what (bits 32-39) is still in range
+                // random val from 0 to OUTPUTS-1
+                
             }
         }
 
@@ -69,7 +97,6 @@ impl Genome {
         // sample thresholds from normal distribution and clamp to valid range
         let move_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
-        let reproduction_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
         let ligands: Vec<(f32, u16)> = (0..settings.different_ligands())
             .map(|_| random_ligand(settings))
@@ -83,7 +110,6 @@ impl Genome {
             move_threshold,
             ligand_emission_threshold,
             ligands,
-            reproduction_threshold,
             receptor_dna,
         }
     }
@@ -126,4 +152,18 @@ fn random_ligand(settings: &Settings) -> (f32, u16){
     (energy, spec)
 
 
+}
+
+fn valid_rec_gene(gene: u32, settings: &Settings) -> bool {
+    let (inner_protein, _, receptor_spec) = sequence_receptor(gene);
+    if inner_protein as usize >= super::OUTPUTS {
+        return false;
+    }
+
+    let max_spec = settings.possible_ligands() as u16;
+    if receptor_spec > max_spec {
+        return false;
+    }
+
+    true
 }

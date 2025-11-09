@@ -8,7 +8,7 @@ import sys
 import extract
 import math
 
-LIGANDS = True
+LIGANDS = False
 LSIZE = 1
 
 def get_fps(fps):

@@ -9,7 +9,7 @@ impl World {
     }
     /// Returns the current population size of entities in the world.
     pub fn population_size(&self) -> usize {
-        self.population_size
+        self.entities.len()
     }
     /// Returns the current count of ligands in the world.
     pub fn ligands_count(&self) -> usize {

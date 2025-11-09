@@ -143,8 +143,10 @@ get_set_maker!(
         possible_ligands: usize {possible_ligands}, // number of possible ligands an entity can emit
         different_receptors: usize, // number of different receptor types
         different_ligands: usize, // number of different ligand types an entity can emit
-        reproduction_threshold: Option<i16>, // reproduction threshold for entities
-        reproduction_probability: f64 {prob}, // probability of reproduction when threshold is met
+        max_age: usize, // maximum age of an entity in simulation seconds (0 = infinite)
+        max_size: f32, // maximum size of an entity
+
+        mutation_rate: f64, // probability of mutation per receptor bit
 
         standard_deviation: f64 {std_dev}, // standard deviation for random values
         mean: f64, // mean for random values
@@ -199,11 +201,13 @@ impl Settings {
             receptor_capacity: 10_000, // 10_000 receptors
             different_receptors: 10, // 10 different receptor types
             different_ligands: 10, // 10 different ligand types
-            reproduction_threshold: None, // default reproduction threshold
-            reproduction_probability: 0.5, // 50% chance of reproduction
+            max_age: 50, 
+            max_size: 2.0,
 
             standard_deviation: 10.0,
             mean: 0.0,
+
+            mutation_rate: 0.01,
 
             store_capacity: 1024,
             fps: 60.0,

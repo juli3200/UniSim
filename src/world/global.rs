@@ -29,7 +29,6 @@ impl World {
             path: None,
             init: false,
             time: 0.0,
-            population_size: 0,
             counter: 1, // start counting entities from 1 (0 is reserved for LigandSources)
             byte_counter: 0,
             iteration: 0,
@@ -61,8 +60,6 @@ impl World {
             self.entities.push(entity);
             self.counter += 1;
         }
-
-        self.population_size = self.settings.default_population();
 
         self.init = true;
 
@@ -345,8 +342,21 @@ impl World {
             self.new_ligands.extend(new_ligands);
         }
 
+        let entities_clone = self.entities.clone();
+
+        // emit new entities
+        for entity in 0..self.entities.len() {
+            let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &entities_clone, &self.settings);
+            if let Some(e) = new_entity {
+                // add the entity to the world
+                self.entities.push(e);
+                self.counter += 1;
+            }        
+        }
+
         // remove dead entities
         self.entities.retain(|entity| entity.energy > 0.0);
+        self.entities.retain(|entity| entity.age as f32 * dt < self.settings.max_age() as f32 || self.settings.max_age() == 0);
 
     }
 
@@ -378,6 +388,7 @@ impl World {
             self.entities[i].resolve_collision(&mut self.space, &entities_clone);
         }
 
+        // LIGANDS ARE UPDATED ON GPU
 
         // add new ligands to the cuda world
         let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.new_ligands);
@@ -454,17 +465,10 @@ impl World {
             libc::free(received_ligands.energies as *mut libc::c_void);
         }
 
+        // output update on CPU 
         let dt = 1.0 / self.settings.fps() as f32;
         for entity in 0..self.entities.len() {
-            if self.entities[entity].update_output(&self.settings) {
-                // emit new entity
-                let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &self.entities, &self.settings);
-                if let Some(mut e) = new_entity {
-                    e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
-                    self.entities.push(e);
-                    self.counter += 1;
-                }
-            }
+            self.entities[entity].update_output(&self.settings) 
         }
 
 
@@ -481,10 +485,28 @@ impl World {
 
         }
 
+        let entities_clone = self.entities.clone();
+
+        // emit new entities
+        for entity in 0..self.entities.len() {
+
+            let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &entities_clone, &self.settings);
+            if let Some(mut e) = new_entity {
+                dbg!(self.counter);
+                e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
+
+                // add the receptors to the cuda world
+                self.cuda_world.as_mut().unwrap().add_entity_receptors(&e);
+
+                // add the entity to the world
+                self.entities.push(e);
+                self.counter += 1;
+            }        
+        }
+
         // remove dead entities
         self.entities.retain(|entity| entity.energy > 0.0);
-
-        self.population_size = self.entities.len();
+        self.entities.retain(|entity| entity.age as f32 * dt < self.settings.max_age() as f32 || self.settings.max_age() == 0);
 
         Ok(())
     }

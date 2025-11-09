@@ -5,7 +5,7 @@ pub mod ligand;
 pub mod genome;
 pub mod receptor;
 
-pub(crate) const OUTPUTS: usize = 10; // number of different inner proteins / concentrations
+pub(crate) const OUTPUTS: usize = 2; // number of different inner proteins / concentrations
 
 #[derive(Debug, Clone)]
 pub struct LigandSource {
@@ -32,7 +32,6 @@ pub(crate) struct Genome{
     move_threshold: i16, // threshold for movement decision
     ligand_emission_threshold: i16, // threshold for ligand emission decision
     ligands: Vec<(f32, u16)>, // (energy, spec) types of ligands the entity can emit -> size: settings.ligand_types()
-    reproduction_threshold: i16, // threshold for reproduction decision, can be handled by a global setting (settings.reproduction_threshold() -> Option<i16>)
 
     // inputs
     receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
@@ -50,7 +49,7 @@ pub(crate) struct Entity {
 
 
     pub(crate) energy: f32, // energy level of the entity
-    age: usize, // age of the entity in simulation steps
+    pub(crate) age: usize, // age of the entity in simulation steps
 
     // ************ sensors and inner proteins ************
 

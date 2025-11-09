@@ -108,7 +108,6 @@ mod dna_tests {
 
 #[cfg(feature = "cuda")]
 mod cuda_tests {
-    use crate::prelude::*;
     
     #[cfg(feature = "cuda")]
     use crate::cuda::cuda_bindings::tests_gpu as cb;
@@ -141,7 +140,7 @@ mod cuda_tests {
     fn ligands_test(){
 
 
-        let mut world = World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        let mut world = crate::world::World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
         world.save("testfiles/ligands_test.bin").expect("Save expect");
 

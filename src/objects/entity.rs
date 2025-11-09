@@ -120,11 +120,15 @@ impl Entity {
 
     }
 
-    pub(crate) fn reproduce(&self, id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Option<Self> {
+    pub(crate) fn reproduce(&mut self, id: usize, space: &mut Space, entities: &Vec<Entity>, settings: &Settings) -> Option<Self> {
+        if self.size < settings.max_size() {
+            return None; // entity is not big enough to reproduce
+        }
+
         let mut rng = rand::rng();
 
-        let energy = self.energy; // offspring gets all the energy from the parent (parent already halved its energy)
-        let size = (energy/ std::f32::consts::PI).sqrt(); // offspring has the default size for its energy
+        let energy = self.energy / 2.0; // offspring gets half of parent's energy
+        let size = energy.sqrt() / std::f32::consts::PI; // offspring has the default size for its energy
 
         let mut c = 0;
         let (position, velocity) = loop {
@@ -141,6 +145,10 @@ impl Entity {
                 break (position, velocity);
             }
         };
+
+        self.energy = energy; // parent keeps half of its energy
+        self.age = 0; // reset age to prevent immediate death after reproduction ?? todo: is this desired?
+        self.size = size;
 
         // add the entity to the space
         space.add_entity(id, position.clone());
@@ -192,6 +200,7 @@ impl Entity {
         // energy cost proportional to area
         // todo: make this more biologically accurate
         self.energy -= space.settings.idle_energy_cost() * self.size.powi(2) * dt;
+        self.size = (self.energy).sqrt()/ std::f32::consts::PI; // update size based on energy
 
         // acceleration
         self.velocity.scaled_add(dt, &self.acceleration);
@@ -226,7 +235,7 @@ impl Entity {
 
     }
 
-    pub(crate) fn update_output(&mut self, settings: &Settings) -> bool{
+    pub(crate) fn update_output(&mut self, settings: &Settings){
 
         let mut rng = rand::rng();
 
@@ -239,7 +248,7 @@ impl Entity {
             // TODOO how mutch acceleration? and energy cost?
 
             self.acceleration = &self.velocity / self.speed * 0.1 / (self.size * 2.0); // acceleration is 1 divided by size (so smaller entities accelerate faster)
-            self.energy -= 0.001;
+            self.energy -= 0.002;
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
@@ -256,7 +265,7 @@ impl Entity {
 
             self.velocity = rotation_matrix.dot(&self.velocity);
             }
-            self.energy -= 0.001;
+            self.energy -= 0.002;
 
         }
 
@@ -282,43 +291,11 @@ impl Entity {
 
             self.ligands_to_emit.push(Ligand::new(self.id, energy, spec, position, velocity));
 
+        
         }
-        // 2 REPRODUCTION
-        let mut reproduce: bool = false;
-        if let Some(threshold) = settings.reproduction_threshold() {
-            if self.inner_protein_levels[2] > threshold {
-                // mark entity for reproduction
-                reproduce = true;
-                self.inner_protein_levels[2] = threshold - 10; // prevent multiple reproductions in one update
-            }
-        } else {
-            if self.inner_protein_levels[2] > self.genome.reproduction_threshold {
-                // mark entity for reproduction
-                reproduce = true;
-                self.inner_protein_levels[2] = self.genome.reproduction_threshold - 10; // prevent multiple reproductions in one update
-            }
-        }
-
-        if reproduce && rng.random_bool(settings.reproduction_probability()) {
-            self.energy /= 2.0; // split energy with offspring
-
-            // todo adjust size 
-
-            // mutate offspring genome
-            self.inner_protein_levels[2] = 0; // reset concentration to avoid multiple reproductions in one update
-
-        } else {
-            reproduce = false;
-        }
-
-        // RESIZE ENTITY
-        // todo
-
 
 
         // (FUTURE: KILLING OTHER ENTITIES)
-
-        reproduce
 
     }
 
@@ -454,7 +431,7 @@ impl Entity {
     pub(crate) fn receive_ligand_cuda_shortcut(&mut self, energy: f32, receptor_index: usize, settings: &Settings) {
         // change energy
 
-        use crate::objects::receptor;
+        use crate::objects::{OUTPUTS, receptor};
         self.energy += energy;
 
         // change concentration
@@ -462,6 +439,11 @@ impl Entity {
         let (index, positive, _) = receptor::sequence_receptor(self.receptors[receptor_index]);
 
         let change: i16 = if positive { 1 } else { -1 };
+
+        if index >= OUTPUTS as u8 {
+            eprintln!("Invalid receptor index in CUDA shortcut: {}", index);
+            return; // invalid index
+        }
 
         // change concentration and clamp to range
         self.inner_protein_levels[index as usize] = (self.inner_protein_levels[index as usize] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
@@ -485,6 +467,5 @@ impl Entity {
         println!("Genome Ligands: {:?}", self.genome.ligands);
         println!("Move Threshold: {}", self.genome.move_threshold);
         println!("Ligand Emission Threshold: {}", self.genome.ligand_emission_threshold);
-        println!("Reproduction Threshold: {}", self.genome.reproduction_threshold);
     }
 }

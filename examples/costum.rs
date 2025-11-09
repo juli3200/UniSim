@@ -1,7 +1,7 @@
 use UniSim::prelude::*;
 
 fn main() {
-    let runtime = 1000;
+    let runtime = 6000;
 
     let settings = settings!("template.json");
 
@@ -12,7 +12,7 @@ fn main() {
     world.save("testfiles/costum.bin").expect("failed to save world");
     world.cuda_initialize().expect("");
 
-    world.add_ligand_source(vec![1.0, 10.0], 10.0, 1, 0.001);
+    world.add_ligand_source(vec![1.0, 10.0], 1000.0, 1, 0.01);
 
     world.run(runtime);
 
