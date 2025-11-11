@@ -1,3 +1,4 @@
+#[cfg(feature = "cuda")]
 use crate::world::serialize::Save;
 use crate::world::info::{get_entity, get_entity_mut};
 use crate::prelude::*;
@@ -164,6 +165,24 @@ impl World {
                         println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
                     }
                 }
+            }
+
+            // exit early if there are no entities left
+            if self.entities.is_empty() {
+                println!("All entities have died, ending simulation at step {}", i);
+                break;
+            }
+
+            // rearrange cuda arrays every cuda_memory_interval steps
+            // this frees up memory from deleted ligands/entities
+            #[cfg(feature = "cuda")]
+            if (i % self.settings.cuda_memory_interval() == 0) && self.cuda_world.is_some() && i != 0{
+
+                let retrieve_ligands = self.copy_ligands();
+                self.cuda_world.as_mut().unwrap().rearrange_arrays(&retrieve_ligands, &mut self.entities);
+
+                println!("Rearranged CUDA arrays to free memory");
+                println!("Entities: {}, Ligands: {}", self.entities.len(), retrieve_ligands.len());
             }
         }
     }
@@ -391,6 +410,7 @@ impl World {
         // LIGANDS ARE UPDATED ON GPU
 
         // add new ligands to the cuda world
+
         let err = self.cuda_world.as_mut().unwrap().add_ligands(&self.new_ligands);
 
         self.new_ligands.clear();
@@ -492,7 +512,6 @@ impl World {
 
             let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &entities_clone, &self.settings);
             if let Some(mut e) = new_entity {
-                dbg!(self.counter);
                 e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
 
                 // add the receptors to the cuda world
@@ -665,13 +684,15 @@ impl World{
     }
 
     #[cfg(feature = "cuda")]
-    pub(crate) fn copy_ligands(&mut self){
+    pub(crate) fn copy_ligands(&mut self) -> Vec<crate::cuda::LigandCuda>{
         use crate::cuda;
+
+        let mut ligands_cuda: Vec<cuda::LigandCuda> = vec![];
 
         self.ligands.clear(); 
 
         if self.cuda_world.is_none() {
-        return;
+            return vec![];
         }
 
         let cuda_world = self.cuda_world.as_mut().unwrap();
@@ -684,17 +705,22 @@ impl World{
 
         if ligands_h.is_null() {
             eprintln!("Failed to allocate memory for ligands copy");
-            return;
+            return vec![];
         }
 
         let ligands_slice = unsafe { std::slice::from_raw_parts(ligands_h, cuda_world.ligand_count as usize) };
 
         for i in 0..cuda_world.ligand_count as usize {
             let ligand_cuda = &ligands_slice[i];
+            ligands_cuda.push(ligand_cuda.clone());
+
             if let Ok(ligand) = ligand_cuda.try_into() {
                 self.ligands.push(ligand);
             }
         }
+
+        unsafe { libc::free(ligands_h as *mut libc::c_void); }
+        ligands_cuda
 
     }
 

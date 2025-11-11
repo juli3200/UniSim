@@ -8,5 +8,6 @@
     "velocity": 3.0,
     "enable_entity_ligand_emission": false,
     "ligand_velocity": 5.0,
-    "max_size": 0.51
+    "max_size": 1.01,
+    "cuda_memory_interval": 1000
 }

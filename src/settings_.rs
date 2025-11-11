@@ -142,7 +142,7 @@ get_set_maker!(
         // mutable settings
         possible_ligands: usize {possible_ligands}, // number of possible ligands an entity can emit
         different_receptors: usize, // number of different receptor types
-        different_ligands: usize, // number of different ligand types an entity can emit
+        different_ligands: u32, // number of different ligand types an entity can emit
         max_age: usize, // maximum age of an entity in simulation seconds (0 = infinite)
         max_size: f32, // maximum size of an entity
 
@@ -166,8 +166,8 @@ get_set_maker!(
 
 
         // cuda settings
-        //#[cfg(feature = "cuda")]
         cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
+        cuda_memory_interval: usize, // interval for cuda memory reallocation
     }
 );
 
@@ -219,8 +219,9 @@ impl Settings {
 
             enable_entity_ligand_emission: true,
 
-            #[cfg(feature = "cuda")]
+            
             cuda_slots_per_cell: 10,
+            cuda_memory_interval: 10000,
 
             tumble_chance: 0.3333,
             max_energy_ligand: 1.0,

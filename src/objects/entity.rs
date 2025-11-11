@@ -279,11 +279,14 @@ impl Entity {
             let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
 
             // get energy and spec of the ligand to emit
-            let (energy, spec) = if l_index >= settings.different_ligands() as usize {
+            let spec = if l_index >= settings.different_ligands() as usize {
                 self.genome.ligands[settings.different_ligands() as usize - 1]
             } else {
                 self.genome.ligands[l_index]
             };
+            
+            let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
+
             let random_angle: f32 = rng.random_range(-std::f32::consts::PI ..std::f32::consts::PI);
             let direction: Array1<f32> = vec![random_angle.cos(), random_angle.sin()].into();
             let position: Array1<f32> = &self.position + &direction * self.size; // emit from the edge of the entity

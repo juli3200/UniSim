@@ -6,7 +6,7 @@ use rand_distr::{Distribution, Normal};
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<(f32, u16)>, receptor_dna: Vec<u64>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
@@ -27,13 +27,14 @@ impl Genome {
         new_genome.ligand_emission_threshold += rng.random_range(-2..=2);
 
         // mutate ligands
+        // only allow valid bit flips
         for ligand in &mut new_genome.ligands {
-            if rng.random_bool(0.1) {
-                ligand.0 = (ligand.0 + rng.random_range(-0.5..=0.5)).max(0.1); // mutate energy
-            
-            }
-            if rng.random_bool(0.05) {
-                ligand.1 = rng.random_range(0..=u16::MAX); // mutate spec
+            let i = settings.different_ligands().count_ones();
+            for j in 0..i {
+                if rng.random_bool(settings.mutation_rate()) {
+                    // flip bit j
+                    *ligand ^= 1 << j;
+                }
             }
         }
 
@@ -54,13 +55,13 @@ impl Genome {
                     }
                 }
 
-                if valid_rec_gene((mutate_rec & 0xFFFF_FFFF) as u32, settings) {
+                if valid_rec_gene(*receptor, settings) {
                     break mutate_rec;
                 }
 
                 c += 1;
                 if c > 100 {
-                    eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
+                    //eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
                     break *receptor; // give up and return original
                 }
             };
@@ -98,7 +99,7 @@ impl Genome {
         let move_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
-        let ligands: Vec<(f32, u16)> = (0..settings.different_ligands())
+        let ligands: Vec<u16> = (0..settings.different_ligands())
             .map(|_| random_ligand(settings))
             .collect();
 
@@ -142,19 +143,16 @@ fn random_receptor_genome(settings: &Settings) -> u64 {
     value
 }
 
-fn random_ligand(settings: &Settings) -> (f32, u16){
+fn random_ligand(settings: &Settings) -> u16{
     let mut rng = rand::rng();
 
-    let energy: f32 = rng.random_range(0.0..settings.max_energy_ligand());
-
     let spec = rng.random_range(0..=settings.possible_ligands() as u16);
-
-    (energy, spec)
-
-
+    spec
 }
 
-fn valid_rec_gene(gene: u32, settings: &Settings) -> bool {
+fn valid_rec_gene(gene: u64, settings: &Settings) -> bool {
+    let gene = u32::from_le_bytes(gene.to_le_bytes()[4..8].try_into().unwrap());
+
     let (inner_protein, _, receptor_spec) = sequence_receptor(gene);
     if inner_protein as usize >= super::OUTPUTS {
         return false;

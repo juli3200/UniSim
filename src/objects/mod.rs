@@ -31,7 +31,7 @@ pub(crate) struct Genome{
     // outputs 
     move_threshold: i16, // threshold for movement decision
     ligand_emission_threshold: i16, // threshold for ligand emission decision
-    ligands: Vec<(f32, u16)>, // (energy, spec) types of ligands the entity can emit -> size: settings.ligand_types()
+    ligands: Vec<u16>, //  types of ligands the entity can emit -> size: settings.ligand_types()
 
     // inputs
     receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
