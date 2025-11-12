@@ -28,6 +28,7 @@ impl World {
             settings: settings,
             buffer: buffer,
             path: None,
+            save_genome: false,
             init: false,
             time: 0.0,
             counter: 1, // start counting entities from 1 (0 is reserved for LigandSources)
@@ -559,7 +560,7 @@ impl World{
     
     // to be accessed by user
     // update the path where the world is saved
-    pub fn save<S>(&mut self, path: S) -> io::Result<()>
+    pub fn save<S>(&mut self, path: S, save_genome: bool) -> io::Result<()>
     where
         S: AsRef<std::path::Path>,
     {
@@ -576,9 +577,16 @@ impl World{
 
 
         self.path = Some(path.as_ref().to_path_buf());
+        self.save_genome = save_genome;
         self.save_header()?;
         Ok(())
     }
+
+    pub fn is_saving(&self) -> bool {
+        self.path.is_some()
+    }
+
+
 
     pub fn stop_save(&mut self) -> Result<(), String> {
         self.path = None;

@@ -21,6 +21,7 @@ pub struct World {
     pub settings: Settings,
     buffer: Vec<Vec<u8>>,  // Buffer for saving to reduce I/O time
     path: Option<PathBuf>,
+    save_genome: bool,
 
     // variables
     init: bool,

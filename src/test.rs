@@ -35,7 +35,7 @@ mod general{
         world.entities[1].position = ndarray::Array1::from(vec![8.0, 3.0]);
         world.entities[1].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);
 
-        let e = world.save("testfiles/col.bin");
+        let e = world.save("testfiles/col.bin", false);
         if let Err(e) = e {
             eprintln!("Error saving world: {}", e);
         }
@@ -52,7 +52,7 @@ mod general{
         // add ligands manually
         world.add_ligands(1000);
 
-        world.save("ligand_test.bin").expect("Failed to save world");
+        world.save("ligand_test.bin", false).expect("Failed to save world");
         world.run(1024);
 
 
@@ -63,7 +63,7 @@ mod general{
         let setting = settings!(100, velocity = 3.0, dimensions = (100,100), gravity = vec![0.0, -1.0], store_capacity = 1000);
         let mut world = World::new(setting);
 
-        world.save("testfiles/gravity_test.bin").expect("Failed to save world");
+        world.save("testfiles/gravity_test.bin", false).expect("Failed to save world");
 
         world.run(1000);
 
@@ -82,7 +82,7 @@ mod io_tests {
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 
-        let e = world.save("testfiles/alpha.bin");
+        let e = world.save("testfiles/alpha.bin", false);
         println!("Save result: {:?}", e);
         world.run(n);
 
@@ -99,7 +99,7 @@ mod dna_tests {
         
         edit_settings!(&mut world, drag = 0.1, gravity = vec![0.0, -0.2]);
 
-        world.save("testfiles/tumble_test.bin").expect("Failed to save world");
+        world.save("testfiles/tumble_test.bin", false).expect("Failed to save world");
         world.run(2000);
 
 

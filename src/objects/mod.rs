@@ -29,12 +29,12 @@ pub(crate) struct Ligand {
 #[derive(Debug, Clone)]
 pub(crate) struct Genome{
     // outputs 
-    move_threshold: i16, // threshold for movement decision
-    ligand_emission_threshold: i16, // threshold for ligand emission decision
-    ligands: Vec<u16>, //  types of ligands the entity can emit -> size: settings.ligand_types()
+    pub(crate) move_threshold: i16, // threshold for movement decision
+    pub(crate) ligand_emission_threshold: i16, // threshold for ligand emission decision
+    pub(crate) ligands: Vec<u16>, //  types of ligands the entity can emit -> size: settings.ligand_types()
 
     // inputs
-    receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
+    pub(crate) receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
 
 }
 

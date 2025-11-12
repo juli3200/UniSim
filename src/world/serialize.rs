@@ -134,8 +134,11 @@ impl Save for Ligand {
 impl Save for World {
     fn serialize(&self) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
-        buffer.push(false as u8); // not a pause file 1 byte
 
+        //            2     1      0
+        // info byte ... |save |genome| ->  ... reserved for future use
+        let info_byte: u8 = (false as u8) << 1 | (self.save_genome as u8) << 0;
+        buffer.push(info_byte);
 
         // time
         buffer.extend(&self.time.to_le_bytes()); // 4 bytes
@@ -182,7 +185,10 @@ impl Save for World {
     fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
-        buffer.push(true as u8); // pause file 1 byte
+        //            2     1      0
+        // info byte ... |save |genome| ->  ... reserved for future use 
+        let info_byte: u8 = (true as u8) << 1 | (self.save_genome as u8) << 0;
+        buffer.push(info_byte);
 
         // add changeable settings
         buffer.extend(self.settings.pause_serialize()?); // 16 bytes
@@ -246,5 +252,29 @@ impl Save for Settings{
         }
 
         Ok(buffer)
+    }
+}
+
+
+impl Save for crate::objects::Genome{
+    fn serialize(&self) -> Result<Vec<u8>, String> {
+        let mut buffer = Vec::new();
+
+        buffer.extend(&self.move_threshold.to_le_bytes()); // move threshold 2 bytes
+        buffer.extend(&self.ligand_emission_threshold.to_le_bytes()); // ligand emission threshold 2 bytes
+
+        for ligand in self.ligands.iter() {
+            buffer.extend(&ligand.to_le_bytes()); // ligands 2 bytes each
+        }
+
+        for receptor in self.receptor_dna.iter() {
+            buffer.extend(&receptor.to_le_bytes()); // receptor DNA 8 bytes each
+        }
+
+        Ok(buffer)
+    }
+
+    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
+        self.serialize()
     }
 }
