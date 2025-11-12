@@ -444,7 +444,6 @@ impl Entity {
         let change: i16 = if positive { 1 } else { -1 };
 
         if index >= OUTPUTS as u8 {
-            eprintln!("Invalid receptor index in CUDA shortcut: {}", index);
             return; // invalid index
         }
 

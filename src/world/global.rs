@@ -175,15 +175,21 @@ impl World {
 
             // rearrange cuda arrays every cuda_memory_interval steps
             // this frees up memory from deleted ligands/entities
+            /*
             #[cfg(feature = "cuda")]
             if (i % self.settings.cuda_memory_interval() == 0) && self.cuda_world.is_some() && i != 0{
 
-                let retrieve_ligands = self.copy_ligands();
-                self.cuda_world.as_mut().unwrap().rearrange_arrays(&retrieve_ligands, &mut self.entities);
+                self.copy_ligands();
+
+                self.cuda_world.as_mut().unwrap().free();
+
+                self.cuda_world = Some(crate::cuda::CUDAWorld::new(&self.settings, &self.entities, &self.ligands));
+
 
                 println!("Rearranged CUDA arrays to free memory");
-                println!("Entities: {}, Ligands: {}", self.entities.len(), retrieve_ligands.len());
+                println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
             }
+            */
         }
     }
 
@@ -684,15 +690,13 @@ impl World{
     }
 
     #[cfg(feature = "cuda")]
-    pub(crate) fn copy_ligands(&mut self) -> Vec<crate::cuda::LigandCuda>{
+    pub(crate) fn copy_ligands(&mut self){
         use crate::cuda;
-
-        let mut ligands_cuda: Vec<cuda::LigandCuda> = vec![];
 
         self.ligands.clear(); 
 
         if self.cuda_world.is_none() {
-            return vec![];
+            return ;
         }
 
         let cuda_world = self.cuda_world.as_mut().unwrap();
@@ -705,14 +709,13 @@ impl World{
 
         if ligands_h.is_null() {
             eprintln!("Failed to allocate memory for ligands copy");
-            return vec![];
+            return;
         }
 
         let ligands_slice = unsafe { std::slice::from_raw_parts(ligands_h, cuda_world.ligand_count as usize) };
 
         for i in 0..cuda_world.ligand_count as usize {
             let ligand_cuda = &ligands_slice[i];
-            ligands_cuda.push(ligand_cuda.clone());
 
             if let Ok(ligand) = ligand_cuda.try_into() {
                 self.ligands.push(ligand);
@@ -720,7 +723,7 @@ impl World{
         }
 
         unsafe { libc::free(ligands_h as *mut libc::c_void); }
-        ligands_cuda
+        
 
     }
 

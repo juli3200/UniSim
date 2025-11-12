@@ -337,31 +337,4 @@ impl CUDAWorld {
         return (collisions, overflow);
     }
 
-    pub(crate) fn rearrange_arrays(&mut self, ligands: &Vec<LigandCuda>, entities: &mut Vec<Entity>) {
-        use cuda_bindings::memory_gpu as cu_mem;
-        // create new vectors and remove all deleted entities(receptors)/ligands
-
-        // this fn overwrites the existing arrays in cuda memory with all the valid receptors/ligands
-        self.fill_receptors(entities);
-
-        // adjust the new entity cuda_receptor_index values
-        for (i, entity) in entities.iter_mut().enumerate() {
-            entity.cuda_receptor_index = Some(i as u32);
-        }
-
-        self.entity_count = entities.len() as u32;
-
-        // add the already filtered ligands
-        // the ligands were already filtered in the main simulation loop (get_ligands)
-        let ligands_d = unsafe {cu_mem::alloc_ligand(ligands.len() as u32)};
-        unsafe{
-            cu_mem::copy_HtoD_ligand(ligands_d, ligands.as_ptr(), ligands.len() as u32);
-            cu_mem::free_ligand(self.ligands);
-        }
-
-        self.ligands = ligands_d;
-        self.ligand_count = ligands.len() as u32;
-
-    }
-
 }
