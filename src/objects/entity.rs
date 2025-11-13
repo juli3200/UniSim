@@ -147,7 +147,7 @@ impl Entity {
         };
 
         self.energy = energy; // parent keeps half of its energy
-        self.age = 0; // reset age to prevent immediate death after reproduction ?? todo: is this desired?
+        // self.age = 0; // reset age to prevent immediate death after reproduction ?? todo: is this desired?
         self.size = size;
 
         // add the entity to the space

@@ -8,7 +8,7 @@ pub const ENTITY_BUF_SIZE: (usize, usize) = (32 + super::objects::OUTPUTS * 2, 0
 pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
-pub const HEADER_SIZE: usize = 62;
+pub const HEADER_SIZE: usize = 256; // to keep it backwards compatible
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -44,6 +44,12 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&(LIGAND_BUF_SIZE.1 as u8).to_le_bytes());
 
     buffer.push(super::objects::OUTPUTS as u8); // number of inner proteins 1 byte
+
+    if buffer.len() > HEADER_SIZE {
+        return Err("Header size exceeded".to_string());
+    }
+
+    buffer.resize(HEADER_SIZE, 0u8); // pad the rest of the header
 
     Ok(buffer)
 }
@@ -90,12 +96,14 @@ impl Save for Entity {
         buffer_vec.extend((self.received_ligands.len() as u32).to_le_bytes()); // number of received ligands 4 bytes
         buffer_vec.extend(&self.received_ligands);
 
+        let mut genome_bytes = vec![];
+
         if save_genome {
-            let genome_bytes = self.genome.serialize(save_genome)?;
-            buffer_vec.extend(genome_bytes);
+            genome_bytes.extend(self.genome.serialize(save_genome)?);
+            buffer_vec.extend(genome_bytes.clone());
         }
 
-        if buffer_vec.len() != ENTITY_BUF_SIZE.0  + self.received_ligands.len() {
+        if buffer_vec.len() != ENTITY_BUF_SIZE.0  + self.received_ligands.len()  + genome_bytes.len() {
             return Err("Invalid buffer length entity".to_string());
         }
 

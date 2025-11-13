@@ -5,7 +5,7 @@ use crate::objects::{Entity, Ligand};
 pub(crate) mod cuda_bindings;
 pub(crate) mod cudaworld;
 
-const EXTRA_SPACE_ENTITY: f32 = 2.0; // allocate 100% more space than needed for entities
+const EXTRA_SPACE_ENTITY: f32 = 4.0; // allocate 100% more space than needed for entities
 const EXTRA_SPACE_LIGAND: f32 = 2.0; // allocate 100% more space than needed for ligands
 const MIN_SPACE_LIGAND: usize = 2_000_000; // minimum space for ligands
 

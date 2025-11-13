@@ -111,8 +111,10 @@ class Entity:
         if parent.genome_save:
             i += received_n
             self.genome = Genome(bytes, index + i, parent.world.receptors_per_entity, parent.world.ligands_per_entity)
+            i += self.genome.size
 
-        self.bytes_size = i + (self.genome.size if parent.genome_save else 0)
+
+        self.bytes_size = i
 
     def get_position(self):
         return [self.x, self.y]
