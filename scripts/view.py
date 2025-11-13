@@ -2,13 +2,13 @@
 
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QFileDialog, QSlider
-import pyqtgraph as pg # type: ignore
-from pyqtgraph.Qt import QtWidgets, QtCore, QtGui  # type: ignore
+import pyqtgraph as pg 
+from pyqtgraph.Qt import QtWidgets, QtCore, QtGui 
 import sys
 import extract
 import math
 
-LIGANDS = False
+LIGANDS = True
 LSIZE = 1
 
 def get_fps(fps):

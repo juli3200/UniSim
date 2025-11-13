@@ -79,7 +79,7 @@ impl Entity {
     }
 
     fn init_receptors(&mut self, settings: &Settings) {
-        if settings.different_receptors() == 0 {
+        if settings.receptors_per_entity() == 0 {
             self.receptors = vec![0; settings.receptor_capacity()];
             return; // no receptors to initialize
         }
@@ -100,7 +100,7 @@ impl Entity {
 
         for i in 0..(settings.receptor_capacity() / self.genome.receptor_dna.len()) {
             for r_type in 0..receptor_fns.len() {
-                let p = receptor_fns[r_type]((i  * settings.different_receptors()) as f32); // probability to create a receptor here
+                let p = receptor_fns[r_type]((i  * settings.receptors_per_entity()) as f32); // probability to create a receptor here
                 let create = rng.random_bool(p);
 
                 if !create {
@@ -274,13 +274,13 @@ impl Entity {
         if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
             // determine what ligand to emit
             // step is the range in which the same ligand is emitted (e.g. if concentration range is 0-100 and there are 5 ligand types, step is 20)
-            let step: i16 = (((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.different_ligands() as f32).floor() as i16).max(1);
+            let step: i16 = (((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.ligands_per_entity() as f32).floor() as i16).max(1);
             // find which ligand to emit based on concentration
             let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
 
             // get energy and spec of the ligand to emit
-            let spec = if l_index >= settings.different_ligands() as usize {
-                self.genome.ligands[settings.different_ligands() as usize - 1]
+            let spec = if l_index >= settings.ligands_per_entity() as usize {
+                self.genome.ligands[settings.ligands_per_entity() as usize - 1]
             } else {
                 self.genome.ligands[l_index]
             };

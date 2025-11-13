@@ -120,7 +120,7 @@ pub(crate) fn get_ligand_energy(spec: u16, settings: &crate::settings_::Settings
     // energy of a ligand is determined by its spec
     // linearly mapped from 0 to settings.ligand_types() to settings.ligand_energy_range()
     let energy_range = settings.max_energy_ligand();
-    let energy = energy_range * (spec as f32) / (settings.different_ligands() as f32);
+    let energy = energy_range * (spec as f32) / (settings.ligands_per_entity() as f32);
 
     energy
 }

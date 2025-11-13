@@ -29,7 +29,7 @@ impl Genome {
         // mutate ligands
         // only allow valid bit flips
         for ligand in &mut new_genome.ligands {
-            let i = settings.different_ligands().count_ones();
+            let i = settings.ligands_per_entity().count_ones();
             for j in 0..i {
                 if rng.random_bool(settings.mutation_rate()) {
                     // flip bit j
@@ -99,11 +99,12 @@ impl Genome {
         let move_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
-        let ligands: Vec<u16> = (0..settings.different_ligands())
+
+        let ligands: Vec<u16> = (0..settings.ligands_per_entity())
             .map(|_| random_ligand(settings))
             .collect();
 
-        let receptor_dna: Vec<u64> = (0..settings.different_receptors())
+        let receptor_dna: Vec<u64> = (0..settings.receptors_per_entity())
             .map(|_| random_receptor_genome(settings))
             .collect();
 

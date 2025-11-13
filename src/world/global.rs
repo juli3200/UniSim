@@ -223,7 +223,7 @@ impl World {
                 // exit if saving is disabled
         if self.path.is_none(){return;}
 
-        match self.serialize() {
+        match self.serialize(self.save_genome) {
             // serialize the state
             Ok(state) => {
                 // add it to the buffer
@@ -620,7 +620,7 @@ impl World{
     fn pause_save(&mut self) -> io::Result<()> {
         
         // save the pause state -------------------------
-        if let Ok(buffer) = self.pause_serialize() {
+        if let Ok(buffer) = self.pause_serialize(self.save_genome) {
             // append the pause state to the file
             let mut file = OpenOptions::new()
                 .write(true)

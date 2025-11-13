@@ -8,7 +8,7 @@ pub const ENTITY_BUF_SIZE: (usize, usize) = (32 + super::objects::OUTPUTS * 2, 0
 pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
-pub const HEADER_SIZE: usize = 54;
+pub const HEADER_SIZE: usize = 62;
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -29,6 +29,11 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.velocity().to_le_bytes()); // velocity 4 bytes
     buffer.extend(&world.settings.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>()); // gravity 8 bytes
     buffer.extend(&world.settings.drag().to_le_bytes()); // drag 4 bytes
+
+    // entity bio settings
+    buffer.extend(&world.settings.ligands_per_entity().to_le_bytes()); // ligand variety 4 bytes per entity
+    buffer.extend(&world.settings.receptors_per_entity().to_le_bytes()); // receptors per entity 4 bytes per entity
+
     // add other settings
 
     
@@ -45,31 +50,31 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
 
 pub trait Save {
     // used to store the object position size ... to be displayed
-    fn serialize(&self) -> Result<Vec<u8>, String>;
+    fn serialize(&self, save_genome: bool) -> Result<Vec<u8>, String>;
     // used store the whole object
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String>;
+    fn pause_serialize(&mut self, save_genome: bool) -> Result<Vec<u8>, String>;
 }
 
 impl<T: Save> Save for Vec<T> {
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
         for item in self {
-            buffer.extend(item.serialize()?);
+            buffer.extend(item.serialize(save_genome)?);
         }
         Ok(buffer)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self, save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
         for item in self {
-            buffer.extend(item.pause_serialize()?);
+            buffer.extend(item.pause_serialize(save_genome)?);
         }
         Ok(buffer)
     }
 }
 
 impl Save for Entity {
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer_vec = vec![];
         buffer_vec.extend(self.position.iter().flat_map(|x| x.to_le_bytes())); // position 8 bytes
         buffer_vec.extend(self.velocity.iter().flat_map(|x| x.to_le_bytes())); // velocity 8 bytes
@@ -85,6 +90,11 @@ impl Save for Entity {
         buffer_vec.extend((self.received_ligands.len() as u32).to_le_bytes()); // number of received ligands 4 bytes
         buffer_vec.extend(&self.received_ligands);
 
+        if save_genome {
+            let genome_bytes = self.genome.serialize(save_genome)?;
+            buffer_vec.extend(genome_bytes);
+        }
+
         if buffer_vec.len() != ENTITY_BUF_SIZE.0  + self.received_ligands.len() {
             return Err("Invalid buffer length entity".to_string());
         }
@@ -92,14 +102,14 @@ impl Save for Entity {
         Ok(buffer_vec)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
-        self.serialize()
+    fn pause_serialize(&mut self, save_genome: bool) -> Result<Vec<u8>, String> {
+        self.serialize(save_genome)
     }
 
 }
 
 impl Save for Ligand {
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, _save_genome: bool) -> Result<Vec<u8>, String> {
         let buffer_vec: Vec<u8> = self.position.iter().flat_map(|x| x.to_le_bytes()).chain(self.spec.to_le_bytes()).collect();
 
 
@@ -110,7 +120,7 @@ impl Save for Ligand {
         Ok(buffer_vec)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self, _save_genome: bool) -> Result<Vec<u8>, String> {
         // collect all the data
         let buffer_vec = {
             // position 8 bytes
@@ -132,7 +142,7 @@ impl Save for Ligand {
 
 
 impl Save for World {
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         //            2     1      0
@@ -146,7 +156,7 @@ impl Save for World {
 
         // entities
         buffer.extend(&(self.population_size() as u32).to_le_bytes()); // 4 bytes
-        let serial_entities = self.entities.serialize()?;
+        let serial_entities = self.entities.serialize(save_genome)?;
         buffer.extend(&serial_entities);
 
         let ligands_count = if cfg!(feature = "save_ligands") {
@@ -182,7 +192,7 @@ impl Save for World {
         Ok(buffer)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self, save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         //            2     1      0
@@ -191,7 +201,7 @@ impl Save for World {
         buffer.push(info_byte);
 
         // add changeable settings
-        buffer.extend(self.settings.pause_serialize()?); // 16 bytes
+        buffer.extend(self.settings.pause_serialize(save_genome)?); // 16 bytes
 
         // time, counter
         buffer.extend(&self.time.to_le_bytes()); // 4 bytes
@@ -200,7 +210,7 @@ impl Save for World {
 
         // entities
         buffer.extend(&(self.population_size() as u32).to_le_bytes()); // 4 bytes
-        buffer.extend(self.entities.serialize()?);
+        buffer.extend(self.entities.serialize(save_genome)?);
 
         // ligands
         #[cfg(feature = "cuda")]
@@ -208,7 +218,7 @@ impl Save for World {
             self.copy_ligands();
         }
         buffer.extend(&(self.ligands.len() as u32).to_le_bytes()); // 4 bytes
-        buffer.extend(self.ligands.serialize()?);
+        buffer.extend(self.ligands.serialize(save_genome)?);
 
         let total_len = (buffer.len() as u32 + 4).to_le_bytes();
         buffer.splice(0..0, total_len.iter().cloned()); 
@@ -225,14 +235,14 @@ impl Save for World {
 
 
 impl Save for Settings{
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, _save_genome: bool) -> Result<Vec<u8>, String> {
         let buffer = Vec::new();
 
 
         Ok(buffer)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
+    fn pause_serialize(&mut self, _save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         // fps 4 bytes
@@ -257,7 +267,7 @@ impl Save for Settings{
 
 
 impl Save for crate::objects::Genome{
-    fn serialize(&self) -> Result<Vec<u8>, String> {
+    fn serialize(&self, _save_genome: bool) -> Result<Vec<u8>, String> {
         let mut buffer = Vec::new();
 
         buffer.extend(&self.move_threshold.to_le_bytes()); // move threshold 2 bytes
@@ -274,7 +284,7 @@ impl Save for crate::objects::Genome{
         Ok(buffer)
     }
 
-    fn pause_serialize(&mut self) -> Result<Vec<u8>, String> {
-        self.serialize()
+    fn pause_serialize(&mut self, _save_genome: bool) -> Result<Vec<u8>, String> {
+        self.serialize(_save_genome)
     }
 }

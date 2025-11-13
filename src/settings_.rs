@@ -141,8 +141,8 @@ get_set_maker!(
 
         // mutable settings
         possible_ligands: usize {possible_ligands}, // number of possible ligands an entity can emit
-        different_receptors: usize, // number of different receptor types
-        different_ligands: u32, // number of different ligand types an entity can emit
+        receptors_per_entity: usize, // number of different receptor types
+        ligands_per_entity: u32, // number of different ligand types an entity can emit
         max_age: usize, // maximum age of an entity in simulation seconds (0 = infinite)
         max_size: f32, // maximum size of an entity
 
@@ -199,8 +199,8 @@ impl Settings {
             concentration_range: (-32, 32),
 
             receptor_capacity: 10_000, // 10_000 receptors
-            different_receptors: 10, // 10 different receptor types
-            different_ligands: 10, // 10 different ligand types
+            receptors_per_entity: 10, // 10 different receptor types
+            ligands_per_entity: 10, // 10 different ligand types
             max_age: 50, 
             max_size: 2.0,
 
