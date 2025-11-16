@@ -6,6 +6,7 @@ class World:
             self.bytes = f.read()
         print(len(self.bytes))
         self.header_size = int(self.bytes[0])
+        self.header_size -= 8 
         self.save_jumper = struct.unpack('I', self.bytes[1:5])[0]
         self.time = struct.unpack('Q', self.bytes[5:13])[0]
 
@@ -18,15 +19,17 @@ class World:
         self.gravity = [struct.unpack('f', self.bytes[37:41])[0], struct.unpack('f', self.bytes[41:45])[0]]
         self.friction = struct.unpack('f', self.bytes[45:49])[0]
 
-        self.ligands_per_entity = struct.unpack('I', self.bytes[49:53])[0]
-        self.receptors_per_entity = struct.unpack('I', self.bytes[53:57])[0]
+        #self.ligands_per_entity = struct.unpack('I', self.bytes[49:53])[0]
+        #self.receptors_per_entity = struct.unpack('I', self.bytes[53:57])[0]
 
-        self.entity_bytes_0 = int(self.bytes[57])
-        self.entity_bytes_1 = int(self.bytes[58])
-        self.ligand_bytes_0 = int(self.bytes[59])
-        self.ligand_bytes_1 = int(self.bytes[60])
+        self.entity_bytes_0 = int(self.bytes[49])
+        self.entity_bytes_1 = int(self.bytes[50])
+        self.ligand_bytes_0 = int(self.bytes[51])
+        self.ligand_bytes_1 = int(self.bytes[52])
 
-        self.protein_n = int(self.bytes[61])
+        self.protein_n = int(self.bytes[53])
+
+        print("Protein number:", self.protein_n)
 
         self.counter = 0
 
@@ -59,6 +62,7 @@ class State:
             info = int(self.world.bytes[address])
             save = info & 0b01  # Extract the first bit of info
             self.genome_save = bool((info >> 1) & 0b01)  # Extract the second bit of info
+            self.genome_save = False  # Temporarily disable genome saving for performance
 
             size = struct.unpack('I', self.world.bytes[address+1:address + 5])[0]
 
@@ -108,11 +112,12 @@ class Entity:
         i += 4
         self.received_ligands = [int(bytes[index + j]) for j in range(i, i + received_n)]
 
+        """
         if parent.genome_save:
             i += received_n
             self.genome = Genome(bytes, index + i, parent.world.receptors_per_entity, parent.world.ligands_per_entity)
             i += self.genome.size
-
+        """
 
         self.bytes_size = i
 
