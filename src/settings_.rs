@@ -25,7 +25,7 @@ macro_rules! get_set_maker{
         // implement getter functions
         impl $struct_name {
             $(
-                pub(crate) fn $field_name(&self) -> $field_type {
+                pub fn $field_name(&self) -> $field_type {
                     self.$field_name.clone()
                 }
             )*

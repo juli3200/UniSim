@@ -12,7 +12,7 @@ try:
 except Exception:
     np = None
 
-OVERLAP_THRESHOLD = 0.8
+OVERLAP_THRESHOLD = 0.75
 PREFIX_BYTES = 32  # length of prefix used for fingerprinting
 
 
@@ -133,6 +133,8 @@ def genome_statistics(world: extract.World) -> list[dict]:
 
         # Add counts for this state to the data
         for s_id, count in count_map.items():
+            if count < 2:
+                continue  # skip rare species
             data.append({
                 'state': i,
                 'id': s_id,

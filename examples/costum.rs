@@ -1,7 +1,7 @@
 use UniSim::prelude::*;
 
 fn main() {
-    let runtime = 5000;
+    let runtime = 3000;
 
     let settings = settings!("template.json");
 

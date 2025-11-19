@@ -16,9 +16,11 @@ impl Genome {
     }
 
     pub fn mutate(&self, settings: &crate::settings_::Settings) -> Self {
+
         let mut rng = rand::rng();
 
         let mut new_genome = self.clone();
+
 
         // change MUTATION MODE !!!!!!!!!!
         // todo
@@ -61,7 +63,7 @@ impl Genome {
 
                 c += 1;
                 if c > 100 {
-                    //eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
+                    eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
                     break *receptor; // give up and return original
                 }
             };

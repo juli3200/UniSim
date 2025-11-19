@@ -9,7 +9,7 @@ import extract
 import math
 
 LIGANDS = True
-LSIZE = 1
+LSIZE = 3
 
 def get_fps(fps):
     for factor in range(1, 80):

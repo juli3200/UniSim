@@ -178,7 +178,7 @@ impl Save for World {
         #[cfg(feature = "save_ligands")]
         {
         buffer.extend(&(ligands_count as u32).to_le_bytes()); // 4 bytes
-        buffer.extend(self.ligands.serialize()?);
+        buffer.extend(self.ligands.serialize(save_genome)?);
         }
 
         #[cfg(not(feature = "save_ligands"))]

@@ -1,4 +1,4 @@
-#[cfg(feature = "cuda")]
+
 use crate::world::serialize::Save;
 use crate::world::info::{get_entity, get_entity_mut};
 use crate::prelude::*;
@@ -104,7 +104,7 @@ impl World {
             self.pause_save().unwrap_or_else(|e| {
                 eprintln!("Failed to save pause state: {}", e);
             });
-
+            #[cfg(feature = "cuda")]
             if self.cuda_world.is_some() {
                 self.cuda_world.as_mut().unwrap().free();
             }
@@ -150,7 +150,7 @@ impl World {
         // Main loop for the world simulation
         for i in 0..n {
             self.update();
-            if i % 1000 == 0 {
+            if i % 100 == 0 {
                 println!("Step {}/{}", i, n);
                 #[cfg(feature = "debug")]
                 {   
