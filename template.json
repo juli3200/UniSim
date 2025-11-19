@@ -1,6 +1,6 @@
 {
-    "default_population": 100,
-    "dimensions": [100, 100],
+    "default_population": 1,
+    "dimensions": [10, 10],
     "fps" : 60.0,
     "drag": 0.2,
     "spawn_size": 1.0,
@@ -8,6 +8,6 @@
     "velocity": 3.0,
     "enable_entity_ligand_emission": false,
     "ligand_velocity": 10.0,
-    "max_size": 0.51,
+    "max_size": 2.51,
     "cuda_memory_interval": 1000
 }

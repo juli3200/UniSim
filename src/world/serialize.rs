@@ -8,7 +8,7 @@ pub const ENTITY_BUF_SIZE: (usize, usize) = (32 + super::objects::OUTPUTS * 2, 0
 pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
-pub const HEADER_SIZE: usize = 256; // to keep it backwards compatible
+pub const HEADER_SIZE: u8 = 62; // to keep it backwards compatible
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -35,21 +35,20 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.receptors_per_entity().to_le_bytes()); // receptors per entity 4 bytes per entity
 
     // add other settings
-
-    
-    // 4 bytes
+    println!("Len{}", buffer.len());
     buffer.extend(&(ENTITY_BUF_SIZE.0 as u8).to_le_bytes());
     buffer.extend(&(ENTITY_BUF_SIZE.1 as u8).to_le_bytes());
     buffer.extend(&(LIGAND_BUF_SIZE.0 as u8).to_le_bytes());
     buffer.extend(&(LIGAND_BUF_SIZE.1 as u8).to_le_bytes());
 
     buffer.push(super::objects::OUTPUTS as u8); // number of inner proteins 1 byte
+    
 
-    if buffer.len() > HEADER_SIZE {
-        return Err("Header size exceeded".to_string());
+    println!("Header size: {}", buffer.len());
+    if buffer.len() != HEADER_SIZE as usize {
+        return Err("Wrong Header Size".to_string());
     }
-
-    buffer.resize(HEADER_SIZE, 0u8); // pad the rest of the header
+    print!("Buffer: {:?}\n", buffer);
 
     Ok(buffer)
 }
@@ -163,7 +162,7 @@ impl Save for World {
 
 
         // entities
-        buffer.extend(&(self.population_size() as u32).to_le_bytes()); // 4 bytes
+        buffer.extend(&(self.entities.len() as u32).to_le_bytes()); // 4 bytes
         let serial_entities = self.entities.serialize(save_genome)?;
         buffer.extend(&serial_entities);
 
@@ -187,7 +186,7 @@ impl Save for World {
 
         // Insert the total buffer length at the beginning
         
-        let total_len = (buffer.len() as u32).to_le_bytes();
+        let total_len = ((buffer.len() + 4) as u32).to_le_bytes();
         buffer.splice(0..0, total_len.iter().cloned()); 
 
 
@@ -288,7 +287,6 @@ impl Save for crate::objects::Genome{
         for receptor in self.receptor_dna.iter() {
             buffer.extend(&receptor.to_le_bytes()); // receptor DNA 8 bytes each
         }
-
         Ok(buffer)
     }
 

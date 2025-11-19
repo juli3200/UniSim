@@ -569,7 +569,7 @@ impl World{
             eprint!("Warning: File {} already exists. Overwrite? (y/n)", path.as_ref().display());
             let mut input = String::new();   
             std::io::stdin().read_line(&mut input).expect("Failed to read line");
-            if input.trim() != "y" {      
+            if input.trim().to_lowercase() != "y" {      
                 return Err(io::Error::new(io::ErrorKind::Other, "File already exists"));
             }
             std::fs::remove_file(path.as_ref())?;
@@ -692,7 +692,7 @@ impl World{
             }
         };
 
-        self.byte_counter += serialize::HEADER_SIZE;
+        self.byte_counter += serialize::HEADER_SIZE as usize;
 
         Ok(())
     }

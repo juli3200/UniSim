@@ -2,11 +2,12 @@ import struct
 
 class World:
     def __init__(self, file):
+        self.end = False
+
         with open(file, 'rb') as f:
             self.bytes = f.read()
         print(len(self.bytes))
         self.header_size = int(self.bytes[0])
-        self.header_size -= 8 
         self.save_jumper = struct.unpack('I', self.bytes[1:5])[0]
         self.time = struct.unpack('Q', self.bytes[5:13])[0]
 
@@ -17,24 +18,26 @@ class World:
         self.fps = struct.unpack('f', self.bytes[29:33])[0]
         self.velocity = struct.unpack('f', self.bytes[33:37])[0]
         self.gravity = [struct.unpack('f', self.bytes[37:41])[0], struct.unpack('f', self.bytes[41:45])[0]]
-        self.friction = struct.unpack('f', self.bytes[45:49])[0]
+        self.drag = struct.unpack('f', self.bytes[45:49])[0]
 
-        #self.ligands_per_entity = struct.unpack('I', self.bytes[49:53])[0]
-        #self.receptors_per_entity = struct.unpack('I', self.bytes[53:57])[0]
+        self.ligands_per_entity = struct.unpack('I', self.bytes[49:53])[0]
+        self.receptors_per_entity = struct.unpack('I', self.bytes[53:57])[0]
 
-        self.entity_bytes_0 = int(self.bytes[49])
-        self.entity_bytes_1 = int(self.bytes[50])
-        self.ligand_bytes_0 = int(self.bytes[51])
-        self.ligand_bytes_1 = int(self.bytes[52])
+        self.entity_bytes_0 = int(self.bytes[57])
+        self.entity_bytes_1 = int(self.bytes[58])
+        self.ligand_bytes_0 = int(self.bytes[59])
+        self.ligand_bytes_1 = int(self.bytes[60])
 
-        self.protein_n = int(self.bytes[53])
+        self.protein_n = int(self.bytes[61])
 
-        print("Protein number:", self.protein_n)
 
         self.counter = 0
 
     def get_state(self, n= None):
         if n is None:
+            if self.end:
+                return None
+        
             state = State(self, self.counter)
             self.counter += 1
             return state
@@ -59,13 +62,14 @@ class State:
             self.entities = []
             self.ligands = []
 
-            info = int(self.world.bytes[address])
-            save = info & 0b01  # Extract the first bit of info
-            self.genome_save = bool((info >> 1) & 0b01)  # Extract the second bit of info
-            self.genome_save = False  # Temporarily disable genome saving for performance
 
-            size = struct.unpack('I', self.world.bytes[address+1:address + 5])[0]
+            size = struct.unpack('I', self.world.bytes[address:address + 4])[0]
 
+
+            info = int(self.world.bytes[address + 4])
+            save = info & 0b10  # Extract the first bit of info
+            self.genome_save = bool(info & 0b01)  # Extract the second bit of info
+        
             time = struct.unpack('f', self.world.bytes[address + 5:address + 9])[0]
 
             entity_n = struct.unpack('I', self.world.bytes[address + 9:address + 13])[0]
@@ -81,16 +85,20 @@ class State:
             for _ in range(ligand_n):
                 self.ligands.append(Ligand(self.world.bytes, index))
                 index += world.ligand_bytes_0
+
             
                 
 
         except (struct.error, IndexError):
+            self.world.end = True
             return None
         
 
 
 class Entity:
     def __init__(self, bytes, index, protein_n, parent):
+        old_index = index
+
         self.x = struct.unpack('f', bytes[index:index + 4])[0]
         self.y = struct.unpack('f', bytes[index + 4:index + 8])[0]
         self.velx = struct.unpack('f', bytes[index + 8:index + 12])[0]
@@ -105,45 +113,53 @@ class Entity:
             level = struct.unpack('h', bytes[index + 28 + i * 2:index + 30 + i * 2])[0]
             self.inner_protein_levels.append(level)
 
-        i = 28 + protein_n * 2
-        received_n = struct.unpack('I', bytes[index + i:index + i + 4])[0]
+        index += 28 + protein_n * 2 
 
+        
         # getting received ligands angles in degrees (0 - 180)
-        i += 4
-        self.received_ligands = [int(bytes[index + j]) for j in range(i, i + received_n)]
+        received_n = struct.unpack('I', bytes[index:index + 4])[0]
 
-        """
+        index += 4
+        self.received_ligands = [int(bytes[index + j]) for j in range(received_n)]
+
+        index += received_n    
+
+
         if parent.genome_save:
-            i += received_n
-            self.genome = Genome(bytes, index + i, parent.world.receptors_per_entity, parent.world.ligands_per_entity)
-            i += self.genome.size
-        """
+            self.genome = Genome(bytes, index, parent.world.receptors_per_entity, parent.world.ligands_per_entity)
+            index += self.genome.size
+        
 
-        self.bytes_size = i
+        self.bytes_size = index - old_index
 
     def get_position(self):
         return [self.x, self.y]
 
 class Genome:
     def __init__(self, bytes, index, receptors_n, ligand_n):
+        old = index
 
         self.move_threshold = struct.unpack('h', bytes[index:index + 2])[0]
         index += 2
         self.ligands_threshold = struct.unpack('h', bytes[index:index + 2])[0]
         index += 2
 
+
+        self.ligands = []
+        for j in range(ligand_n):
+            ligand = struct.unpack('h', bytes[index + j * 2:index + j * 2 + 2])[0]
+            self.ligands.append(ligand)
+        index += ligand_n * 2
+
         self.receptors = []
-        for i in range(receptors_n):
-            receptor = struct.unpack('h', bytes[index + i * 2:index + i * 2 + 2])[0]
+        for j in range(receptors_n):
+            receptor = struct.unpack('Q', bytes[index + j * 8:index + j * 8 + 8])[0]
             self.receptors.append(receptor)
 
-        index += receptors_n * 2
-        self.ligands = []
-        for i in range(ligand_n):
-            ligand = struct.unpack('h', bytes[index + i * 2:index + i * 2 + 2])[0]
-            self.ligands.append(ligand)
-        
-        self.size = 4 + (receptors_n + ligand_n) * 2
+        index += receptors_n * 8
+
+
+        self.size = 4 + (receptors_n * 8) + (ligand_n * 2)
         
 
 

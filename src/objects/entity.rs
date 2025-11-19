@@ -100,7 +100,7 @@ impl Entity {
 
         for i in 0..(settings.receptor_capacity() / self.genome.receptor_dna.len()) {
             for r_type in 0..receptor_fns.len() {
-                let p = receptor_fns[r_type]((i  * settings.receptors_per_entity()) as f32); // probability to create a receptor here
+                let p = receptor_fns[r_type]((i  * settings.receptors_per_entity() as usize) as f32); // probability to create a receptor here
                 let create = rng.random_bool(p);
 
                 if !create {

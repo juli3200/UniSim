@@ -251,6 +251,8 @@ class RealTimePlotter(QtWidgets.QWidget):
     def update_plot(self):
         if self.counter % self.update_interval == 0:
             self.state = self.world.get_state()
+            if self.state is None:
+                return
             self.entities = self.state.entities
             self.ligands = self.state.ligands
 
