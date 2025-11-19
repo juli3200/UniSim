@@ -164,6 +164,8 @@ class Genome:
 
 
         self.size = 4 + (receptors_n * 8) + (ligand_n * 2)
+
+        self.raw_bytes = bytes[old:index]
         
 
 

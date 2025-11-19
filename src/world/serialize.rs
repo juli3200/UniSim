@@ -40,7 +40,6 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(vec![0u8; 32]); // reserved 32 bytes
 
     // add other settings
-    println!("Len{}", buffer.len());
     buffer.extend(&(ENTITY_BUF_SIZE.0 as u8).to_le_bytes());
     buffer.extend(&(ENTITY_BUF_SIZE.1 as u8).to_le_bytes());
     buffer.extend(&(LIGAND_BUF_SIZE.0 as u8).to_le_bytes());
@@ -49,11 +48,9 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.push(super::objects::OUTPUTS as u8); // number of inner proteins 1 byte
     
 
-    println!("Header size: {}", buffer.len());
     if buffer.len() != HEADER_SIZE as usize {
         return Err("Wrong Header Size".to_string());
     }
-    print!("Buffer: {:?}\n", buffer);
 
     Ok(buffer)
 }

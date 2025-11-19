@@ -207,7 +207,7 @@ impl Settings {
             standard_deviation: 10.0,
             mean: 0.0,
 
-            mutation_rate: 0.01,
+            mutation_rate: 0.001,
 
             store_capacity: 1024,
             fps: 60.0,
