@@ -20,15 +20,19 @@ class World:
         self.gravity = [struct.unpack('f', self.bytes[37:41])[0], struct.unpack('f', self.bytes[41:45])[0]]
         self.drag = struct.unpack('f', self.bytes[45:49])[0]
 
-        self.ligands_per_entity = struct.unpack('I', self.bytes[49:53])[0]
-        self.receptors_per_entity = struct.unpack('I', self.bytes[53:57])[0]
+        # reserved bytes 32 bytes from 49 to 81
 
-        self.entity_bytes_0 = int(self.bytes[57])
-        self.entity_bytes_1 = int(self.bytes[58])
-        self.ligand_bytes_0 = int(self.bytes[59])
-        self.ligand_bytes_1 = int(self.bytes[60])
+        self.ligands_per_entity = struct.unpack('I', self.bytes[81:85])[0]
+        self.receptors_per_entity = struct.unpack('I', self.bytes[85:89])[0]
 
-        self.protein_n = int(self.bytes[61])
+        # reserved bytes 32 bytes from 89 to 121
+
+        self.entity_bytes_0 = int(self.bytes[121])
+        self.entity_bytes_1 = int(self.bytes[122])
+        self.ligand_bytes_0 = int(self.bytes[123])
+        self.ligand_bytes_1 = int(self.bytes[124])
+
+        self.protein_n = int(self.bytes[125])
 
 
         self.counter = 0

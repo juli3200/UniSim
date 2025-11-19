@@ -8,7 +8,7 @@ pub const ENTITY_BUF_SIZE: (usize, usize) = (32 + super::objects::OUTPUTS * 2, 0
 pub const LIGAND_BUF_SIZE: (usize, usize) = (10, 22);
 pub const WORLD_BUF_ADD: (usize, usize) = (17, 37);
 pub const SETTINGS_BUF_SIZE: (usize, usize) = (0, 20);
-pub const HEADER_SIZE: u8 = 62; // to keep it backwards compatible
+pub const HEADER_SIZE: u8 = 126; // to keep it backwards compatible
 
 pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
@@ -30,9 +30,14 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.gravity().iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<u8>>()); // gravity 8 bytes
     buffer.extend(&world.settings.drag().to_le_bytes()); // drag 4 bytes
 
+    buffer.extend(vec![0u8; 32]); // reserved 32 bytes
+
     // entity bio settings
     buffer.extend(&world.settings.ligands_per_entity().to_le_bytes()); // ligand variety 4 bytes per entity
     buffer.extend(&world.settings.receptors_per_entity().to_le_bytes()); // receptors per entity 4 bytes per entity
+
+    
+    buffer.extend(vec![0u8; 32]); // reserved 32 bytes
 
     // add other settings
     println!("Len{}", buffer.len());
