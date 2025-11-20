@@ -56,5 +56,8 @@ pub(crate) mod grid_gpu{
 
         // set all grid values to 0xFFFFFFFF
         pub(crate) fn clear_grid(grid: *mut u32, size: u32);
+
+        // delete all ligands by setting their emitted_id to 0xFFFFFFFF
+        pub(crate) fn delete_ligands(ligands: *mut LigandCuda, size: u32);
     }
 }

@@ -197,6 +197,16 @@ impl CUDAWorld {
 
     }
 
+    pub(crate) fn delete_ligands(&mut self) {
+        use cuda_bindings::grid_gpu as cu_grid;
+
+        unsafe{
+            cu_grid::delete_ligands(self.ligands, self.ligand_count);
+        }
+
+        self.ligand_count = 0;
+    }
+
     pub(crate) fn add_to_grid(&self) -> i32{
         use cuda_bindings::grid_gpu as cu_grid;
 

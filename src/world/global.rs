@@ -547,6 +547,17 @@ impl World {
         }
     }
 
+
+    pub fn delete_all_ligands(&mut self) {
+        self.ligands.clear();
+
+        #[cfg(feature = "cuda")]
+        {
+            if self.cuda_world.is_some() {
+                self.cuda_world.as_mut().unwrap().delete_ligands();
+            }
+        }
+    }
 }
 
 use std::io::{self, Write};

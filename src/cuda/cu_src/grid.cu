@@ -287,6 +287,13 @@ __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, u
     }
 }
 
+__global__ void delete_ligands_kernel(LigandCuda* ligands, uint32_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        ligands[i].emitted_id = 0xFFFFFFFF;
+    }
+}
+
 LigandWrapper error_return(float* energies, uint32_t* receptor_ids, uint32_t* counter) {
     // free device memory
     cudaFree(energies);
@@ -417,6 +424,19 @@ extern "C" {
 
         // launch kernel
         update_positions_kernel<<<blockN, ThreadsPerBlock>>>(ligands, size, delta_time);
+        cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
+
+        // check for launch errors
+        if (err != cudaSuccess) {
+            printf("Launch error: %s\n", cudaGetErrorString(err));
+        }
+    }
+
+    void delete_ligands(LigandCuda* ligands, uint32_t size) {
+        uint32_t blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+
+        // launch kernel
+        delete_ligands_kernel<<<blockN, ThreadsPerBlock>>>(ligands, size);
         cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors
