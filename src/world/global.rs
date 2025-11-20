@@ -170,8 +170,8 @@ impl World {
 
             // exit early if there are no entities left
             if self.entities.is_empty() {
-                println!("All entities have died, ending simulation at step {}", i);
-                break;
+                // println!("All entities have died, ending simulation at step {}", i);
+                // break;
             }
 
             // rearrange cuda arrays every cuda_memory_interval steps

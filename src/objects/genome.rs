@@ -62,8 +62,8 @@ impl Genome {
                 }
 
                 c += 1;
-                if c > 100 {
-                    eprintln!("Warning: could not mutate receptor gene to valid state after 100 tries");
+                if c > 1000 {
+                    //eprintln!("Warning: could not mutate receptor gene to valid state after 1000 tries");
                     break *receptor; // give up and return original
                 }
             };

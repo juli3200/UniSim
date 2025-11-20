@@ -9,5 +9,6 @@
     "enable_entity_ligand_emission": false,
     "ligand_velocity": 10.0,
     "max_size": 0.55,
-    "cuda_memory_interval": 1000
+    "cuda_memory_interval": 1000,
+    "mutation_rate": 0.005
 }

@@ -7,12 +7,11 @@ from tkinter import filedialog
 import matplotlib.pyplot as plt
 import pandas as pd
 import hashlib
-try:
-    import numpy as np
-except Exception:
-    np = None
 
-OVERLAP_THRESHOLD = 0.75
+import numpy as np
+
+
+OVERLAP_THRESHOLD = 0.95
 PREFIX_BYTES = 32  # length of prefix used for fingerprinting
 
 
@@ -24,29 +23,12 @@ def bytes_similarity(a: bytes, b: bytes) -> float:
         return 1.0 if la == lb else 0.0
     length = min(la, lb)
 
-    # numpy path: very fast for large arrays
-    if np is not None:
-        arr_a = np.frombuffer(a, dtype=np.uint8, count=length)
-        arr_b = np.frombuffer(b, dtype=np.uint8, count=length)
-        same = int((arr_a == arr_b).sum())
-        return same / length
-
-    # fallback: memoryview (faster than indexing bytes)
-    mv_a = memoryview(a)
-    mv_b = memoryview(b)
-    same = 0
-    # iterate in small chunks for speed
-    chunk = 128
-    i = 0
-    while i < length:
-        end = i + chunk if i + chunk <= length else length
-        sa = mv_a[i:end]
-        sb = mv_b[i:end]
-        # compare as bytes objects for the chunk
-        # counting equal bytes in a chunk
-        same += sum(x == y for x, y in zip(sa, sb))
-        i = end
+    arr_a = np.frombuffer(a, dtype=np.uint8, count=length)
+    arr_b = np.frombuffer(b, dtype=np.uint8, count=length)
+    same = int((arr_a == arr_b).sum())
     return same / length
+
+
 
 
 def _fingerprint(genome_bytes: bytes):
@@ -133,7 +115,7 @@ def genome_statistics(world: extract.World) -> list[dict]:
 
         # Add counts for this state to the data
         for s_id, count in count_map.items():
-            if count < 2:
+            if count < 1:
                 continue  # skip rare species
             data.append({
                 'state': i,
@@ -144,9 +126,8 @@ def genome_statistics(world: extract.World) -> list[dict]:
 
     return data
 
-def plot_genome_statistics(data: list[dict]):
+def stackplot_genome_statistics(data: list[dict]):
     # this fn was created by GPT-4
-
     if not data:
         print("No data to plot.")
         return
@@ -159,23 +140,62 @@ def plot_genome_statistics(data: list[dict]):
 
     # Optional: normalize to percentages (for 100% stacked area chart)
     pivot_percent = pivot.div(pivot.sum(axis=1), axis=0) * 100
+    # Assign colors, ensuring species with under 3 occurrences per state have the same color
+    colors = plt.cm.tab20.colors  # Use a colormap with enough distinct colors
+    color_map = {}
+    rare_species_color = 'gray'  # Color for rare species
+
+    for i in pivot_percent.columns:
+        if (pivot[i] < 3).all():  # Check if species has under 3 occurrences in all states
+            color_map[i] = rare_species_color
+        else:
+            color_map[i] = colors[i % len(colors)]
 
     # Plot
-    plt.figure(figsize=(12,6))
+    plt.figure(figsize=(12, 6))
 
     plt.stackplot(
         pivot_percent.index,
-        pivot_percent.T,       # each species as an area
-        labels=[f"Species {i}" for i in pivot_percent.columns]
+        pivot_percent.T,  # each species as an area
+        labels=[f"Species {i}" for i in pivot_percent.columns],
+        colors=[color_map[i] for i in pivot_percent.columns]
     )
 
     plt.xlabel("Time (States)")
     plt.ylabel("Percentage of population")
     plt.title("Genome Species Over Time")
-    plt.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
+    plt.legend(
+        [f"Species {i}" for i in pivot_percent.columns if color_map[i] != rare_species_color],
+        loc="upper left",
+        bbox_to_anchor=(1.0, 1.0)
+    )
     plt.tight_layout()
     plt.show()
 
+def lineplot_genome_statistics(data: list[dict]):
+    # this fn was created by GPT-4
+    if not data:
+        print("No data to plot.")
+        return
+
+    # Convert to DataFrame
+    df = pd.DataFrame(data)
+    # Pivot to get species counts per state
+    pivot = df.pivot(index='state', columns='id', values='count').fillna(0)
+
+    # Plot
+    plt.figure(figsize=(12, 6))
+
+    for species_id in pivot.columns:
+        smoothed = pivot[species_id].rolling(window=5, min_periods=1).mean()  # Apply rolling mean for smoothing
+        plt.plot(pivot.index, smoothed, label=f"Species {species_id}")
+
+    plt.xlabel("Time (States)")
+    plt.ylabel("Number of Entities")
+    plt.title("Genome Species Over Time (Smoothed)")
+    plt.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0))
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -197,4 +217,4 @@ if __name__ == "__main__":
     data = genome_statistics(world)
 
     # plotting
-    plot_genome_statistics(data)
+    lineplot_genome_statistics(data)

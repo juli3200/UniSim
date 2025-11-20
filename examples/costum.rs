@@ -7,14 +7,15 @@ fn main() {
 
     let mut world = World::new(settings);
 
-    edit_settings!(&mut world, store_capacity = runtime, fps = 60.0);
+    edit_settings!(&mut world, store_capacity = runtime*4, fps = 60.0);
 
-    world.save("testfiles/costum.bin", true).expect("failed to save world");
+    world.save("testfiles/4_filters.bin", true).expect("failed to save world");
     world.cuda_initialize().expect("");
 
-    world.add_ligand_source(vec![1.0, 10.0], 1000.0, 1, 0.1);
-
-    world.run(runtime);
-
+    for i in 1..5 {
+        world.add_ligand_source(vec![50.0, 50.0], 1000.0, i, 0.2);
+        world.run(runtime);
+        world.delete_all_ligands();
+    }
 
 }
