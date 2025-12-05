@@ -1,0 +1,4 @@
+## check for receptor frequency
+
+ 
+

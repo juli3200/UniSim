@@ -156,6 +156,8 @@ get_set_maker!(
         gravity: Vec<f32>, // gravity of the world
         drag: f32, // drag/friction of the world
         idle_energy_cost: f32, // energy cost per second depending on Area
+        entity_move_speed: f32, // speed of entity movement
+        entity_move_energy_cost: f32, // energy cost of entity movement
 
         enable_entity_ligand_emission: bool,
 
@@ -199,8 +201,8 @@ impl Settings {
             concentration_range: (-32, 32),
 
             receptor_capacity: 10_000, // 10_000 receptors
-            receptors_per_entity: 10, // 10 different receptor types
-            ligands_per_entity: 10, // 10 different ligand types
+            receptors_per_entity: 2, // 2 different receptor types
+            ligands_per_entity: 2, // 2 different ligand types it can emit
             max_age: 50, 
             max_size: 2.0,
 
@@ -228,6 +230,9 @@ impl Settings {
             movement_energy_cost: 1.0,
             ligand_emission_energy_cost: 0.001,
             possible_ligands: 16, // must be a power of 2
+
+            entity_move_speed: 1.0,
+            entity_move_energy_cost: 0.01,
         }
     }
 

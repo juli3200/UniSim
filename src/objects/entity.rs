@@ -247,7 +247,8 @@ impl Entity {
             // run
             // TODOO how mutch acceleration? and energy cost?
 
-            self.acceleration = &self.velocity / self.speed * 0.1 / (self.size * 2.0); // acceleration is 1 divided by size (so smaller entities accelerate faster)
+            // acc = direction of velocity normalized * move_speed / energy
+            self.acceleration = (&self.velocity / self.speed) * settings.entity_move_speed() / self.energy; // accelerate in the direction of movement
             self.energy -= 0.002;
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {

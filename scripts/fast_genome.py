@@ -11,7 +11,7 @@ import hashlib
 import numpy as np
 
 
-OVERLAP_THRESHOLD = 0.95
+OVERLAP_THRESHOLD = 0.9
 PREFIX_BYTES = 32  # length of prefix used for fingerprinting
 
 
@@ -217,4 +217,4 @@ if __name__ == "__main__":
     data = genome_statistics(world)
 
     # plotting
-    lineplot_genome_statistics(data)
+    stackplot_genome_statistics(data)
