@@ -25,8 +25,13 @@ impl Genome {
         // change MUTATION MODE !!!!!!!!!!
         // todo
 
-        new_genome.move_threshold += rng.random_range(-2..=2);
-        new_genome.ligand_emission_threshold += rng.random_range(-2..=2);
+        // mutate thresholds
+        let normal_dist = Normal::new(0.0, settings.threshold_change()).unwrap();
+        let move_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
+        let ligand_emission_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
+
+        new_genome.move_threshold += move_threshold_delta;
+        new_genome.ligand_emission_threshold += ligand_emission_threshold_delta;
 
         // mutate ligands
         // only allow valid bit flips
@@ -90,7 +95,7 @@ impl Genome {
 
     pub fn random(settings: &crate::settings_::Settings) -> Self {
         let mut rng = rand::rng();
-        let normal: Normal<f64> = Normal::new(settings.mean(), settings.standard_deviation()).unwrap();
+        let normal: Normal<f64> = Normal::new(settings.mean_threshold(), settings.standard_deviation_threshold()).unwrap();
 
 
         let min = settings.concentration_range().0 as f64;

@@ -11,7 +11,7 @@ fn main() {
     world.save("testfiles/test_cuda.bin", false).expect("Failed to save world");
     world.cuda_initialize().expect("Failed to initialize CUDA");
 
-    world.add_ligand_source(vec![10.0, 10.0], 10000.0, 1, 0.0001);
+    let _ = world.add_ligand_source(vec![10.0, 10.0], 10000.0, 1);
 
     world.run(10000);
 }

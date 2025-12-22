@@ -93,6 +93,7 @@ __device__ bool border_collision(LigandCuda* ligands, int i, uint32_t dim_x, uin
     return false;
 }
 
+// UNUSED 
 // https://github.com/skeeto/hash-prospector
 __device__ float pseudo_random(uint32_t x) {
     x ^= x >> 16;
@@ -187,7 +188,7 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
         return true;
     }
 
-    /* old method to
+    /* old method discarded because of implemented LOCK-KEY principle 
     // match specs
     // first 16 bits are ignored because they are always 0
     int ones = __popc((uint32_t)(ligand_spec ^ col_arrays.receptors[receptor_index]));

@@ -40,7 +40,7 @@ fn test_performance_cpu(n : usize, ligands: usize, ligand_source: Option<f32>) -
 
     world.add_ligands(ligands);
     if let Some(rate) = ligand_source {
-        world.add_ligand_source(vec![50.0, 50.0], rate, 1786, 0.01);
+        let _ = world.add_ligand_source(vec![50.0, 50.0], rate, 15);
     }
 
     let start = Instant::now();
@@ -66,7 +66,7 @@ mod performance {
 
         world.add_ligands(ligands);
         if let Some(rate) = ligand_source {
-            world.add_ligand_source(vec![50.0, 50.0], rate, 1786, 0.01);
+            let _ = world.add_ligand_source(vec![50.0, 50.0], rate, 15);
         }
 
         let start = Instant::now();

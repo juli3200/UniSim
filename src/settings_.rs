@@ -147,9 +147,10 @@ get_set_maker!(
         max_size: f32, // maximum size of an entity
 
         mutation_rate: f64, // probability of mutation per receptor bit
+        threshold_change: f64, // \sigma for threshold changes
 
-        standard_deviation: f64 {std_dev}, // standard deviation for random values
-        mean: f64, // mean for random values
+        standard_deviation_threshold: f64 {std_dev}, // standard deviation for random values
+        mean_threshold: f64, // mean for random values
 
         velocity: f32, // default velocity of entities
         ligand_velocity: f32, // default velocity of ligands
@@ -163,6 +164,7 @@ get_set_maker!(
 
         tumble_chance: f64 {prob}, // chance of tumbling
         max_energy_ligand: f32 {energy}, // maximum energy of a ligand
+        min_energy_ligand: f32 {energy}, // minimum energy of a ligand
         movement_energy_cost: f32, // energy cost of movement
         ligand_emission_energy_cost: f32, // threshold for emitting ligands
 
@@ -206,10 +208,11 @@ impl Settings {
             max_age: 50, 
             max_size: 2.0,
 
-            standard_deviation: 10.0,
-            mean: 0.0,
+            standard_deviation_threshold: 10.0,
+            mean_threshold: 0.0,
 
             mutation_rate: 0.001,
+            threshold_change: 1.5,
 
             store_capacity: 1024,
             fps: 60.0,
@@ -227,6 +230,7 @@ impl Settings {
 
             tumble_chance: 0.3333,
             max_energy_ligand: 1.0,
+            min_energy_ligand: 0.1,
             movement_energy_cost: 1.0,
             ligand_emission_energy_cost: 0.001,
             possible_ligands: 16, // must be a power of 2

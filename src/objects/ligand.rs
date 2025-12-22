@@ -1,20 +1,33 @@
 use ndarray::Array1;
 use rand::Rng;
-use crate::{objects::Entity, world::{Border, Collision, Space}};
+use crate::{objects::Entity, world::{Border, Collision, Space}, settings_::Settings};
 
 use super::{Ligand, LigandSource};
 
+fn get_ligand_energy(spec: u16, settings: &Settings) -> f32{
+    // energy of a ligand is determined by its spec
+    // linearly mapped from min_energy_ligand to settings.ligand_types() * settings.max_energy_ligand()
+    let max_energy = settings.max_energy_ligand();
+    let min_energy = settings.min_energy_ligand();
+    let energy = min_energy + (max_energy - min_energy) * spec.count_ones() as f32 / (settings.possible_ligands() as f32).log2();
+
+    energy
+}
+
+
+
+
 impl LigandSource {
-    pub fn new(position: Array1<f32>, emission_rate: f32, ligand_spec: u16, ligand_energy: f32) -> Self {
+    pub fn new(position: Array1<f32>, emission_rate: f32, ligand_spec: u16) -> Self{
+
         Self {
             position,
             emission_rate,
-            ligand_energy,
             ligand_spec
         }
     }
 
-    pub(crate) fn emit_ligands(&self, dt: f32) -> Vec<Ligand> {
+    pub(crate) fn emit_ligands(&self, dt: f32, settings: &Settings) -> Vec<Ligand> {
         let quantity;
         let mut rng = rand::rng();
 
@@ -42,10 +55,10 @@ impl LigandSource {
 
             ligands.push(Ligand::new(
                 0, // no entity emitted this ligand
-                self.ligand_energy,
                 self.ligand_spec,
                 self.position.clone(),
-                velocity
+                velocity,
+                settings
             ));
         }
 
@@ -57,7 +70,8 @@ impl LigandSource {
 
 impl Ligand {
 
-    pub fn new(emitted_id: usize, energy: f32, spec:u16, position: Array1<f32>, velocity: Array1<f32>) -> Self {
+    pub fn new(emitted_id: usize, spec:u16, position: Array1<f32>, velocity: Array1<f32>, settings: &Settings) -> Self {
+        let energy = get_ligand_energy(spec, settings);
         Self {
             emitted_id,
             spec,
@@ -114,13 +128,4 @@ impl Ligand {
 
     }
 
-}
-
-pub(crate) fn get_ligand_energy(spec: u16, settings: &crate::settings_::Settings) -> f32 {
-    // energy of a ligand is determined by its spec
-    // linearly mapped from 0 to settings.ligand_types() to settings.ligand_energy_range()
-    let energy_range = settings.max_energy_ligand();
-    let energy = energy_range * (spec as f32) / (settings.ligands_per_entity() as f32);
-
-    energy
 }

@@ -12,7 +12,6 @@ pub struct LigandSource {
     position: Array1<f32>,
     emission_rate: f32, // ligands per second
     ligand_spec: u16,
-    ligand_energy: f32,
 }
 
 #[derive(Debug, Clone)]

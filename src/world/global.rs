@@ -93,9 +93,13 @@ impl World {
         Ok(())
     }
 
-    pub fn add_ligand_source<A: Into<Array1<f32>>>(&mut self, position: A, emission_rate: f32, ligand_spec: u16, ligand_energy: f32) {
-        let source = objects::LigandSource::new(position.into(), emission_rate, ligand_spec, ligand_energy);
+    pub fn add_ligand_source<A: Into<Array1<f32>>>(&mut self, position: A, emission_rate: f32, ligand_spec: u16) -> Result<(), String> {
+        if self.settings.possible_ligands() <= ligand_spec as usize {
+            return Err(format!("Ligand spec {} is out of bounds, maximum is {}", ligand_spec, self.settings.possible_ligands() - 1));
+        }
+        let source = objects::LigandSource::new(position.into(), emission_rate, ligand_spec);
         self.ligand_sources.push(source);
+        Ok(())
     }
 
     pub fn close(&mut self) {
@@ -364,7 +368,7 @@ impl World {
 
         // emit new ligands from sources
         for source in &self.ligand_sources {
-            let new_ligands = source.emit_ligands(dt);
+            let new_ligands = source.emit_ligands(dt, &self.settings);
             self.new_ligands.extend(new_ligands);
         }
 
@@ -507,7 +511,7 @@ impl World {
 
         // emit new ligands from sources
         for source in &self.ligand_sources {
-            let new_ligands = source.emit_ligands(dt);
+            let new_ligands = source.emit_ligands(dt, &self.settings);
             self.new_ligands.extend(new_ligands);
 
         }
@@ -772,7 +776,7 @@ impl World {
             let norm_pos = Array1::from_vec(vec![position[0]/len, position[1]/len]);
             // add ligand at random position
             // ensure position is within bounds
-            let ligand = objects::Ligand::new(0, 0.2, 0u16, position, norm_pos);
+            let ligand = objects::Ligand::new(0, 0u16, position, norm_pos, &self.settings);
             self.new_ligands.push(ligand);
         }
     }

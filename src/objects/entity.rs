@@ -23,7 +23,12 @@ fn calculate_ligand_direction(entity: &Entity, position: &Array1<f32>) -> f64 {
     let direction_len = direction.mapv(|x| x.powi(2)).sum().sqrt();
 
     let angle = (dot_product / (direction_len * entity.speed as f64)).acos();
-    assert_ne!(angle, f64::NAN, "Angle should not be NaN");
+    if angle.is_nan() {
+        eprintln!("NaN angle detected in ligand direction calculation");
+        return 0.0;
+    }
+    
+
 
     return angle;
 }
@@ -271,11 +276,14 @@ impl Entity {
         }
 
         // 1 EMIT LIGANDS
+        // check if inner protein level 1 is above ligand emission threshold
+        let emit = self.inner_protein_levels[1] > self.genome.ligand_emission_threshold;
 
-        if self.inner_protein_levels[1] > self.genome.ligand_emission_threshold {
+        // 2
+        if emit {
             // determine what ligand to emit
             // step is the range in which the same ligand is emitted (e.g. if concentration range is 0-100 and there are 5 ligand types, step is 20)
-            let step: i16 = (((settings.concentration_range().1 - self.genome.ligand_emission_threshold) as f32 / settings.ligands_per_entity() as f32).floor() as i16).max(1);
+            let step: i16 = (((settings.concentration_range().1 - settings.concentration_range().0) as f32 / settings.ligands_per_entity() as f32).floor() as i16).max(1);
             // find which ligand to emit based on concentration
             let l_index = ((self.inner_protein_levels[1] - self.genome.ligand_emission_threshold) / step) as usize;
 
@@ -286,18 +294,14 @@ impl Entity {
                 self.genome.ligands[l_index]
             };
             
-            let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
 
             let random_angle: f32 = rng.random_range(-std::f32::consts::PI ..std::f32::consts::PI);
             let direction: Array1<f32> = vec![random_angle.cos(), random_angle.sin()].into();
             let position: Array1<f32> = &self.position + &direction * self.size; // emit from the edge of the entity
             let velocity: Array1<f32> = &self.velocity + &direction ;
 
-            self.ligands_to_emit.push(Ligand::new(self.id, energy, spec, position, velocity));
-
-        
+            self.ligands_to_emit.push(Ligand::new(self.id, spec, position, velocity, settings));
         }
-
 
         // (FUTURE: KILLING OTHER ENTITIES)
 
@@ -325,9 +329,16 @@ impl Entity {
                 // source:
                 // https://www.vobarian.com/collisions/2dcollisions2.pdf
 
+                // Use the compressed formaula which directly computes the 2D vector
+                // Formula described in https://www.youtube.com/watch?v=eED4bSkYCB8&t=1070s
+                // This formula is essentially the same as the one in the pdf, but optimized for 2D vectors and 
+                // puts the v_t and v_n calculations into a single dot product calculation
+
                 let v1 = self.velocity.clone();
                 let v2 = other_velocity.clone();
+                
 
+                // not including pi since it wasnt included in mass calculation of other entity
                 let m1 = self.size.powi(2); /* * std::f32::consts::PI; */// mass of this entity
                 let m2 = mass; // mass of the other entity
 
@@ -341,6 +352,8 @@ impl Entity {
                 
                 assert!(new_v1.len() == 2, "Velocity should be a 2D vector");
                 self.velocity = new_v1;
+
+
                 if self.velocity[0].is_nan() || self.velocity[1].is_nan() {
                     eprintln!("NaN velocity detected after collision resolution");
                     self.velocity = Array1::zeros(2);
