@@ -15,7 +15,7 @@ impl World {
 
     // creates a new World with n = 100
     pub fn default() -> Self {
-        let settings = Settings::new(100);
+        let settings = Settings::new();
         Self::new(settings)
     }
 

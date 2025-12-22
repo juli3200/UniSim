@@ -67,6 +67,19 @@ macro_rules! settings {
     () => {
         Settings::new(100)
     };
+    ($($setting:ident = $value:expr),+ $(,)?) => {
+        {
+            let key = 31425364; // same as in settings.rs
+            // key is used to ensure settings changes are only done through macros
+            let mut settings = Settings::default();
+            paste! {
+                $(
+                    settings.[<set_ $setting>]($value, key);
+                )+
+            }
+            settings
+        }
+    };
     ( $path:expr ) => {
         {
 
@@ -84,43 +97,14 @@ macro_rules! settings {
                 Ok(s) => s,
                 Err(e) => {
                     eprintln!("Failed to open settings file: {}", e);
-                    Settings::new(100)
+                    Settings::new()
                 }
             };
             settings
         }
 
     };
-    ($($setting:ident = $value:expr),+ $(,)?) => {
-        {
-            let key = 31425364; // same as in settings.rs
-            // key is used to ensure settings changes are only done through macros
-            let mut settings = Settings::blueprint(100);
-            paste! {
-                $(
-                    settings.[<set_ $setting>]($value, key);
-                )+
-            }
-            settings
-        }
-    };
-    ($n:expr, $($setting:ident = $value:expr),+ $(,)?) => {
-        {
-            let key = 31425364; // same as in settings.rs
-            // key is used to ensure settings changes are only done through macros
-            let mut settings = Settings::blueprint($n);
-            paste! {
-                $(
-                    settings.[<set_ $setting>]($value, key);
-                )+
-            }
 
-            settings
-        }
-    };
-
-
-    
 }
 
 

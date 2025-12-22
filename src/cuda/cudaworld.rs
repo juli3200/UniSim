@@ -147,7 +147,6 @@ impl CUDAWorld {
             }
         }
 
-        assert_eq!(receptors_h.len(), size_receptors as usize);
 
         // copy to device
         unsafe{
@@ -300,7 +299,6 @@ impl CUDAWorld {
             receptors_h.push(spec as u32);
         }
 
-        assert_eq!(receptors_h.len(), self.settings.receptor_capacity());
 
         // copy to device
         unsafe{

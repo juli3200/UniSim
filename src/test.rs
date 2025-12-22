@@ -7,7 +7,7 @@ mod general{
 
     #[test]
     fn create_world(){
-        let mut _world = World::new(settings!(100, spawn_size = 5.0));
+        let mut _world = World::new(settings!(spawn_size = 5.0));
         
     }
 
@@ -27,7 +27,7 @@ mod general{
 
     #[test]
     fn collision_test() {
-        let mut world = World::new(settings!(2, spawn_size = 0.5, give_start_vel = false, velocity = 1.0, dimensions = (10,10), fps = 30.0));
+        let mut world = World::new(settings!(default_population = 2, spawn_size = 0.5, give_start_vel = false, velocity = 1.0, dimensions = (10,10), fps = 30.0));
         world.entities[0].size = 2.0;
         world.space.max_size = 2.0;
         world.entities[0].position = ndarray::Array1::from(vec![3.0, 3.0]);
@@ -46,7 +46,7 @@ mod general{
 
     #[test]
     fn ligand_test(){
-        let setting = settings!(1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true);
+        let setting = settings!(default_population = 1, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true);
         let mut world = World::new(setting);
 
         // add ligands manually
@@ -60,7 +60,7 @@ mod general{
 
     #[test]
     fn gravity_test(){
-        let setting = settings!(100, velocity = 3.0, dimensions = (100,100), gravity = vec![0.0, -1.0], store_capacity = 1000);
+        let setting = settings!(velocity = 3.0, dimensions = (100,100), gravity = vec![0.0, -1.0], store_capacity = 1000);
         let mut world = World::new(setting);
 
         world.save("testfiles/gravity_test.bin", false).expect("Failed to save world");
@@ -78,7 +78,7 @@ mod io_tests {
     #[test]
     fn test_save(){
         let n = 10000;
-        let mut world = World::new(settings!(100, spawn_size = 5.0));
+        let mut world = World::new(settings!(spawn_size = 5.0));
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 
@@ -95,7 +95,7 @@ mod dna_tests {
 
     #[test]
     fn test_tumble(){
-        let mut world = World::new(settings!(100, fps = 40.0, velocity = 3.0, store_capacity = 2000, tumble_chance = 0.3));
+        let mut world = World::new(settings!(fps = 40.0, velocity = 3.0, store_capacity = 2000, tumble_chance = 0.3));
         
         edit_settings!(&mut world, drag = 0.1, gravity = vec![0.0, -0.2]);
 
@@ -140,7 +140,7 @@ mod cuda_tests {
     fn ligands_test(){
 
         use crate::prelude::*;
-        let mut world = crate::world::World::new(settings!(1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
+        let mut world = crate::world::World::new(settings!(default_population = 1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
         world.save("testfiles/ligands_test.bin", false).expect("Save expect");
 

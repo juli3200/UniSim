@@ -17,5 +17,4 @@ fn main() {
         world.run(runtime);
         world.delete_all_ligands();
     }
-
 }

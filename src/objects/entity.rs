@@ -253,8 +253,8 @@ impl Entity {
             // TODOO how mutch acceleration? and energy cost?
 
             // acc = direction of velocity normalized * move_speed / energy
-            self.acceleration = (&self.velocity / self.speed) * settings.entity_move_speed() / self.energy; // accelerate in the direction of movement
-            self.energy -= 0.002;
+            self.acceleration = (&self.velocity / self.speed) * settings.entity_acceleration() / self.energy; // accelerate in the direction of movement
+            self.energy -= settings.entity_run_energy_cost();
 
         } else if self.inner_protein_levels[0] <= self.genome.move_threshold {
             // tumble
@@ -271,7 +271,7 @@ impl Entity {
 
             self.velocity = rotation_matrix.dot(&self.velocity);
             }
-            self.energy -= 0.002;
+            self.energy -= settings.entity_tumble_energy_cost();
 
         }
 
@@ -350,7 +350,6 @@ impl Entity {
                  (delta_v.dot(&delta_p) / delta_p.dot(&delta_p)) * delta_p;
                                         // delta_p.dot(&delta_p) is the squared norm 
                 
-                assert!(new_v1.len() == 2, "Velocity should be a 2D vector");
                 self.velocity = new_v1;
 
 
@@ -430,8 +429,10 @@ impl Entity {
         let index = concentration_change.abs() as usize;
         let change: i16 = if concentration_change < 0 { -1 } else { 1 };
 
-        assert!(index < self.inner_protein_levels.len(), "Concentration index out of bounds");
-
+        if index >= self.inner_protein_levels.len() {
+            eprintln!("Concentration index {} out of bounds", index);
+            return false; // invalid index
+        }
         // change concentration and clamp to range
         self.inner_protein_levels[index] = (self.inner_protein_levels[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
 

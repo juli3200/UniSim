@@ -35,6 +35,11 @@ pub(crate) struct Genome{
     // inputs
     pub(crate) receptor_dna: Vec<u64>, // DNA sequence for receptors -> size: settings.receptor_types()
 
+    // plasmid
+    // size limited by settings.plasmid_capacity()
+    pub(crate) plasmid: Vec<u16>, // plasmid genes -> spec 
+
+
 }
 
 #[derive(Debug, Clone)]
