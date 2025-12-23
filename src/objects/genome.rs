@@ -6,12 +6,13 @@ use rand_distr::{Distribution, Normal};
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>, plasmids: Vec<u16>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
             ligands,
             receptor_dna,
+            plasmids,
         }
     }
 
@@ -115,15 +116,27 @@ impl Genome {
             .map(|_| random_receptor_genome(settings))
             .collect();
 
+        let plasmids: Vec<u16> = (0..settings.standard_plasmid_count())
+            .map(|_| random_plasmid_gene(settings))
+            .collect();
+
         Self {
             move_threshold,
             ligand_emission_threshold,
             ligands,
             receptor_dna,
+            plasmids,
         }
     }
 }
 
+
+fn random_plasmid_gene(settings: &Settings) -> u16 {
+    let mut rng = rand::rng();
+
+    let spec = rng.random_range(0..=settings.possible_ligands() as u16);
+    spec
+}
 
 
 fn random_receptor_genome(settings: &Settings) -> u64 {

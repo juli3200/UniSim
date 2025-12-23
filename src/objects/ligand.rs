@@ -4,14 +4,23 @@ use crate::{objects::Entity, world::{Border, Collision, Space}, settings_::Setti
 
 use super::{Ligand, LigandSource};
 
-fn get_ligand_energy(spec: u16, settings: &Settings) -> f32{
+pub(crate) fn get_ligand_energy(spec: u16, settings: &Settings) -> f32{
     // energy of a ligand is determined by its spec
     // linearly mapped from min_energy_ligand to settings.ligand_types() * settings.max_energy_ligand()
     let max_energy = settings.max_energy_ligand();
     let min_energy = settings.min_energy_ligand();
     let energy = min_energy + (max_energy - min_energy) * spec.count_ones() as f32 / (settings.possible_ligands() as f32).log2();
 
-    energy
+    if settings.ligand_poisoning_active(){
+        if spec % 2 == 0 {
+            -energy/2.0
+        } else {
+            energy/2.0
+        }
+    } else {
+        energy
+    }
+
 }
 
 

@@ -34,7 +34,7 @@ typedef struct{
 
 typedef struct{
     uint32_t* receptor_ids; // array of receptor ids that collided with ligands
-    float* energies; // array of energies of the collided ligands
+    uint32_t* specs; // array of specs of the collided ligands
     uint32_t count; // number of collided ligands
 } LigandWrapper;
 
@@ -45,7 +45,7 @@ typedef struct {
     LigandCuda* ligands;
     uint32_t* receptors;
 
-    float* energies;
+    uint32_t* specs; // specs of ligands that were bound in receptor array
     uint32_t* receptor_ids; // ids of receptors that were bound in receptor array
     // entity ids of collided entities can be computed as receptor_ids[i] / n_receptors
     uint32_t* counter;

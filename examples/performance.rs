@@ -32,7 +32,7 @@ use UniSim::prelude::*;
 
 fn test_performance_cpu(n : usize, ligands: usize, ligand_source: Option<f32>) -> Duration {
 
-    let s = settings!(100, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true);
+    let s = settings!(spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true);
 
     let mut world = World::new(s);
 
@@ -60,7 +60,7 @@ mod performance {
 
     fn test_performance_gpu(n : usize, ligands: usize, ligand_source: Option<f32>) -> Duration {
 
-        let s = settings!(100, spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true);
+        let s = settings!(spawn_size = 1.0, fps = 60.0, velocity = 3.0, dimensions = (100,100), give_start_vel = true);
         let mut world = World::new(s);
         world.cuda_initialize().expect("Failed to initialize CUDA");
 

@@ -136,14 +136,18 @@ impl Entity {
         let size = energy.sqrt() / std::f32::consts::PI; // offspring has the default size for its energy
 
         let mut c = 0;
+        let increase_search_interval = 1000;
+        let mut size_multiplier = 1.0;
+
         let (position, velocity) = loop {
             c += 1;
-            if c > 1000 {
-                return None; // failed to find a position
+            if c > increase_search_interval {
+                size_multiplier += 0.5; // increase search area
+                c = 0;
             }
             let angle: f32 = rng.random_range(0.0..(2.0 * std::f32::consts::PI));
             let direction: Array1<f32> = vec![angle.cos(), angle.sin()].into();
-            let position: Array1<f32> = &self.position + &direction * self.size * 2.0; // spawn at a distance of 2x size from parent
+            let position: Array1<f32> = &self.position + &direction * self.size * 2.0 * size_multiplier; // spawn at a distance of 2x size from parent
             let velocity: Array1<f32> = self.speed * &direction;
 
             if let Collision::NoCollision = space.check_position(position.clone(), Some(size), None, entities) {
@@ -270,7 +274,9 @@ impl Entity {
             ]).unwrap();
 
             self.velocity = rotation_matrix.dot(&self.velocity);
-            }
+            }   
+
+            
             self.energy -= settings.entity_tumble_energy_cost();
 
         }
@@ -386,7 +392,9 @@ impl Entity {
         // Take the ligands from the entity and return them
         let ligands = self.ligands_to_emit.clone();
         self.ligands_to_emit.clear();
-        let energy_cost: f32 = ligands.iter().map(|x| x.energy).sum();
+        // calculate energy cost 
+        // always remove absolute energy of ligands  to prevent energy gain from negative energy ligands
+        let energy_cost: f32 = ligands.iter().map(|x| x.energy.abs()).sum();
 
         // check settings to see if ligand emission is enabled
         if !settings.enable_entity_ligand_emission() {
@@ -446,8 +454,21 @@ impl Entity {
     }
 
     #[cfg(feature = "cuda")]
-    pub(crate) fn receive_ligand_cuda_shortcut(&mut self, energy: f32, receptor_index: usize, settings: &Settings) {
+    pub(crate) fn receive_ligand_cuda_shortcut(&mut self, spec: u16, receptor_index: usize, settings: &Settings) {
         // change energy
+
+        let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
+        
+        // check for negative energy 
+        if energy < 0.0 {
+            // check if any plasmid can disable it
+            for &plasmid in &self.genome.plasmids {
+                if plasmid == spec {
+                    // plasmid found, ignore negative ligand
+                    return;
+                }
+            }
+        }
 
         use crate::objects::{OUTPUTS, receptor};
         self.energy += energy;

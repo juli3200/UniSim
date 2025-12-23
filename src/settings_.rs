@@ -159,6 +159,9 @@ get_set_maker!(
         standard_deviation_threshold: f64, 10.0, {std_dev}, // standard deviation for random values
         mean_threshold: f64, 0.0, // mean for random values
 
+        max_plasmid_count: usize, 5, // maximum number of plasmids per entity
+        standard_plasmid_count: usize, 1, // start count of plasmids per entity
+
         velocity: f32, 3.0, // default velocity of entities
         ligand_velocity: f32, 2.0, // default velocity of ligands
         gravity: Vec<f32>, vec![0.0, 0.0], // gravity of the world
@@ -170,7 +173,9 @@ get_set_maker!(
 
         enable_entity_ligand_emission: bool, true, // whether entities can emit ligands
 
+
         tumble_chance: f64, 0.3333,{prob},  // chance of tumbling
+        ligand_poisoning_active: bool, true, // whether ligand poisoning is active
         max_energy_ligand: f32, 1.0, {energy}, // maximum energy of a ligand
         min_energy_ligand: f32, 0.1, {energy}, // minimum energy of a ligand
         //ligand_emission_energy_cost: f32, 0.001, // energy cost per ligand emitted

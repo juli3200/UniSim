@@ -37,7 +37,7 @@ pub(crate) struct Genome{
 
     // plasmid
     // size limited by settings.plasmid_capacity()
-    pub(crate) plasmid: Vec<u16>, // plasmid genes -> spec 
+    pub(crate) plasmids: Vec<u16>, // plasmid genes -> spec 
 
 
 }

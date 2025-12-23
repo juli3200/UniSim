@@ -454,13 +454,14 @@ impl World {
 
 
         // check if the pointers are null
-        if !received_ligands.receptor_ids.is_null() & !received_ligands.energies.is_null() {
+        if !received_ligands.receptor_ids.is_null() & !received_ligands.specs.is_null() {
             // slice around the *mut pointers
-            let energies: &[f32];
+            let specs: &[u32];
+            // receptor ids are stored as (entity_id * receptor_capacity + receptor_index)
             let receptors: &[u32];
 
             unsafe {
-                energies = std::slice::from_raw_parts(received_ligands.energies, len);
+                specs = std::slice::from_raw_parts(received_ligands.specs, len);
                 receptors = std::slice::from_raw_parts(received_ligands.receptor_ids, len * 2);
             }
 
@@ -468,14 +469,14 @@ impl World {
             for i in 0..len {
                 let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
                 let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
-                let energy = energies[i];
+                let spec = specs[i] as u16;
         
                 // find the entity with the corresponding id
                 let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
                 if let Some(entity) = entity_ref {
                     // can go through the shortcut because the bond was already checked on the GPU
-                    entity.receive_ligand_cuda_shortcut(energy, receptor_index, &self.settings);
+                    entity.receive_ligand_cuda_shortcut(spec, receptor_index, &self.settings);
                 }
             }
 
@@ -493,7 +494,7 @@ impl World {
         // free the collision arrays
         unsafe {
             libc::free(received_ligands.receptor_ids as *mut libc::c_void);
-            libc::free(received_ligands.energies as *mut libc::c_void);
+            libc::free(received_ligands.specs as *mut libc::c_void);
         }
 
         // output update on CPU 
