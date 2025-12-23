@@ -9,7 +9,7 @@ impl Space{
     pub(crate) fn empty() -> Self {
         // creates an empty space, only used as a placeholder
         Self {
-            settings: Settings::new(),
+            settings: Settings::new(1),
             width: 0,
             height: 0,
             grid: vec![],
