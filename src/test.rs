@@ -60,7 +60,7 @@ mod general{
 
     #[test]
     fn gravity_test(){
-        let setting = settings!(velocity = 3.0, dimensions = (100,100), gravity = vec![0.0, -1.0], store_capacity = 1000);
+        let setting = settings!(velocity = 3.0, dimensions = (100,100), gravity = (0.0, -1.0), store_capacity = 1000);
         let mut world = World::new(setting);
 
         world.save("testfiles/gravity_test.bin", false).expect("Failed to save world");
@@ -97,7 +97,7 @@ mod dna_tests {
     fn test_tumble(){
         let mut world = World::new(settings!(fps = 40.0, velocity = 3.0, store_capacity = 2000, tumble_chance = 0.3));
         
-        edit_settings!(&mut world, drag = 0.1, gravity = vec![0.0, -0.2]);
+        edit_settings!(&mut world, drag = 0.1, gravity = (0.0, -0.2));
 
         world.save("testfiles/tumble_test.bin", false).expect("Failed to save world");
         world.run(2000);

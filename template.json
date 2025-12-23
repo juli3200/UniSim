@@ -6,7 +6,7 @@
     "spawn_size": 1.0,
     "give_start_vel": true,
     "velocity": 3.0,
-    "enable_entity_ligand_emission": false,
+    "enable_entity_ligand_emission": true,
     "ligand_velocity": 10.0,
     "max_size": 0.55,
     "cuda_memory_interval": 1000,

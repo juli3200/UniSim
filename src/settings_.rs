@@ -164,7 +164,7 @@ get_set_maker!(
 
         velocity: f32, 3.0, // default velocity of entities
         ligand_velocity: f32, 2.0, // default velocity of ligands
-        gravity: Vec<f32>, vec![0.0, 0.0], // gravity of the world
+        gravity: (f32, f32), (0.0, 0.0), // gravity of the world
         drag: f32, 0.5, // drag/friction of the world
         idle_energy_cost: f32, 1e-3, // energy cost per second depending on Area
         entity_acceleration: f32, 1.0, 

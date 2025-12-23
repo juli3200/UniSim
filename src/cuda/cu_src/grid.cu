@@ -6,7 +6,7 @@
 // 0xFFFFFFFF indicates empty either in grid or collided ligand
 
 #define ThreadsPerBlock 256
-const float COLLISION_SPACE_FACTOR = 0.5f; // factor to allocate more space for collided ligands
+const float COLLISION_SPACE_FACTOR = 0.5f; // factor to allocate more space for collided ligands for Arrays
 __device__ __constant__ float reciptocal_pi = 0.31830988618f; // 1/pi
 __device__ __constant__ float rec_two_pow_32 = 0.00000000023283064365386962890625f; // 1/2^32
 
