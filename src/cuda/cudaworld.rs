@@ -313,6 +313,7 @@ impl CUDAWorld {
 
         // load new entity data to gpu
         self.update_entities(entities);
+        self.entity_count = entities.len() as u32;
 
         // update the grid with the new entity positions
         let overflow = self.add_to_grid();
@@ -343,6 +344,31 @@ impl CUDAWorld {
         }
 
         return (collisions, overflow);
+    }
+
+    pub(crate) fn remove_dead_values(&mut self, entities: &mut Vec<Entity>) {
+        use cuda_bindings::memory_gpu as cu_mem;
+
+        // remove dead Entities
+        for i in 0..entities.len() {
+            entities[i].cuda_receptor_index = Some(i as u32);
+        }
+
+        self.receptor_index = entities.len() as u32;
+
+        unsafe { 
+            cu_mem::free_u32(self.receptors);
+            self.receptors = cu_mem::alloc_u32(self.entity_cap * self.settings.receptors_per_entity() as u32);
+        }
+
+        self.fill_receptors(entities);
+
+
+        unsafe {
+            let wrapper = cu_mem::remove_dead_values(self.ligands, self.ligand_count);
+            self.ligands = wrapper.ligands;
+            self.ligand_count = wrapper.ligand_count;
+        }
     }
 
 }

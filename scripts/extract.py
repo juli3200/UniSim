@@ -107,8 +107,8 @@ class State:
             
                 
 
-        #except (struct.error, IndexError):
-        except TypeError:
+        except (struct.error, IndexError):
+        
             self.world.end = True
             return None
         

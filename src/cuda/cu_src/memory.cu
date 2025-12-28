@@ -3,6 +3,17 @@
 
 #include "helper.hpp"
 
+__global__ void remove_dead_ligands_kernel(LigandCuda* new_ligands, LigandCuda* old_ligands, uint32_t size, uint32_t* counter) {
+    uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= size) return;
+
+    if (old_ligands[idx].emitted_id != 0xFFFFFFFF) {
+        uint32_t new_idx = atomicAdd(counter, 1);
+        new_ligands[new_idx] = old_ligands[idx];
+    }
+}
+
+
 extern "C"{
     // ----------------float memory management functions----------------
 
@@ -121,4 +132,31 @@ extern "C"{
         // set all grid values to 0xFFFFFFFF
         cudaMemset(grid, 0xFFFFFFFF, size * sizeof(uint32_t));
     }
+
+    Wrapper remove_dead_values(LigandCuda* old_ligands, uint32_t size) {
+        LigandCuda* new_ligands;
+        cudaMalloc((void**)&new_ligands, size * sizeof(LigandCuda));
+
+        uint32_t* d_counter;
+        cudaMalloc((void**)&d_counter, sizeof(uint32_t));
+        cudaMemset(d_counter, 0, sizeof(uint32_t));
+
+        uint32_t threads_per_block = 256;
+        uint32_t blocks = (size + threads_per_block - 1) / threads_per_block;
+
+        remove_dead_ligands_kernel<<<blocks, threads_per_block>>>(new_ligands, old_ligands, size, d_counter);
+        cudaDeviceSynchronize();
+
+        uint32_t h_counter;
+        cudaMemcpy(&h_counter, d_counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        cudaFree(d_counter);
+        cudaFree(old_ligands);
+
+        Wrapper wrapper;
+        wrapper.ligands = new_ligands; 
+        wrapper.ligand_count = h_counter;
+
+        return wrapper;
+    }
+
 }

@@ -59,7 +59,7 @@ impl Entity {
 
             age: 0,
 
-            receptors: vec![0; settings.receptors_per_entity()], // will be initialized later
+            receptors: vec![u32::MAX; settings.receptors_per_entity()], // will be initialized later
             inner_protein_levels: [0; super::OUTPUTS],
 
             ligands_to_emit: vec![],
@@ -85,7 +85,7 @@ impl Entity {
 
     fn init_receptors(&mut self, settings: &Settings) {
         if settings.receptor_types_per_entity() == 0 {
-            self.receptors = vec![0; settings.receptors_per_entity()];
+            self.receptors = vec![u32::MAX; settings.receptors_per_entity()];
             return; // no receptors to initialize
         }
         let mut rng = rand::rng();
@@ -109,7 +109,7 @@ impl Entity {
                 let create = rng.random_bool(p);
 
                 if !create {
-                    receptors.push(0); // no receptor
+                    receptors.push(u32::MAX); // no receptor
                     continue;
                 }
 
@@ -163,7 +163,6 @@ impl Entity {
         space.add_entity(id, position.clone());
 
         let new_genome = self.genome.mutate(settings);
-        println!("{:?}, {:?}", self.genome, new_genome);
 
         let mut e = Self {
             id: id,
@@ -186,8 +185,6 @@ impl Entity {
         };
 
         e.init_receptors(settings);
-
-        println!("Receptors: {:?}, Old: {:?}", e.receptors, self.receptors);
 
         Some(e)
 

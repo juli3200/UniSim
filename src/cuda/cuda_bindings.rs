@@ -42,6 +42,7 @@ pub(crate) mod memory_gpu{
         pub(crate) fn copy_DtoH_ligand(h_ptr: *mut LigandCuda, d_ptr: *const LigandCuda, size: u32);
         pub(crate) fn copy_DtoD_ligand(target: *mut LigandCuda, origin: *const LigandCuda, size: u32);
 
+        pub(crate) fn remove_dead_values(ligands: *mut LigandCuda, size: u32) -> Wrapper;
 
     }
 }

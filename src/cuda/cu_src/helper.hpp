@@ -51,3 +51,8 @@ typedef struct {
     uint32_t* counter;
 
 } CollisionUtils;
+
+typedef struct{
+    LigandCuda* ligands;
+    uint32_t ligand_count;
+} Wrapper;

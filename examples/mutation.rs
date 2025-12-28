@@ -18,11 +18,11 @@ fn main() {
         );
 
         world.save(None, true).expect("Failed to save world");
-        //world.cuda_initialize().expect("Failed to initialize CUDA");
+        world.cuda_initialize().expect("Failed to initialize CUDA");
 
 
-        for i in 1..4{
-            let _ = world.add_ligand_source(vec![50.0, 50.0], 5.0, i);
+        for i in 0..4{
+            let _ = world.add_ligand_source(vec![50.0, 50.0], 5000.0, i);
             world.run(2500);
             world.delete_all_ligands();
         }
