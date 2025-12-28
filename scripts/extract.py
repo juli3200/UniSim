@@ -1,5 +1,24 @@
 import struct
 
+def find_state_adress(bytes, n, header_size, store_capacity):
+    address_counter= header_size
+    c = 0
+    while True:
+        
+        print(c, n, end = ' ')
+        if n >= store_capacity: 
+            c+=1
+            jumper_address = address_counter + (store_capacity+0) * 4
+            print(jumper_address)
+            address_counter = struct.unpack('I', bytes[jumper_address:jumper_address + 4])[0]
+            n-= store_capacity
+            continue
+        jumper_address = address_counter + n * 4
+        print(jumper_address)
+        address = struct.unpack('I', bytes[jumper_address:jumper_address + 4])[0]
+        print(address)
+        return address
+
 class World:
     def __init__(self, file):
         self.end = False
@@ -59,8 +78,7 @@ class State:
         self.n = n
 
         try: 
-            jumper_address = self.world.header_size + self.n * 4
-            address = struct.unpack('I', self.world.bytes[jumper_address:jumper_address + 4])[0]
+            address = find_state_adress(world.bytes, n, world.header_size, world.store_capacity)
 
 
             self.entities = []
@@ -93,7 +111,8 @@ class State:
             
                 
 
-        except (struct.error, IndexError):
+        #except (struct.error, IndexError):
+        except TypeError:
             self.world.end = True
             return None
         

@@ -183,6 +183,8 @@ get_set_maker!(
         // cuda settings
         cuda_slots_per_cell: usize, 10, // number of slots per cell in the cuda grid
         //cuda_memory_interval: usize, 10000, // interval for cuda memory reallocation
+
+        path: String, "saves/sim".to_string(), // default save path
     }
 );
 

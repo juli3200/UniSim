@@ -35,7 +35,7 @@ mod general{
         world.entities[1].position = ndarray::Array1::from(vec![8.0, 3.0]);
         world.entities[1].velocity = ndarray::Array1::from(vec![-1.0, 0.0]);
 
-        let e = world.save("testfiles/col.bin", false);
+        let e = world.save(Some("testfiles/col.bin"), false);
         if let Err(e) = e {
             eprintln!("Error saving world: {}", e);
         }
@@ -52,7 +52,7 @@ mod general{
         // add ligands manually
         world.add_ligands(1000);
 
-        world.save("ligand_test.bin", false).expect("Failed to save world");
+        world.save(Some("ligand_test.bin"), false).expect("Failed to save world");
         world.run(1024);
 
 
@@ -60,10 +60,10 @@ mod general{
 
     #[test]
     fn gravity_test(){
-        let setting = settings!(velocity = 3.0, dimensions = (100,100), gravity = (0.0, -1.0), store_capacity = 1000);
+        let setting = settings!(velocity = 3.0, dimensions = (100,100), general_force = (0.0, -1.0), store_capacity = 1000);
         let mut world = World::new(setting);
 
-        world.save("testfiles/gravity_test.bin", false).expect("Failed to save world");
+        world.save(Some("testfiles/gravity_test.bin"), false).expect("Failed to save world");
 
         world.run(1000);
 
@@ -82,7 +82,7 @@ mod io_tests {
         edit_settings!(&mut world, fps = 60.0, velocity = 3.0);
 
 
-        let e = world.save("testfiles/alpha.bin", false);
+        let e = world.save(Some("testfiles/alpha.bin"), false);
         println!("Save result: {:?}", e);
         world.run(n);
 
@@ -97,9 +97,9 @@ mod dna_tests {
     fn test_tumble(){
         let mut world = World::new(settings!(fps = 40.0, velocity = 3.0, store_capacity = 2000, tumble_chance = 0.3));
         
-        edit_settings!(&mut world, drag = 0.1, gravity = (0.0, -0.2));
+        edit_settings!(&mut world, drag = 0.1, general_force = (0.0, -0.2));
 
-        world.save("testfiles/tumble_test.bin", false).expect("Failed to save world");
+        world.save(Some("testfiles/tumble_test.bin"), false).expect("Failed to save world");
         world.run(2000);
 
 
@@ -142,7 +142,7 @@ mod cuda_tests {
         use crate::prelude::*;
         let mut world = crate::world::World::new(settings!(default_population = 1, spawn_size = 1.0, fps = 10.0, velocity = 3.0, dimensions = (10,10), give_start_vel = true, store_capacity = 100));
         world.cuda_initialize().expect("Init expect");
-        world.save("testfiles/ligands_test.bin", false).expect("Save expect");
+        world.save(Some("testfiles/ligands_test.bin"), false).expect("Save expect");
 
 
         // add ligands manually

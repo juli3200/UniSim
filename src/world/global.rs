@@ -576,23 +576,29 @@ impl World{
     
     // to be accessed by user
     // update the path where the world is saved
-    pub fn save<S>(&mut self, path: S, save_genome: bool) -> io::Result<()>
-    where
-        S: AsRef<std::path::Path>,
+    pub fn save(&mut self, path: Option<&str>, save_genome: bool) -> io::Result<()>
+
     {
+        let ex_path: std::path::PathBuf;
+        if path.is_none() {
+            ex_path = std::path::PathBuf::from(self.settings.path());
+        } else {
+            ex_path = std::path::PathBuf::from(path.unwrap());
+        }
+
         // check if the path exists
-        if path.as_ref().exists() {
-            eprint!("Warning: File {} already exists. Overwrite? (y/n)", path.as_ref().display());
+        if ex_path.exists() {
+            eprint!("Warning: File {} already exists. Overwrite? (y/n)", ex_path.display());
             let mut input = String::new();   
             std::io::stdin().read_line(&mut input).expect("Failed to read line");
             if input.trim().to_lowercase() != "y" {      
                 return Err(io::Error::new(io::ErrorKind::Other, "File already exists"));
             }
-            std::fs::remove_file(path.as_ref())?;
+            std::fs::remove_file(&ex_path)?;
         }
 
 
-        self.path = Some(path.as_ref().to_path_buf());
+        self.path = Some(ex_path);
         self.save_genome = save_genome;
         self.save_header()?;
         Ok(())
@@ -611,7 +617,9 @@ impl World{
 
     fn save_buffer(&mut self) -> io::Result<()> {
         // Save the current buffer, containing serialized states of the world
-
+        if self.path.is_none() {
+            return Err(io::Error::new(io::ErrorKind::Other, "Save path is not set"));
+        }
         println!("Writing {} states to disk, iteration {}", self.buffer.len(), self.iteration);
 
         // save a new jumper table
@@ -634,7 +642,10 @@ impl World{
     }
 
     fn pause_save(&mut self) -> io::Result<()> {
-        
+        if self.path.is_none() {
+            return Err(io::Error::new(io::ErrorKind::Other, "Save path is not set"));
+        }
+
         // save the pause state -------------------------
         if let Ok(buffer) = self.pause_serialize(self.save_genome) {
             // append the pause state to the file
@@ -644,6 +655,8 @@ impl World{
                 .open(self.path.as_ref().unwrap())?;
 
             file.write_all(&buffer)?;
+            
+            self.byte_counter += buffer.len();
 
             // update save jumper in the header
             let mut file = OpenOptions::new()
@@ -677,6 +690,9 @@ impl World{
 
         // jumper to the next jumper table
         jumper_table.extend((bytes_written as u32).to_le_bytes());
+        println!("jumper bytes {}", bytes_written);
+
+        self.byte_counter = bytes_written;
 
 
         let mut file = OpenOptions::new()

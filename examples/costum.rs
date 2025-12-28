@@ -9,7 +9,7 @@ fn main() {
 
     edit_settings!(&mut world, store_capacity = runtime*4, fps = 60.0);
 
-    world.save("testfiles/4_filters.bin", true).expect("failed to save world");
+    world.save(Some("testfiles/4_filters.bin"), true).expect("failed to save world");
     world.cuda_initialize().expect("");
 
     for i in 1..5 {
