@@ -523,15 +523,21 @@ impl World {
         for entity in 0..self.entities.len() {
 
             let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &entities_clone, &self.settings);
+            
             if let Some(mut e) = new_entity {
                 e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
 
                 // add the receptors to the cuda world
                 self.cuda_world.as_mut().unwrap().add_entity_receptors(&e);
+                if self.entities[entity].genome == e.genome {
+                    println!("Entity {} reproduced without mutation", entity);
+                }
 
                 // add the entity to the world
                 self.entities.push(e);
                 self.counter += 1;
+
+
             }        
         }
 
@@ -690,7 +696,6 @@ impl World{
 
         // jumper to the next jumper table
         jumper_table.extend((bytes_written as u32).to_le_bytes());
-        println!("jumper bytes {}", bytes_written);
 
         self.byte_counter = bytes_written;
 

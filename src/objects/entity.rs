@@ -162,9 +162,12 @@ impl Entity {
         // add the entity to the space
         space.add_entity(id, position.clone());
 
+        let new_genome = self.genome.mutate(settings);
+        println!("{:?}, {:?}", self.genome, new_genome);
+
         let mut e = Self {
             id: id,
-            genome: self.genome.mutate(&space.settings),
+            genome: new_genome,
             energy,
             age: 0,
             receptors: Vec::with_capacity(settings.receptors_per_entity()),
@@ -183,6 +186,8 @@ impl Entity {
         };
 
         e.init_receptors(settings);
+
+        println!("Receptors: {:?}, Old: {:?}", e.receptors, self.receptors);
 
         Some(e)
 
@@ -459,7 +464,7 @@ impl Entity {
 
         let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
         if energy < 0.0 {
-            println!("Warning: Negative energy ligand received in CUDA mode");
+            println!("Spec: {}, Energy: {}", spec, energy);
         }
         
         // check for negative energy 

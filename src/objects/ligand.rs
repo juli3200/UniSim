@@ -13,9 +13,9 @@ pub(crate) fn get_ligand_energy(spec: u16, settings: &Settings) -> f32{
 
     if settings.toxins_active(){
         if spec % 2 == 0 {
-            -energy/2.0
-        } else {
             energy/2.0
+        } else {
+            -energy/2.0
         }
     } else {
         energy

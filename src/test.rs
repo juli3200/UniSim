@@ -102,8 +102,18 @@ mod dna_tests {
         world.save(Some("testfiles/tumble_test.bin"), false).expect("Failed to save world");
         world.run(2000);
 
-
     }
+
+    #[test]
+    fn test_ligand_energy(){
+        let settings = Settings::default();
+
+        for spec in 0..settings.possible_ligands() {
+            let energy = crate::objects::ligand::get_ligand_energy(spec as u16, &settings);
+            println!("Spec: {}, Energy: {}", spec, energy);
+        }
+    }
+
 }
 
 #[cfg(feature = "cuda")]

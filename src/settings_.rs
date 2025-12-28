@@ -3,6 +3,7 @@
 
 use paste::paste;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 // doesn't actually provide any security, just a deterrent
 const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are only done through macros
@@ -19,7 +20,12 @@ macro_rules! get_set_maker{
         #[derive(Debug, Clone, Deserialize)]
         #[serde(default)]
         pub struct $struct_name {
-            $($field_name : $field_type ),*
+            $(
+                $field_name : $field_type,
+            )*
+
+            #[serde(flatten, default)]
+            pub extra: std::collections::HashMap<String, serde_json::Value>,
         }
 
         // implement getter functions
@@ -52,7 +58,8 @@ macro_rules! get_set_maker{
         impl Default for $struct_name {
             fn default() -> Self {
                 Self {
-                    $( $field_name: $field_value ),*
+                    $( $field_name: $field_value ),*,
+                    extra: HashMap::new(),
                 }
             }
         }
@@ -185,6 +192,8 @@ get_set_maker!(
         //cuda_memory_interval: usize, 10000, // interval for cuda memory reallocation
 
         path: String, "saves/sim".to_string(), // default save path
+
+
     }
 );
 
