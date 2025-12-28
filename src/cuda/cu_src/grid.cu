@@ -147,6 +147,13 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
     
     // where the receptor specs for this entity start
     uint32_t receptor_start_index = col_arrays.entities[entity_index].receptor_id * n_receptors;
+    if (entity_index == 101){
+        //printf("receptor_start_index: %u, ", receptor_start_index);
+        for (int i = 0; i < n_receptors; i++) {
+            //printf("%u;%u \n", col_arrays.receptors[receptor_start_index + i], ligand_spec);
+        }
+
+    }
 
     float velx = col_arrays.entities[entity_index].velx;
     float vely = col_arrays.entities[entity_index].vely;
@@ -182,7 +189,7 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
     int receptor_index = receptor_start_index + relative_index;
 
     // check if there is a receptor at this index
-    if (col_arrays.receptors[receptor_index] == 0) {
+    if (col_arrays.receptors[receptor_index] == 65535) {
         // no receptor, reflect ligand and continue
         reflect_ligand(index, col_arrays, entity_index, dx, dy, velx, vely);
         return true;

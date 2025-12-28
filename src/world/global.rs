@@ -392,6 +392,7 @@ impl World {
 
     #[cfg(feature = "cuda")]
     fn gpu_update(&mut self) -> Result<(), String> {
+        
         // rayon is always enabled with cuda feature
 
         if self.cuda_world.is_none() {
@@ -529,9 +530,7 @@ impl World {
 
                 // add the receptors to the cuda world
                 self.cuda_world.as_mut().unwrap().add_entity_receptors(&e);
-                if self.entities[entity].genome == e.genome {
-                    println!("Entity {} reproduced without mutation", entity);
-                }
+
 
                 // add the entity to the world
                 self.entities.push(e);

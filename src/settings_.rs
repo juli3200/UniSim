@@ -78,7 +78,7 @@ macro_rules! reject_init {
 
 macro_rules! std_dev {
     ($s:ident, $v:ident, $name:ident) => {
-        if $v <= 0.0 {
+        if $v < 0.0 {
             eprint!("Invalid {}: must be positive", stringify!($name));
             return;
         }
@@ -115,7 +115,7 @@ macro_rules! prob {
 
 macro_rules! energy {
     ($s:ident, $v:ident, $name:ident) => {
-        if $v <= 0.0 {
+        if $v < 0.0 {
             eprint!("Invalid {}: must be positive", stringify!($name));
             return;
         }

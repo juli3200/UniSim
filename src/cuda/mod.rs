@@ -5,12 +5,18 @@ use crate::objects::{Entity, Ligand};
 pub(crate) mod cuda_bindings;
 pub(crate) mod cudaworld;
 
-const EXTRA_SPACE_ENTITY: f32 = 4.0; // allocate 100% more space than needed for entities
+const EXTRA_SPACE_ENTITY: f32 = 4.0; // allocate 300% more space than needed for entities
 const EXTRA_SPACE_LIGAND: f32 = 2.0; // allocate 100% more space than needed for ligands
 const MIN_SPACE_LIGAND: usize = 2_000_000; // minimum space for ligands
 
 /// CUDA-related structures and functions
 /// e.g as CUDA arrays, kernels links, etc.
+
+#[repr(C)]
+pub(crate) struct Wrapper{
+    pub(crate) ligands: *mut LigandCuda,
+    pub(crate) ligand_count: u32,
+}
 
 #[repr(C)]
 #[derive(Debug, Clone)]

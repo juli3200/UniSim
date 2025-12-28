@@ -8,16 +8,17 @@
     "velocity": 3.0,
     "enable_entity_ligand_emission": false,
     "toxins_active": false,
-    "ligand_velocity": 10.0,
+    "ligand_velocity": 5.0,
     "max_size": 0.8,
     "cuda_memory_interval": 2500,
-    "min_energy_ligand": 10.0,
-    "max_energy_ligand": 15.0,
+    "min_energy_ligand": 0.005,
+    "max_energy_ligand": 0.01,
     "max_age": 15,
     "receptor_types_per_entity": 2,
     "receptors_per_entity": 10,
     "store_capacity": 2500,
-    "blbla": 0.0
+    "blbla": 0.0,
+    "possible_ligands": 1
 
 }
 
