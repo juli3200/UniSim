@@ -27,15 +27,15 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&(world.settings.store_capacity() as u32).to_le_bytes()); // store capacity 4 bytes
     buffer.extend(&world.settings.fps().to_le_bytes()); // fps 4 bytes
     buffer.extend(&world.settings.velocity().to_le_bytes()); // velocity 4 bytes
-    buffer.extend(&world.settings.gravity().0.to_le_bytes());
-    buffer.extend(&world.settings.gravity().1.to_le_bytes()); // gravity 8 bytes
+    buffer.extend(&world.settings.general_force().0.to_le_bytes());
+    buffer.extend(&world.settings.general_force().1.to_le_bytes()); // gravity 8 bytes
     buffer.extend(&world.settings.drag().to_le_bytes()); // drag 4 bytes
 
     buffer.extend(vec![0u8; 32]); // reserved 32 bytes
 
     // entity bio settings
     buffer.extend(&world.settings.ligands_per_entity().to_le_bytes()); // ligand variety 4 bytes per entity
-    buffer.extend(&world.settings.receptors_per_entity().to_le_bytes()); // receptors per entity 4 bytes per entity
+    buffer.extend(&world.settings.receptor_types_per_entity().to_le_bytes()); // receptors per entity 4 bytes per entity
     buffer.extend(vec![0u8; 32]); // reserved 32 bytes
 
     // add other settings
@@ -260,8 +260,8 @@ impl Save for Settings{
         buffer.extend(&self.velocity().to_le_bytes());
 
         // gravity 4 bytes
-        buffer.extend(&self.gravity().0.to_le_bytes());
-        buffer.extend(&self.gravity().1.to_le_bytes());
+        buffer.extend(&self.general_force().0.to_le_bytes());
+        buffer.extend(&self.general_force().1.to_le_bytes());
 
         // drag 4 bytes
         buffer.extend(&self.drag().to_le_bytes());

@@ -89,6 +89,10 @@ macro_rules! settings {
 
                 let file = std::fs::read_to_string(path)?;
                 let settings: Settings = serde_json::from_str(&file)?;
+                
+                for (key, value) in settings.extra.iter() {
+                    eprintln!("Warning: Unrecognized setting '{}' in settings file", key);
+                }
 
                 Ok(settings)
             }
@@ -97,7 +101,7 @@ macro_rules! settings {
                 Ok(s) => s,
                 Err(e) => {
                     eprintln!("Failed to open settings file: {}", e);
-                    Settings::new(100)
+                    Settings::new()
                 }
             };
             settings

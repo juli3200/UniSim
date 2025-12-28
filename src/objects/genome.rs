@@ -27,7 +27,10 @@ impl Genome {
         // todo
 
         // mutate thresholds
-        let normal_dist = Normal::new(0.0, settings.threshold_change()).unwrap();
+        if settings.std_dev_mutation() == 0.0 && settings.mutation_rate() == 0.0  && settings.mean_random() == 0.0 {
+            return new_genome;
+        }
+        let normal_dist = Normal::new(0.0, settings.std_dev_mutation()).unwrap();
         let move_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
         let ligand_emission_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
 
@@ -96,7 +99,7 @@ impl Genome {
 
     pub fn random(settings: &crate::settings_::Settings) -> Self {
         let mut rng = rand::rng();
-        let normal: Normal<f64> = Normal::new(settings.mean_threshold(), settings.standard_deviation_threshold()).unwrap();
+        let normal: Normal<f64> = Normal::new(settings.mean_random(), settings.std_dev_random()).unwrap();
 
 
         let min = settings.concentration_range().0 as f64;
@@ -112,7 +115,7 @@ impl Genome {
             .map(|_| random_ligand(settings))
             .collect();
 
-        let receptor_dna: Vec<u64> = (0..settings.receptors_per_entity())
+        let receptor_dna: Vec<u64> = (0..settings.receptor_types_per_entity())
             .map(|_| random_receptor_genome(settings))
             .collect();
 
@@ -134,7 +137,7 @@ impl Genome {
 fn random_plasmid_gene(settings: &Settings) -> u16 {
     let mut rng = rand::rng();
 
-    let spec = rng.random_range(0..=settings.possible_ligands() as u16);
+    let spec = rng.random_range(0..settings.possible_ligands() as u16);
     spec
 }
 
@@ -149,7 +152,7 @@ fn random_receptor_genome(settings: &Settings) -> u64 {
 
     let what = rng.random_range(0..super::OUTPUTS as u8); // which inner protein does this receptor bind to
     let how_mutch: u8 = if rand::random_bool(0.5) { 1 } else { 0 }; // does it increase or decrease the concentration of the inner protein
-    let spec = rng.random_range(0..=settings.possible_ligands()); // specificity of the receptor
+    let spec = rng.random_range(0..settings.possible_ligands()); // specificity of the receptor
 
     // Pack all fields into a u64 in little-endian order
     // Layout: [info (8 bits)][a (8)][b (8)][c (8)][what (8)][how_mutch (8)][spec (16)]
@@ -167,7 +170,7 @@ fn random_receptor_genome(settings: &Settings) -> u64 {
 fn random_ligand(settings: &Settings) -> u16{
     let mut rng = rand::rng();
 
-    let spec = rng.random_range(0..=settings.possible_ligands() as u16);
+    let spec = rng.random_range(0..settings.possible_ligands() as u16);
     spec
 }
 

@@ -25,7 +25,7 @@ pub(crate) struct Ligand {
     //pub(crate) lifetime: u32, // lifetime in simulation steps remaining
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Genome{
     // outputs 
     pub(crate) move_threshold: i16, // threshold for movement decision

@@ -15,7 +15,7 @@ impl World {
 
     // creates a new World with n = 100
     pub fn default() -> Self {
-        let settings = Settings::new(100);
+        let settings = Settings::new();
         Self::new(settings)
     }
 
@@ -467,8 +467,8 @@ impl World {
 
             // add the ligands to entities and edit concentrations
             for i in 0..len {
-                let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
-                let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
+                let entity_id = (receptors[i] as f32 / self.settings.receptors_per_entity() as f32).floor() as usize;
+                let receptor_index = (receptors[i] % self.settings.receptors_per_entity() as u32) as usize;
                 let spec = specs[i] as u16;
         
                 // find the entity with the corresponding id
@@ -523,15 +523,21 @@ impl World {
         for entity in 0..self.entities.len() {
 
             let new_entity = self.entities[entity].reproduce(self.counter, &mut self.space, &entities_clone, &self.settings);
+            
             if let Some(mut e) = new_entity {
                 e.cuda_receptor_index = Some(self.cuda_world.as_mut().unwrap().receptor_index());
 
                 // add the receptors to the cuda world
                 self.cuda_world.as_mut().unwrap().add_entity_receptors(&e);
+                if self.entities[entity].genome == e.genome {
+                    println!("Entity {} reproduced without mutation", entity);
+                }
 
                 // add the entity to the world
                 self.entities.push(e);
                 self.counter += 1;
+
+
             }        
         }
 
@@ -576,23 +582,29 @@ impl World{
     
     // to be accessed by user
     // update the path where the world is saved
-    pub fn save<S>(&mut self, path: S, save_genome: bool) -> io::Result<()>
-    where
-        S: AsRef<std::path::Path>,
+    pub fn save(&mut self, path: Option<&str>, save_genome: bool) -> io::Result<()>
+
     {
+        let ex_path: std::path::PathBuf;
+        if path.is_none() {
+            ex_path = std::path::PathBuf::from(self.settings.path());
+        } else {
+            ex_path = std::path::PathBuf::from(path.unwrap());
+        }
+
         // check if the path exists
-        if path.as_ref().exists() {
-            eprint!("Warning: File {} already exists. Overwrite? (y/n)", path.as_ref().display());
+        if ex_path.exists() {
+            eprint!("Warning: File {} already exists. Overwrite? (y/n)", ex_path.display());
             let mut input = String::new();   
             std::io::stdin().read_line(&mut input).expect("Failed to read line");
             if input.trim().to_lowercase() != "y" {      
                 return Err(io::Error::new(io::ErrorKind::Other, "File already exists"));
             }
-            std::fs::remove_file(path.as_ref())?;
+            std::fs::remove_file(&ex_path)?;
         }
 
 
-        self.path = Some(path.as_ref().to_path_buf());
+        self.path = Some(ex_path);
         self.save_genome = save_genome;
         self.save_header()?;
         Ok(())
@@ -611,7 +623,9 @@ impl World{
 
     fn save_buffer(&mut self) -> io::Result<()> {
         // Save the current buffer, containing serialized states of the world
-
+        if self.path.is_none() {
+            return Err(io::Error::new(io::ErrorKind::Other, "Save path is not set"));
+        }
         println!("Writing {} states to disk, iteration {}", self.buffer.len(), self.iteration);
 
         // save a new jumper table
@@ -634,7 +648,10 @@ impl World{
     }
 
     fn pause_save(&mut self) -> io::Result<()> {
-        
+        if self.path.is_none() {
+            return Err(io::Error::new(io::ErrorKind::Other, "Save path is not set"));
+        }
+
         // save the pause state -------------------------
         if let Ok(buffer) = self.pause_serialize(self.save_genome) {
             // append the pause state to the file
@@ -644,6 +661,8 @@ impl World{
                 .open(self.path.as_ref().unwrap())?;
 
             file.write_all(&buffer)?;
+            
+            self.byte_counter += buffer.len();
 
             // update save jumper in the header
             let mut file = OpenOptions::new()
@@ -677,6 +696,8 @@ impl World{
 
         // jumper to the next jumper table
         jumper_table.extend((bytes_written as u32).to_le_bytes());
+
+        self.byte_counter = bytes_written;
 
 
         let mut file = OpenOptions::new()

@@ -1,0 +1,23 @@
+{
+    "default_population": 100,
+    "dimensions": [100, 100],
+    "fps" : 30.0,
+    "drag": 0.2,
+    "spawn_size": 1.0,
+    "give_start_vel": true,
+    "velocity": 3.0,
+    "enable_entity_ligand_emission": false,
+    "toxins_active": false,
+    "ligand_velocity": 10.0,
+    "max_size": 0.8,
+    "cuda_memory_interval": 2500,
+    "min_energy_ligand": 10.0,
+    "max_energy_ligand": 15.0,
+    "max_age": 15,
+    "receptor_types_per_entity": 2,
+    "receptors_per_entity": 10,
+    "store_capacity": 2500,
+    "blbla": 0.0
+
+}
+

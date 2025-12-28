@@ -1,8 +1,9 @@
-#![allow(dead_code)]
+//#![allow(dead_code)]
 
 
 use paste::paste;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 // doesn't actually provide any security, just a deterrent
 const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are only done through macros
@@ -12,14 +13,19 @@ const SECRET_KEY: u32 = 31425364; // key is used to ensure settings changes are 
 macro_rules! get_set_maker{
     (struct $struct_name: ident{
         $(
-            $field_name: ident : $field_type: ty $( { $($check:ident),* } )?
+            $field_name: ident : $field_type: ty, $field_value: expr $(, { $($check:ident),* } )?
         ),* $(,)?
     }) => {
 
         #[derive(Debug, Clone, Deserialize)]
         #[serde(default)]
         pub struct $struct_name {
-            $($field_name : $field_type ),*
+            $(
+                $field_name : $field_type,
+            )*
+
+            #[serde(flatten, default)]
+            pub extra: std::collections::HashMap<String, serde_json::Value>,
         }
 
         // implement getter functions
@@ -46,6 +52,15 @@ macro_rules! get_set_maker{
                         self.$field_name = value;
                     }
                 )*
+            }
+        }
+
+        impl Default for $struct_name {
+            fn default() -> Self {
+                Self {
+                    $( $field_name: $field_value ),*,
+                    extra: HashMap::new(),
+                }
             }
         }
     };
@@ -123,129 +138,77 @@ macro_rules! possible_ligands {
         }
     };
 }
+// RENAME EVERYTHING todo
 get_set_maker!(
     struct Settings {
-        init: bool {reject_init},
+        init: bool, false, {reject_init},
 
         // unchangeable settings
-        default_population: usize {reject_init}, // default population size of entities
-        dimensions: (u32, u32) {reject_init}, // width, height of the world
-        spawn_size: f32 {reject_init}, // size of the entities when they are spawned
-        store_capacity: usize {reject_init}, // capacity of the save file
-        give_start_vel: bool {reject_init}, // whether to give entities a starting velocity
+        default_population: usize, 100, {reject_init}, // default population size of entities
+        dimensions: (u32, u32), (100, 100), {reject_init}, // width, height of the world
+        spawn_size: f32, 1.0, {reject_init}, // size of the entities when they are spawned
+        store_capacity: usize, 1000, {reject_init}, // capacity of the save file
+        give_start_vel: bool, true, {reject_init}, // whether to give entities a starting velocity
+        concentration_range: (i16, i16), (-32, 32), {reject_init, conc_range}, // range of concentrations for inner proteins
+        fps: f32, 60.0, {reject_init}, // frames per second of the simulation
 
-        concentration_range: (i16, i16) {reject_init, conc_range}, // range of concentrations for inner proteins
-        fps: f32 {reject_init}, // frames per second of the simulation
-
-        receptor_capacity: usize {reject_init}, // number of total receptors per entity
-
+        receptors_per_entity: usize, 10_000, {reject_init}, // number of total receptors per entity
+        
         // mutable settings
-        possible_ligands: usize {possible_ligands}, // number of possible ligands an entity can emit
-        receptors_per_entity: u32, // number of different receptor types
-        ligands_per_entity: u32, // number of different ligand types an entity can emit
-        max_age: usize, // maximum age of an entity in simulation seconds (0 = infinite)
-        max_size: f32, // maximum size of an entity
+        possible_ligands: usize, 16, {possible_ligands}, // number of possible ligands an entity can emit (must be a power of 2)
+        receptor_types_per_entity: u32, 2, // number of different receptor types
+        ligands_per_entity: u32, 2, // number of different ligand types an entity can emit
+        max_age: usize, 50 ,// maximum age of an entity in simulation seconds (0 = infinite)
+        max_size: f32, 2.0, // maximum size of an entity
 
-        mutation_rate: f64, // probability of mutation per receptor bit
-        threshold_change: f64, // \sigma for threshold changes
+        mutation_rate: f64, 0.001, // probability of mutation per receptor bit
+        std_dev_mutation: f64, 1.5, {std_dev}, // \sigma for threshold changes
+        std_dev_random: f64, 10.0, {std_dev}, // standard deviation for random values
+        mean_random: f64, 0.0, // mean for random values
 
-        standard_deviation_threshold: f64 {std_dev}, // standard deviation for random values
-        mean_threshold: f64, // mean for random values
+        max_plasmid_count: usize, 5, // maximum number of plasmids per entity
+        standard_plasmid_count: usize, 1, // start count of plasmids per entity
 
-        velocity: f32, // default velocity of entities
-        ligand_velocity: f32, // default velocity of ligands
-        gravity: (f32, f32), // gravity of the world
-        drag: f32, // drag/friction of the world
-        idle_energy_cost: f32, // energy cost per second depending on Area
-        entity_run_energy_cost: f32, // energy cost per second when moving
-        entity_tumble_energy_cost: f32, // energy cost per tumble
-        ligand_poisoning_active: bool, // whether ligand poisoning is active
+        velocity: f32, 3.0, // default velocity of entities
+        ligand_velocity: f32, 2.0, // default velocity of ligands
+        general_force: (f32, f32), (0.0, 0.0), // gravity of the world
+        drag: f32, 0.5, // drag/friction of the world
+        idle_energy_cost: f32, 1e-3, // energy cost per second depending on Area
+        entity_acceleration: f32, 1.0, 
+        entity_run_energy_cost: f32, 0.001, // energy cost of entity movement
+        entity_tumble_energy_cost: f32, 0.005, // energy cost of entity tumbling
 
-        enable_entity_ligand_emission: bool,
+        enable_entity_ligand_emission: bool, true, // whether entities can emit ligands
 
-        tumble_chance: f64 {prob}, // chance of tumbling
-        max_energy_ligand: f32 {energy}, // maximum energy of a ligand
-        min_energy_ligand: f32 {energy}, // minimum energy of a ligand
-        movement_energy_cost: f32, // energy cost of movement
-        ligand_emission_energy_cost: f32, // threshold for emitting ligands
 
-        standard_plasmid_count: u32, // number of standard plasmids per entity
-        entity_acceleration: f32, // acceleration of entities
-
+        tumble_chance: f64, 0.3333,{prob},  // chance of tumbling
+        toxins_active: bool, true, // whether ligand poisoning is active
+        max_energy_ligand: f32, 1.0, {energy}, // maximum energy of a ligand
+        min_energy_ligand: f32, 0.1, {energy}, // minimum energy of a ligand
+        //ligand_emission_energy_cost: f32, 0.001, // energy cost per ligand emitted
 
         // cuda settings
-        cuda_slots_per_cell: usize, // number of slots per cell in the cuda grid
-        cuda_memory_interval: usize, // interval for cuda memory reallocation
+        cuda_slots_per_cell: usize, 10, // number of slots per cell in the cuda grid
+        //cuda_memory_interval: usize, 10000, // interval for cuda memory reallocation
+
+        path: String, "saves/sim".to_string(), // default save path
+
+
     }
 );
 
 
 
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self::blueprint(100)
-    }
-}
+
 
 
 impl Settings {
     // initalized settings
-    pub fn new(n: usize) -> Self {
-        let settings = Self::blueprint(n);
+    pub fn new() -> Self {
+        let mut settings = Self::default();
+        settings.initialize();
         settings
-    }
-
-    // uninitialized blueprint
-    pub fn blueprint(n: usize) -> Self {
-        Self {
-            init: false,
-            default_population: n,
-            dimensions: (100, 100),
-            spawn_size: 1.0,
-            give_start_vel: true,
-            concentration_range: (-32, 32),
-            ligand_poisoning_active: false,
-
-            receptor_capacity: 10_000, // 10_000 receptors
-            receptors_per_entity: 2, // 2 different receptor types
-            ligands_per_entity: 2, // 2 different ligand types it can emit
-            max_age: 50, 
-            max_size: 2.0,
-
-            standard_deviation_threshold: 10.0,
-            mean_threshold: 0.0,
-
-            mutation_rate: 0.001,
-            threshold_change: 1.5,
-
-            store_capacity: 1024,
-            fps: 60.0,
-            velocity: 3.0,
-            ligand_velocity: 5.0,
-            gravity: (0.0, 0.0),
-            drag: 0.0,
-            idle_energy_cost: 1e-3,
-
-            enable_entity_ligand_emission: true,
-            standard_plasmid_count: 1,
-
-
-            
-            cuda_slots_per_cell: 10,
-            cuda_memory_interval: 10000,
-
-            tumble_chance: 0.3333,
-            max_energy_ligand: 1.0,
-            min_energy_ligand: 0.1,
-            movement_energy_cost: 1.0,
-            ligand_emission_energy_cost: 0.001,
-            possible_ligands: 16, // must be a power of 2
-
-            entity_acceleration: 1.0,
-            entity_run_energy_cost: 0.001,
-            entity_tumble_energy_cost: 0.005,
-        }
     }
 
     pub fn initialize(&mut self) {

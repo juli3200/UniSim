@@ -7,8 +7,12 @@
     "give_start_vel": true,
     "velocity": 3.0,
     "enable_entity_ligand_emission": true,
+    "ligand_poisoning_active": true,
     "ligand_velocity": 10.0,
-    "max_size": 0.55,
+    "max_size": 0.81,
     "cuda_memory_interval": 1000,
-    "mutation_rate": 0.005
+    "mutation_rate": 0.005,
+    "min_energy_ligand": 0.6,
+    "max_energy_ligand": 1.8,
+    "max_age": 15
 }

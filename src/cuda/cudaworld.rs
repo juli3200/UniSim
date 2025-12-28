@@ -82,7 +82,7 @@ impl CUDAWorld {
             entities_d = cu_mem::alloc_entity(entity_cap);
 
             // ----------------- receptors -----------------
-            receptors_d = cu_mem::alloc_u32(entity_cap * settings.receptor_capacity() as u32);
+            receptors_d = cu_mem::alloc_u32(entity_cap * settings.receptors_per_entity() as u32);
 
 
             // ----------------- ligands -----------------
@@ -135,10 +135,10 @@ impl CUDAWorld {
     fn fill_receptors(&mut self, entities: &Vec<Entity>) {
         use cuda_bindings::memory_gpu as cu_mem;
 
-        let size_receptors = (entities.len() * self.settings.receptor_capacity()) as u32;
+        let size_receptors = (entities.len() * self.settings.receptors_per_entity()) as u32;
 
         // create host-side vector to hold data before copying to device
-        let mut receptors_h = Vec::with_capacity(entities.len() * self.settings.receptor_capacity());
+        let mut receptors_h = Vec::with_capacity(entities.len() * self.settings.receptors_per_entity());
 
         for entity in entities {
             for receptor in &entity.receptors {
@@ -244,8 +244,8 @@ impl CUDAWorld {
                 cu_mem::free_entity(self.entities);
 
                 // reallocate receptors
-                let new_receptors = cu_mem::alloc_u32(new_cap * self.settings.receptor_capacity() as u32);
-                cu_mem::copy_DtoD_u32(new_receptors, self.receptors, self.entity_count as u32 * self.settings.receptor_capacity() as u32);
+                let new_receptors = cu_mem::alloc_u32(new_cap * self.settings.receptors_per_entity() as u32);
+                cu_mem::copy_DtoD_u32(new_receptors, self.receptors, self.entity_count as u32 * self.settings.receptors_per_entity() as u32);
                 cu_mem::free_u32(self.receptors);
 
 
@@ -289,10 +289,10 @@ impl CUDAWorld {
             self.increase_cap(IncreaseType::Entity);
         }
 
-        let start_index = entity.cuda_receptor_index.unwrap() * self.settings.receptor_capacity() as u32;
+        let start_index = entity.cuda_receptor_index.unwrap() * self.settings.receptors_per_entity() as u32;
 
         // create host-side vector to hold data before copying to device
-        let mut receptors_h = Vec::with_capacity(self.settings.receptor_capacity());
+        let mut receptors_h = Vec::with_capacity(self.settings.receptors_per_entity());
 
         for receptor in &entity.receptors {
             let (_, _ , spec) = sequence_receptor(*receptor);
@@ -302,7 +302,7 @@ impl CUDAWorld {
 
         // copy to device
         unsafe{
-            cu_mem::copy_HtoD_u32(self.receptors.add(start_index as usize), receptors_h.as_ptr(), self.settings.receptor_capacity() as u32);
+            cu_mem::copy_HtoD_u32(self.receptors.add(start_index as usize), receptors_h.as_ptr(), self.settings.receptors_per_entity() as u32);
         }
     }
 
@@ -331,7 +331,7 @@ impl CUDAWorld {
                 y: self.settings.dimensions().1,
                 depth: self.settings.cuda_slots_per_cell() as u32,
             };
-            let receptor_count = self.settings.receptor_capacity() as u32;
+            let receptor_count = self.settings.receptors_per_entity() as u32;
             collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities,
                 self.ligands, self.ligand_count, self.receptors, receptor_count);
         }
