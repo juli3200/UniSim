@@ -15,7 +15,7 @@ impl World {
 
     // creates a new World with n = 100
     pub fn default() -> Self {
-        let settings = Settings::new(100);
+        let settings = Settings::new();
         Self::new(settings)
     }
 
@@ -467,8 +467,8 @@ impl World {
 
             // add the ligands to entities and edit concentrations
             for i in 0..len {
-                let entity_id = (receptors[i] as f32 / self.settings.receptor_capacity() as f32).floor() as usize;
-                let receptor_index = (receptors[i] % self.settings.receptor_capacity() as u32) as usize;
+                let entity_id = (receptors[i] as f32 / self.settings.receptors_per_entity() as f32).floor() as usize;
+                let receptor_index = (receptors[i] % self.settings.receptors_per_entity() as u32) as usize;
                 let spec = specs[i] as u16;
         
                 // find the entity with the corresponding id

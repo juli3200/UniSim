@@ -27,7 +27,7 @@ impl Genome {
         // todo
 
         // mutate thresholds
-        let normal_dist = Normal::new(0.0, settings.threshold_change()).unwrap();
+        let normal_dist = Normal::new(0.0, settings.std_dev_mutation()).unwrap();
         let move_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
         let ligand_emission_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
 
@@ -96,7 +96,7 @@ impl Genome {
 
     pub fn random(settings: &crate::settings_::Settings) -> Self {
         let mut rng = rand::rng();
-        let normal: Normal<f64> = Normal::new(settings.mean_threshold(), settings.standard_deviation_threshold()).unwrap();
+        let normal: Normal<f64> = Normal::new(settings.mean_random(), settings.std_dev_random()).unwrap();
 
 
         let min = settings.concentration_range().0 as f64;
@@ -112,7 +112,7 @@ impl Genome {
             .map(|_| random_ligand(settings))
             .collect();
 
-        let receptor_dna: Vec<u64> = (0..settings.receptors_per_entity())
+        let receptor_dna: Vec<u64> = (0..settings.receptor_types_per_entity())
             .map(|_| random_receptor_genome(settings))
             .collect();
 

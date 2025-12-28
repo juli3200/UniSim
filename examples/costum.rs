@@ -13,7 +13,7 @@ fn main() {
     world.cuda_initialize().expect("");
 
     for i in 1..5 {
-        let _ = world.add_ligand_source(vec![50.0, 50.0], 1000.0, i);
+        let _ = world.add_ligand_source(vec![50.0, 50.0], 10000.0, i);
         world.run(runtime);
         world.delete_all_ligands();
     }

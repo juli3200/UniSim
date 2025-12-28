@@ -59,7 +59,7 @@ impl Entity {
 
             age: 0,
 
-            receptors: vec![0; settings.receptor_capacity()], // will be initialized later
+            receptors: vec![0; settings.receptors_per_entity()], // will be initialized later
             inner_protein_levels: [0; super::OUTPUTS],
 
             ligands_to_emit: vec![],
@@ -84,14 +84,14 @@ impl Entity {
     }
 
     fn init_receptors(&mut self, settings: &Settings) {
-        if settings.receptors_per_entity() == 0 {
-            self.receptors = vec![0; settings.receptor_capacity()];
+        if settings.receptor_types_per_entity() == 0 {
+            self.receptors = vec![0; settings.receptors_per_entity()];
             return; // no receptors to initialize
         }
         let mut rng = rand::rng();
 
         // this receptor array will be filled with receptors all over the membrane
-        let mut receptors = Vec::with_capacity(settings.receptor_capacity());
+        let mut receptors = Vec::with_capacity(settings.receptors_per_entity());
 
         // this section receptors reference the *different* receptors in receptor_dna
         // extract receptor functions from receptor_dna
@@ -103,9 +103,9 @@ impl Entity {
         // so every 4th receptor slot is reserved for the same receptor function
         // this ensures that the receptors are evenly distributed over the membrane
 
-        for i in 0..(settings.receptor_capacity() / self.genome.receptor_dna.len()) {
+        for i in 0..(settings.receptors_per_entity() / self.genome.receptor_dna.len()) {
             for r_type in 0..receptor_fns.len() {
-                let p = receptor_fns[r_type]((i  * settings.receptors_per_entity() as usize) as f32); // probability to create a receptor here
+                let p = receptor_fns[r_type]((i  * settings.receptor_types_per_entity() as usize) as f32); // probability to create a receptor here
                 let create = rng.random_bool(p);
 
                 if !create {
@@ -167,7 +167,7 @@ impl Entity {
             genome: self.genome.mutate(&space.settings),
             energy,
             age: 0,
-            receptors: Vec::with_capacity(settings.receptor_capacity()),
+            receptors: Vec::with_capacity(settings.receptors_per_entity()),
             inner_protein_levels: [0; super::OUTPUTS],
             ligands_to_emit: vec![],
             received_ligands: vec![],
@@ -233,7 +233,7 @@ impl Entity {
         self.velocity -= &ad;
 
         // gravity
-        self.velocity.scaled_add(dt, &Array1::from_vec(vec![space.settings.gravity().0, space.settings.gravity().1]));
+        self.velocity.scaled_add(dt, &Array1::from_vec(vec![space.settings.general_force().0, space.settings.general_force().1]));
 
         // update the entity's position based on its velocity
         self.position.scaled_add(dt * space.settings.velocity(), &self.velocity);
@@ -420,7 +420,7 @@ impl Entity {
 
         // handle the message
 
-        let angle_index = (angle / std::f64::consts::PI * (settings.receptor_capacity() - 1) as f64).floor() as usize; // index in receptor array
+        let angle_index = (angle / std::f64::consts::PI * (settings.receptors_per_entity() - 1) as f64).floor() as usize; // index in receptor array
 
         let receptor = self.receptors[angle_index];
         let bond_result = super::receptor::bond(receptor, ligand.spec);
@@ -445,7 +445,7 @@ impl Entity {
         self.inner_protein_levels[index] = (self.inner_protein_levels[index] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
 
         // add angle to received_ligands for statistics
-        let angle: f32 = (angle_index as f32 / settings.receptor_capacity() as f32) *180.0; // angle in degrees from 0 to 180
+        let angle: f32 = (angle_index as f32 / settings.receptors_per_entity() as f32) *180.0; // angle in degrees from 0 to 180
         self.received_ligands.push(angle as u8);
 
         return true;
@@ -458,6 +458,9 @@ impl Entity {
         // change energy
 
         let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
+        if energy < 0.0 {
+            println!("Warning: Negative energy ligand received in CUDA mode");
+        }
         
         // check for negative energy 
         if energy < 0.0 {
@@ -487,7 +490,7 @@ impl Entity {
         self.inner_protein_levels[index as usize] = (self.inner_protein_levels[index as usize] + change).clamp(settings.concentration_range().0, settings.concentration_range().1);
 
         // add angle to received_ligands for statistics
-        let angle: f32 = (receptor_index as f32 / settings.receptor_capacity() as f32) *180.0; // angle in degrees from 0 to 180
+        let angle: f32 = (receptor_index as f32 / settings.receptors_per_entity() as f32) *180.0; // angle in degrees from 0 to 180
         self.received_ligands.push(angle as u8);
     }
 

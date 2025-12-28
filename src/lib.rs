@@ -97,7 +97,7 @@ macro_rules! settings {
                 Ok(s) => s,
                 Err(e) => {
                     eprintln!("Failed to open settings file: {}", e);
-                    Settings::new(100)
+                    Settings::new()
                 }
             };
             settings
