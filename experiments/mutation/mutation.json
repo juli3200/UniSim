@@ -11,13 +11,12 @@
     "ligand_velocity": 5.0,
     "max_size": 0.8,
     "cuda_memory_interval": 2500,
-    "min_energy_ligand": 0.005,
-    "max_energy_ligand": 0.01,
-    "max_age": 15,
+    "min_energy_ligand": 0.01,
+    "max_energy_ligand": 0.03,
+    "max_age": 20,
     "receptor_types_per_entity": 1,
-    "receptors_per_entity": 10,
+    "receptors_per_entity": 100,
     "store_capacity": 2500,
-    "blbla": 0.0,
     "possible_ligands": 2
 
 }

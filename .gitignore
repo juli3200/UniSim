@@ -2,7 +2,7 @@
 /.vscode
 *.bin
 /.idea
-/lib/*
 scripts/__pycache__/
 
 Cargo.lock
+.env/
