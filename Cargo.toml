@@ -2,6 +2,12 @@
 name = "UniSim"
 version = "0.1.0"
 edition = "2024"
+include = [
+    "src/**",
+    "Cargo.toml",
+    "build.rs",
+    "native/**"
+]
 
 [features]
 default = ["debug", "rayon", "cuda"]

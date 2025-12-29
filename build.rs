@@ -1,14 +1,21 @@
 // build file is used to link all cuda libs
+use std::env;
 
 #[cfg(feature = "cuda")]
 const NAMES: [&str; 3] = ["test", "memory", "grid"];
 
-#[cfg(all(target_os = "linux", feature = "cuda"))]
-const CUDA_PATH: &str = "/usr/local/cuda/lib64";
-#[cfg(all(not(target_os = "linux"), feature = "cuda"))]
-const CUDA_PATH: &str = r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\lib\x64";
+
 
 fn main() {
+
+    let target = env::var("TARGET").unwrap();
+
+    let (lib_dir, cu_dir) = if target.contains("windows") {
+        ("native/windows", r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.2\lib\x64")
+    } else {
+        ("native/linux", "/usr/local/cuda/lib64")
+    };
+
 
     // only execute if CUDA feature is enabled
     #[cfg(feature = "cuda")]
@@ -22,7 +29,7 @@ fn main() {
     // Add the path to the CUDA libraries
     // Adjust the path according to your CUDA installation
     // todo: make this dynamic
-    println!(r"cargo:rustc-link-search={}", CUDA_PATH);
+    println!(r"cargo:rustc-link-search={}", cu_dir);
 
     // link all libs that are used in the project
     for name in NAMES {
@@ -30,7 +37,7 @@ fn main() {
     }
 
     // Search path for cuda libraries
-    println!(r"cargo:rustc-link-search=.\lib");
+    println!(r"cargo:rustc-link-search={}", lib_dir);
 
     }
     
