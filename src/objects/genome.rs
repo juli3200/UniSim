@@ -17,6 +17,10 @@ impl Genome {
     }
 
     pub fn mutate(&self, settings: &crate::settings_::Settings) -> Self {
+        if settings.mutation_rate() >= 0.5{
+            // high mutation rate means we just generate a new random genome
+            return Genome::random(settings);
+        }
 
         let mut rng = rand::rng();
 
@@ -50,49 +54,47 @@ impl Genome {
         }
 
         // mutate receptor DNA
-        for receptor in &mut new_genome.receptor_dna {
+        for receptor in new_genome.receptor_dna.iter_mut() {
             // mutate each bit with probability mutation_rate
             // ensure resulting receptor is valid
             // if not do it again
 
             let mut c = 0;
 
-            *receptor = loop {
-                let mut mutate_rec = *receptor;
+            let mut mutate_rec = *receptor;
 
-                for i in 0..64 {
+            let mut success: bool = true;
+
+            // mutate every bit one by one
+            // if after flipping a bit the receptor is invalid, try flipping it again
+
+            for i in 0..64 {
+                if !success {
+                    // this is if c was too high last time
+                    break;
+                }
+
+                success = loop {
+
                     if rng.random_bool(settings.mutation_rate()) {
                         mutate_rec ^= 1 << i; // flip bit i
                     }
+                    if valid_rec_gene(mutate_rec, settings) {
+                        break true;
+                    }
+                    c += 1;
+                    if c > 10000 {
+                        eprintln!("Warning: could not mutate receptor gene to valid state after 10000 tries");
+                        break false; // give up and return original
+                    }
                 }
-
-                if valid_rec_gene(*receptor, settings) {
-                    break mutate_rec;
-                }
-
-                c += 1;
-                if c > 1000 {
-                    //eprintln!("Warning: could not mutate receptor gene to valid state after 1000 tries");
-                    break *receptor; // give up and return original
-                }
-            };
-
-            if rng.random_bool(settings.mutation_rate() * 64.0) {
-                *receptor ^= 1 << rng.random_range(0..64); // flip a random bit
-
-                // Ensure spec (bits 48-63) is still in range
-                let spec_mask = 0xFFFFu64 << 48;
-                let spec = ((*receptor & spec_mask) >> 48) as u16;
-                let max_spec = settings.possible_ligands() as u16;
-                if spec > max_spec {
-                    *receptor = (*receptor & !spec_mask) | ((max_spec as u64) << 48);
-                }
-
-                // ensure what (bits 32-39) is still in range
-                // random val from 0 to OUTPUTS-1
-                
+            }
+            if success {
+                *receptor = mutate_rec;
             }
         }
+
+
 
         new_genome
     }
