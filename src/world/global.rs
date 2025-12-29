@@ -426,9 +426,20 @@ impl World {
 
         let entities_clone = self.entities.clone();
 
+        let mut plasmid_packages: Vec<objects::PlasmidPackage> = Vec::new();
+
         // check for collisions on CPU
         for i in 0..self.entities.len() {
-            self.entities[i].resolve_collision(&mut self.space, &entities_clone);
+            if let Some(package) = self.entities[i].resolve_collision(&mut self.space, &entities_clone) {
+                plasmid_packages.push(package);
+            }
+        }
+
+        for package in plasmid_packages {
+            let receiver = get_entity_mut(&mut self.entities, package.receiver_id);
+            if let Some(entity) = receiver {
+                entity.receive_plasmid(package.plasmid, &self.settings);
+            }
         }
 
         // LIGANDS ARE UPDATED ON GPU

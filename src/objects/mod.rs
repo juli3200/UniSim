@@ -5,13 +5,18 @@ pub mod ligand;
 pub mod genome;
 pub mod receptor;
 
-pub(crate) const OUTPUTS: usize = 2; // number of different inner proteins / concentrations
+pub(crate) const OUTPUTS: usize = 4; // number of different inner proteins / concentrations
 
 #[derive(Debug, Clone)]
 pub struct LigandSource {
     position: Array1<f32>,
     emission_rate: f32, // ligands per second
     ligand_spec: u16,
+}
+
+pub(crate) struct PlasmidPackage {
+    pub(crate) plasmid: u16,
+    pub(crate) receiver_id: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +42,7 @@ pub(crate) struct Genome{
 
     // plasmid
     // size limited by settings.plasmid_capacity()
+    pub(crate) plasmid_threshold: i16, // threshold for plasmid transfer decision
     pub(crate) plasmids: Vec<u16>, // plasmid genes -> spec 
 
 
@@ -68,6 +74,9 @@ pub(crate) struct Entity {
     // during update emit ligands
     ligands_to_emit: Vec<Ligand>, // ligands to emit
     pub(crate) received_ligands: Vec<u8>, // received ligands used for storing (angle from which ligand was received (in degrees from 0 - 180))
+
+    // plasmid bridge
+    pub(crate) plasmid_bridge: bool, // whether the entity has an active plasmid bridge
 
     // ******************* physics ***********************
     pub(crate) position: Array1<f32>, // position in the world

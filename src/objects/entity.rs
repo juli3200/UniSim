@@ -1,7 +1,7 @@
 use rand::Rng;
 use ndarray::{Array1, Array2};
 use super::{Entity, Ligand};
-use crate::objects::Genome;
+use crate::objects::{Genome, PlasmidPackage};
 use crate::settings_::Settings;
 use crate::world::{Border, Collision, Space};
 
@@ -64,6 +64,8 @@ impl Entity {
 
             ligands_to_emit: vec![],
             received_ligands: vec![],
+
+            plasmid_bridge: false,
 
             position,
             size: settings.spawn_size(),
@@ -173,6 +175,7 @@ impl Entity {
             inner_protein_levels: [0; super::OUTPUTS],
             ligands_to_emit: vec![],
             received_ligands: vec![],
+            plasmid_bridge: false,
             position,
             size,
             velocity,
@@ -311,16 +314,56 @@ impl Entity {
             self.ligands_to_emit.push(Ligand::new(self.id, spec, position, velocity, settings));
         }
 
-        // (FUTURE: KILLING OTHER ENTITIES)
+        // 3. PLASMID BRIDGE
+        if self.inner_protein_levels[3] > self.genome.plasmid_threshold {
+            self.plasmid_bridge = true;
+        } else {
+            self.plasmid_bridge = false;
+        }
+
 
     }
 
+    pub(crate) fn receive_plasmid(&mut self, plasmid: u16, settings: &Settings) {
+        // check if plasmid is already present
+        if self.genome.plasmids.contains(&plasmid) {
+            return; // plasmid already present
+        }
 
-    pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) {
+        // check if there is space for the plasmid
+        if self.genome.plasmids.len() == settings.max_plasmid_count() as usize {
+            self.genome.plasmids.remove(0); // remove oldest plasmid
+        }
+
+        // add the plasmid
+        self.genome.plasmids.push(plasmid);
+    }
+
+    fn try_form_plasmid_bridge(&self, other_id: usize) -> Option<PlasmidPackage> {
+        // check if THIS entity can form a plasmid bridge 
+        if !self.plasmid_bridge {
+            return None; // this entity cannot form a plasmid bridge
+        }
+
+        // get the oldest plasmid 
+        let plasmid = if self.genome.plasmids.is_empty() {
+            return None; // no plasmids to transfer
+        } else {
+            self.genome.plasmids[0] // for now, just transfer the first plasmid
+        };
+        Some(PlasmidPackage {
+            plasmid,
+            receiver_id: other_id,
+        })
+    }
+
+
+    pub(crate)fn resolve_collision(&mut self, space: &mut Space, entities: &Vec<Entity>) -> Option<PlasmidPackage> {
 
         // check for collisions with the space boundaries
         let collision = space.check_position(self.position.clone(), Some(self.size), Some(self.id), entities);
 
+        let mut plasmid_package: Option<PlasmidPackage> = None;
         
         match collision {
             Collision::EntityCollision(other_velocity, mass, other_position, id) => {
@@ -328,8 +371,10 @@ impl Entity {
                 // this is used to avoid jittering
                 if self.last_entity_collision.0 == id && self.last_entity_collision.1 > 0 {
                     // skip update if the entity just collided with the same entity
-                    return;
+                    return plasmid_package;
                 }
+
+                plasmid_package = self.try_form_plasmid_bridge(id);
 
                 // resolve collision with other entity
                 // elastic collision resolution
@@ -374,7 +419,7 @@ impl Entity {
             Collision::BorderCollision(border) => {
                 // check if the entity just collided with a border
                 if self.last_border_collision > 0 {
-                    return;
+                    return plasmid_package;
                 }
                 
                 match border {
@@ -388,6 +433,7 @@ impl Entity {
             }
             _ => {}
         }
+        plasmid_package
     }
 
     pub(crate) fn emit_ligands(&mut self, settings: &Settings) -> Vec<Ligand> {

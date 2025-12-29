@@ -6,10 +6,11 @@ use rand_distr::{Distribution, Normal};
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>, plasmids: Vec<u16>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, plasmid_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>, plasmids: Vec<u16>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
+            plasmid_threshold,
             ligands,
             receptor_dna,
             plasmids,
@@ -37,9 +38,11 @@ impl Genome {
         let normal_dist = Normal::new(0.0, settings.std_dev_mutation()).unwrap();
         let move_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
         let ligand_emission_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
+        let plasmid_threshold_delta = normal_dist.sample(&mut rng).round() as i16;
 
         new_genome.move_threshold += move_threshold_delta;
         new_genome.ligand_emission_threshold += ligand_emission_threshold_delta;
+        new_genome.plasmid_threshold += plasmid_threshold_delta;
 
         // mutate ligands
         // only allow valid bit flips
@@ -111,6 +114,7 @@ impl Genome {
         // sample thresholds from normal distribution and clamp to valid range
         let move_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
         let ligand_emission_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
+        let plasmid_threshold = normal.sample(&mut rng).round().clamp(min, max) as i16;
 
 
         let ligands: Vec<u16> = (0..settings.ligands_per_entity())
@@ -128,6 +132,7 @@ impl Genome {
         Self {
             move_threshold,
             ligand_emission_threshold,
+            plasmid_threshold,
             ligands,
             receptor_dna,
             plasmids,
