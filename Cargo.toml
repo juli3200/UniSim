@@ -8,6 +8,7 @@ include = [
     "build.rs",
     "native/**"
 ]
+links = "UniSim"
 
 [features]
 default = ["debug", "rayon", "cuda"]
