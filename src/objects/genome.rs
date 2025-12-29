@@ -71,27 +71,11 @@ impl Genome {
                 }
 
                 c += 1;
-                if c > 1000 {
-                    //eprintln!("Warning: could not mutate receptor gene to valid state after 1000 tries");
+                if c > 10000 {
+                    eprintln!("Warning: could not mutate receptor gene to valid state after 10000 tries");
                     break *receptor; // give up and return original
                 }
             };
-
-            if rng.random_bool(settings.mutation_rate() * 64.0) {
-                *receptor ^= 1 << rng.random_range(0..64); // flip a random bit
-
-                // Ensure spec (bits 48-63) is still in range
-                let spec_mask = 0xFFFFu64 << 48;
-                let spec = ((*receptor & spec_mask) >> 48) as u16;
-                let max_spec = settings.possible_ligands() as u16;
-                if spec > max_spec {
-                    *receptor = (*receptor & !spec_mask) | ((max_spec as u64) << 48);
-                }
-
-                // ensure what (bits 32-39) is still in range
-                // random val from 0 to OUTPUTS-1
-                
-            }
         }
 
         new_genome

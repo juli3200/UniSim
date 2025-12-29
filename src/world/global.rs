@@ -102,6 +102,18 @@ impl World {
         Ok(())
     }
 
+    pub fn remove_ligand_source(&mut self, index: usize) -> Result<(), String> {
+        if index >= self.ligand_sources.len() {
+            return Err(format!("Ligand source index {} is out of bounds, maximum is {}", index, self.ligand_sources.len() - 1));
+        }
+        self.ligand_sources.remove(index);
+        Ok(())
+    }
+
+    pub fn remove_all_ligand_sources(&mut self) {
+        self.ligand_sources.clear();
+    }
+
     pub fn close(&mut self) {
         // save and close the world
         if self.path.is_some() {
@@ -460,25 +472,25 @@ impl World {
             let specs: &[u32];
             // receptor ids are stored as (entity_id * receptor_capacity + receptor_index)
             let receptors: &[u32];
+            let entity_ids: &[u32];
 
             unsafe {
                 specs = std::slice::from_raw_parts(received_ligands.specs, len);
                 receptors = std::slice::from_raw_parts(received_ligands.receptor_ids, len * 2);
+                entity_ids = std::slice::from_raw_parts(received_ligands.entity_ids, len);
             }
 
             // add the ligands to entities and edit concentrations
             for i in 0..len {
-                let entity_id = (receptors[i] as f32 / self.settings.receptors_per_entity() as f32).floor() as usize;
+                let entity_index = entity_ids[i] as usize;
                 let receptor_index = (receptors[i] % self.settings.receptors_per_entity() as u32) as usize;
                 let spec = specs[i] as u16;
         
-                // find the entity with the corresponding id
-                let entity_ref = get_entity_mut(&mut self.entities, entity_id);
 
-                if let Some(entity) = entity_ref {
-                    // can go through the shortcut because the bond was already checked on the GPU
-                    entity.receive_ligand_cuda_shortcut(spec, receptor_index, &self.settings);
-                }
+
+                // can go through the shortcut because the bond was already checked on the GPU
+                self.entities[entity_index].receive_ligand_cuda_shortcut(spec, receptor_index, &self.settings);
+                
             }
 
         } else {
@@ -496,6 +508,7 @@ impl World {
         unsafe {
             libc::free(received_ligands.receptor_ids as *mut libc::c_void);
             libc::free(received_ligands.specs as *mut libc::c_void);
+            libc::free(received_ligands.entity_ids as *mut libc::c_void);
         }
 
         // output update on CPU 

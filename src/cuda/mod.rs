@@ -59,6 +59,7 @@ pub(crate) struct Dim{
 pub(crate) struct LigandWrapper{
     pub(crate) receptor_ids: *mut u32,
     pub(crate) specs: *mut u32,
+    pub(crate) entity_ids: *mut u32,
     pub(crate) count: u32,
 }
 

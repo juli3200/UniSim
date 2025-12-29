@@ -197,10 +197,15 @@ impl CUDAWorld {
     }
 
     pub(crate) fn delete_ligands(&mut self) {
-        use cuda_bindings::grid_gpu as cu_grid;
+        use cuda_bindings::memory_gpu as cu_mem;
 
         unsafe{
-            cu_grid::delete_ligands(self.ligands, self.ligand_count);
+            cu_mem::free_ligand(self.ligands);
+        }
+
+        // reallocate device memory
+        unsafe{
+            self.ligands = cu_mem::alloc_ligand(self.ligand_cap);
         }
 
         self.ligand_count = 0;
@@ -344,6 +349,16 @@ impl CUDAWorld {
         }
 
         return (collisions, overflow);
+    }
+
+    pub(crate) fn count_zero_spec_ligands(&self) -> u32 {
+        use cuda_bindings::grid_gpu as cu_grid;
+
+        let count: u32;
+        unsafe {
+            count = cu_grid::count_zero_spec_ligands(self.ligands, self.ligand_count);
+        }
+        count
     }
 
     pub(crate) fn remove_dead_values(&mut self, entities: &mut Vec<Entity>) {

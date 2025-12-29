@@ -10,6 +10,9 @@ pub(crate) fn get_ligand_energy(spec: u16, settings: &Settings) -> f32{
     let max_energy = settings.max_energy_ligand();
     let min_energy = settings.min_energy_ligand();
     let energy = min_energy + (max_energy - min_energy) * spec.count_ones() as f32 / (settings.possible_ligands() as f32).log2();
+    if energy.is_nan(){
+        return min_energy;
+    }
 
     if settings.toxins_active(){
         if spec % 2 == 0 {
