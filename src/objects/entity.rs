@@ -459,6 +459,11 @@ impl Entity {
     pub(crate) fn receive_ligand_cuda_shortcut(&mut self, spec: u16, receptor_index: usize, settings: &Settings) {
         // change energy
 
+        if self.id % 20 == 0 {
+            let (_,_, spec) = receptor::sequence_receptor(self.receptors[receptor_index]);
+            //println!("Entity {} received ligand spec {}, receptor {}", self.id, spec, spec);
+        }
+
         let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
         if energy < 0.0 {
             println!("Spec: {}, Energy: {}", spec, energy);

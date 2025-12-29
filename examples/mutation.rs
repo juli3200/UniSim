@@ -21,10 +21,11 @@ fn main() {
         world.cuda_initialize().expect("Failed to initialize CUDA");
 
 
-        for i in 0..4{
+        for i in 0..2{
             let _ = world.add_ligand_source(vec![50.0, 50.0], 5000.0, i);
             world.run(2500);
             world.delete_all_ligands();
+            world.remove_all_ligand_sources();
         }
     }
 }
