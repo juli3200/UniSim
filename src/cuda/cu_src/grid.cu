@@ -106,6 +106,13 @@ __device__ float pseudo_random(uint32_t x) {
     
 }
 
+__device__ bool negative_energy(int spec, bool toxins_active) {
+    if (!toxins_active) {
+        return false;
+    }
+    return spec % 2 != 0; 
+}
+
 __device__ void reflect_ligand(int index, CollisionUtils col_arrays, uint32_t entity_index, float dx, float dy, float velx, float vely) {
     // reflect ligand and continue
 
@@ -126,7 +133,7 @@ __device__ void reflect_ligand(int index, CollisionUtils col_arrays, uint32_t en
 }
 
 // check if ligand can bind to entity based on specs and angle of incidence
-__device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t entity_index, uint32_t n_receptors, float x, float y) {
+__device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t entity_index, uint32_t n_receptors, float x, float y, bool toxins_active) {
     // return: collission occured
 
     // compute distance
@@ -140,6 +147,19 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
     if (dist_sq > size_sq) {
         // no collision
         return false;
+    }
+
+    // check for negative energy ligands (toxins)
+    if (negative_energy(col_arrays.ligands[index].spec, toxins_active)) {
+        // register collision
+        int old_val = atomicAdd(col_arrays.counter, 1);
+        col_arrays.receptor_ids[old_val] = 0xFFFFFFFF; // for toxins, receptor id is 0xFFFFFFFF
+        col_arrays.specs[old_val] = col_arrays.ligands[index].spec;
+        col_arrays.entity_ids[old_val] = entity_index;
+
+        // delete ligand by setting its message to 0xFFFFFFFF
+        col_arrays.ligands[index].emitted_id = 0XFFFFFFFF;
+        return true;
     }
 
     // check if ligand can bind to entity
@@ -219,16 +239,16 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
 
 }
 
-__global__ void count_zeros_kernel(LigandCuda* ligands, uint32_t size, uint32_t* counter) {
+__global__ void count_spec_kernel(LigandCuda* ligands, uint32_t size, uint32_t spec, uint32_t* counter) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < size) {
-        if ((ligands[i].spec == 1) && (ligands[i].emitted_id != 0xFFFFFFFF)) {
+        if ((ligands[i].spec == spec) && (ligands[i].emitted_id != 0xFFFFFFFF)) {
             atomicAdd(counter, 1);
         }
     }
 }
 
-__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays) {
+__global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays, bool toxins_active = true) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     // check bounds
@@ -285,7 +305,7 @@ __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, u
 
 
                 // check if ligand collides with entity and resolve collision
-                if (entity_collision(i, col_arrays, entity_index, n_receptors, x, y)) {
+                if (entity_collision(i, col_arrays, entity_index, n_receptors, x, y, toxins_active)) {
                     return;
                 } else {
                     continue; // no collision, check next entity
@@ -360,7 +380,7 @@ extern "C" {
 
     // performs collision detection for ligands against entities in a grid
     // pointers are already device pointers
-    LigandWrapper ligand_collision(uint32_t search_radius, Dim dim, uint32_t* grid, EntityCuda* entities, LigandCuda* ligands, uint32_t ligands_size, uint32_t* receptors, uint32_t n_receptors) {
+    LigandWrapper ligand_collision(uint32_t search_radius, Dim dim, uint32_t* grid, EntityCuda* entities, LigandCuda* ligands, uint32_t ligands_size, uint32_t* receptors, uint32_t n_receptors, bool toxins_active = true) {
 
         uint32_t* specs;
         uint32_t* receptor_ids;
@@ -390,7 +410,7 @@ extern "C" {
 
         // launch kernel
         uint32_t blockN = (ligands_size + ThreadsPerBlock - 1) / ThreadsPerBlock;
-        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(ligands_size, search_radius, n_receptors, dim, col_arrays);
+        ligand_collision_kernel<<<blockN, ThreadsPerBlock>>>(ligands_size, search_radius, n_receptors, dim, col_arrays, toxins_active);
         cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors
@@ -463,7 +483,7 @@ extern "C" {
         }
     }
 
-    uint32_t count_zero_spec_ligands(LigandCuda* ligands, uint32_t size) {
+    uint32_t count_spec_ligands(LigandCuda* ligands, uint32_t size, uint32_t spec) {
         uint32_t* d_counter;
         cudaMalloc((void**)&d_counter, sizeof(uint32_t));
         cudaMemset(d_counter, 0, sizeof(uint32_t));
@@ -471,7 +491,7 @@ extern "C" {
         uint32_t blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
 
         // launch kernel
-        count_zeros_kernel<<<blockN, ThreadsPerBlock>>>(ligands, size, d_counter);
+        count_spec_kernel<<<blockN, ThreadsPerBlock>>>(ligands, size, spec, d_counter);
         cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
 
         // check for launch errors

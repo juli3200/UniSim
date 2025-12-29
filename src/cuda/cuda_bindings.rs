@@ -52,7 +52,7 @@ pub(crate) mod grid_gpu{
     unsafe extern "C" {
         pub(crate) fn fill_grid(size: u32, dim: Dim, grid: *mut u32, entities: *const EntityCuda) -> i32;
         pub(crate) fn ligand_collision(search_radius: u32, dim: Dim, grid: *mut u32, entities: *const EntityCuda, 
-            ligands: *const LigandCuda, ligands_size: u32, receptors: *const u32, n_receptors: u32) -> LigandWrapper; 
+            ligands: *const LigandCuda, ligands_size: u32, receptors: *const u32, n_receptors: u32, toxins_active: bool) -> LigandWrapper; 
         pub(crate) fn update_positions(l_arrays: *mut LigandCuda, size: u32, delta_time: f32);
 
         // set all grid values to 0xFFFFFFFF
@@ -60,6 +60,6 @@ pub(crate) mod grid_gpu{
 
         // delete all ligands by setting their emitted_id to 0xFFFFFFFF
         pub(crate) fn delete_ligands(ligands: *mut LigandCuda, size: u32);
-        pub(crate) fn count_zero_spec_ligands(ligands: *const LigandCuda, size: u32) -> u32;
+        pub(crate) fn count_spec_ligands(ligands: *const LigandCuda, size: u32, spec: u32) -> u32;
     }
 }

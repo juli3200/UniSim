@@ -408,12 +408,18 @@ impl Entity {
     }
 
     pub(crate) fn receive_ligand(&mut self, ligand: &Ligand, settings: &Settings) -> bool{
-        // return true if the ligand was processed, false if it was ignored (e.g. self-emitted ligand)
+        // return true if the ligand was processed, false if it was ignored 
 
         // ignore self-emitted ligands (destroyed to prevent them from being stuck in the entity)
         if ligand.emitted_id == self.id {
             return true; 
         }
+
+        if ligand.energy < 0.0 {
+            self.receive_toxins(ligand.spec, settings);
+            return true;
+        }
+
 
         // process the ligand message
         // for now, just increase energy based on message
@@ -459,26 +465,11 @@ impl Entity {
     pub(crate) fn receive_ligand_cuda_shortcut(&mut self, spec: u16, receptor_index: usize, settings: &Settings) {
         // change energy
 
-        if self.id % 20 == 0 {
-            let (_,_, spec) = receptor::sequence_receptor(self.receptors[receptor_index]);
-            //println!("Entity {} received ligand spec {}, receptor {}", self.id, spec, spec);
-        }
-
         let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
         if energy < 0.0 {
-            println!("Spec: {}, Energy: {}", spec, energy);
+            return self.receive_toxins(spec, settings);
         }
-        
-        // check for negative energy 
-        if energy < 0.0 {
-            // check if any plasmid can disable it
-            for &plasmid in &self.genome.plasmids {
-                if plasmid == spec {
-                    // plasmid found, ignore negative ligand
-                    return;
-                }
-            }
-        }
+
 
         use crate::objects::{OUTPUTS, receptor};
         self.energy += energy;
@@ -499,6 +490,25 @@ impl Entity {
         // add angle to received_ligands for statistics
         let angle: f32 = (receptor_index as f32 / settings.receptors_per_entity() as f32) *180.0; // angle in degrees from 0 to 180
         self.received_ligands.push(angle as u8);
+    }
+
+    pub(crate) fn receive_toxins(&mut self, spec: u16, settings: &Settings) {
+
+        // check if any plasmid can disable it
+        for &plasmid in &self.genome.plasmids {
+            if plasmid == spec {
+                // plasmid found, ignore negative ligand
+                return;
+            }
+        }
+        
+        if settings.toxins_active() == false {
+            eprintln!("Toxins are not active in settings");
+            return ;
+        }
+        // decrease energy based on toxin level
+        let energy = crate::objects::ligand::get_ligand_energy(spec, settings);
+        self.energy -= energy.abs(); // always decrease energy
     }
 
     pub(crate) fn print_stats(&self) {

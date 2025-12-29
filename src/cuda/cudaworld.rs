@@ -339,7 +339,7 @@ impl CUDAWorld {
             };
             let receptor_count = self.settings.receptors_per_entity() as u32;
             collisions = cu_grid::ligand_collision(search_radius, dim, self.grid, self.entities,
-                self.ligands, self.ligand_count, self.receptors, receptor_count);
+                self.ligands, self.ligand_count, self.receptors, receptor_count, self.settings.toxins_active());
         }
 
         // clear grid
@@ -351,16 +351,17 @@ impl CUDAWorld {
         return (collisions, overflow);
     }
 
-    pub(crate) fn count_zero_spec_ligands(&self) -> u32 {
+    pub(crate) fn count_spec_ligands(&self, spec: u32) -> u32 {
         use cuda_bindings::grid_gpu as cu_grid;
 
         let count: u32;
         unsafe {
-            count = cu_grid::count_zero_spec_ligands(self.ligands, self.ligand_count);
+            count = cu_grid::count_spec_ligands(self.ligands, self.ligand_count, spec);
         }
         count
     }
 
+    // experimental!!
     pub(crate) fn remove_dead_values(&mut self, entities: &mut Vec<Entity>) {
         use cuda_bindings::memory_gpu as cu_mem;
 

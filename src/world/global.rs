@@ -487,6 +487,10 @@ impl World {
                 let spec = specs[i] as u16;
         
 
+                if receptor_index == 0xFFFFFFFF {
+                    // toxin
+                    self.entities[entity_index].receive_toxins(spec, &self.settings);
+                }
 
                 // can go through the shortcut because the bond was already checked on the GPU
                 self.entities[entity_index].receive_ligand_cuda_shortcut(spec, receptor_index, &self.settings);
