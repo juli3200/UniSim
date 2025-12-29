@@ -147,13 +147,6 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
     
     // where the receptor specs for this entity start
     uint32_t receptor_start_index = col_arrays.entities[entity_index].receptor_id * n_receptors;
-    if (entity_index == 101){
-        //printf("receptor_start_index: %u, ", receptor_start_index);
-        for (int i = 0; i < n_receptors; i++) {
-            //printf("%u;%u \n", col_arrays.receptors[receptor_start_index + i], ligand_spec);
-        }
-
-    }
 
     float velx = col_arrays.entities[entity_index].velx;
     float vely = col_arrays.entities[entity_index].vely;
@@ -213,6 +206,7 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
         int old_val = atomicAdd(col_arrays.counter, 1);
         col_arrays.receptor_ids[old_val] = receptor_index;
         col_arrays.specs[old_val] = col_arrays.ligands[index].spec;
+        col_arrays.entity_ids[old_val] = entity_index;
 
         // delete ligand by setting its message to 0xFFFFFFFF
         col_arrays.ligands[index].emitted_id = 0XFFFFFFFF;
@@ -225,7 +219,14 @@ __device__ bool entity_collision(int index, CollisionUtils col_arrays, uint32_t 
 
 }
 
-
+__global__ void count_zeros_kernel(LigandCuda* ligands, uint32_t size, uint32_t* counter) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        if ((ligands[i].spec == 1) && (ligands[i].emitted_id != 0xFFFFFFFF)) {
+            atomicAdd(counter, 1);
+        }
+    }
+}
 
 __global__ void ligand_collision_kernel(uint32_t size, uint32_t search_radius, uint32_t n_receptors, Dim dim, CollisionUtils col_arrays) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -302,15 +303,17 @@ __global__ void delete_ligands_kernel(LigandCuda* ligands, uint32_t size) {
     }
 }
 
-LigandWrapper error_return(uint32_t* specs, uint32_t* receptor_ids, uint32_t* counter) {
+LigandWrapper error_return(uint32_t* specs, uint32_t* receptor_ids, uint32_t* entity_ids, uint32_t* counter) {
     // free device memory
     cudaFree(specs);
     cudaFree(receptor_ids);
+    cudaFree(entity_ids);
     cudaFree(counter);
 
     LigandWrapper empty_wrapper;
     empty_wrapper.specs = nullptr;
     empty_wrapper.receptor_ids = nullptr;
+    empty_wrapper.entity_ids = nullptr;
     empty_wrapper.count = 0;
     return empty_wrapper;
 }
@@ -361,6 +364,7 @@ extern "C" {
 
         uint32_t* specs;
         uint32_t* receptor_ids;
+        uint32_t* entity_ids;
         uint32_t* counter;
 
         uint32_t collided_capacity = (uint32_t)ceilf((float)ligands_size * COLLISION_SPACE_FACTOR);
@@ -368,6 +372,7 @@ extern "C" {
         // allocate memory for collided ligands
         cudaMalloc((void**)&specs, sizeof(uint32_t) * collided_capacity);
         cudaMalloc((void**)&receptor_ids, sizeof(uint32_t) * collided_capacity);
+        cudaMalloc((void**)&entity_ids, sizeof(uint32_t) * collided_capacity);
         cudaMalloc((void**)&counter, sizeof(uint32_t));
         cudaMemset(counter, 0, sizeof(uint32_t)); // initialize counter to 0
 
@@ -379,6 +384,7 @@ extern "C" {
         col_arrays.receptors = receptors;
         col_arrays.specs = specs;
         col_arrays.receptor_ids = receptor_ids;
+        col_arrays.entity_ids = entity_ids;
         col_arrays.counter = counter;
         
 
@@ -391,7 +397,7 @@ extern "C" {
         if (err != cudaSuccess) {
             printf("ligand_collision failed\n");
             printf("Launch error: %s\n", cudaGetErrorString(err));
-            return error_return(specs, receptor_ids, counter);
+            return error_return(specs, receptor_ids, entity_ids, counter);
         }
 
         // copy counter back to host
@@ -401,14 +407,16 @@ extern "C" {
             // overflow, too many collisions
             printf("Error: counter exceeds allocated size: Overflow\n");
 
-            return error_return(specs, receptor_ids, counter);
+            return error_return(specs, receptor_ids, entity_ids, counter);
         }
 
         // copy collided ligand data back to host
         uint32_t* h_specs = (uint32_t*)malloc(sizeof(uint32_t) * *h_counter);
         uint32_t* h_receptor_ids = (uint32_t*)malloc(sizeof(uint32_t) * *h_counter);
+        uint32_t* h_entity_ids = (uint32_t*)malloc(sizeof(uint32_t) * *h_counter);
         cudaMemcpy(h_specs, specs, sizeof(uint32_t) * *h_counter, cudaMemcpyDeviceToHost);
         cudaMemcpy(h_receptor_ids, receptor_ids, sizeof(uint32_t) * *h_counter, cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_entity_ids, entity_ids, sizeof(uint32_t) * *h_counter, cudaMemcpyDeviceToHost);
 
 
         // free device memory
@@ -420,7 +428,9 @@ extern "C" {
         LigandWrapper h_collided;
         h_collided.specs = h_specs;
         h_collided.receptor_ids = h_receptor_ids;
+        h_collided.entity_ids = h_entity_ids;
         h_collided.count = *h_counter;
+
 
         return h_collided;
 
@@ -453,6 +463,31 @@ extern "C" {
         }
     }
 
+    uint32_t count_zero_spec_ligands(LigandCuda* ligands, uint32_t size) {
+        uint32_t* d_counter;
+        cudaMalloc((void**)&d_counter, sizeof(uint32_t));
+        cudaMemset(d_counter, 0, sizeof(uint32_t));
+
+        uint32_t blockN = (size + ThreadsPerBlock - 1) / ThreadsPerBlock;
+
+        // launch kernel
+        count_zeros_kernel<<<blockN, ThreadsPerBlock>>>(ligands, size, d_counter);
+        cudaError_t err = cudaDeviceSynchronize(); // wait for kernel to finish
+
+        // check for launch errors
+        if (err != cudaSuccess) {
+            printf("Launch error: %s\n", cudaGetErrorString(err));
+            cudaFree(d_counter);
+            return 0;
+        }
+
+        // copy counter back to host
+        uint32_t h_counter;
+        cudaMemcpy(&h_counter, d_counter, sizeof(uint32_t), cudaMemcpyDeviceToHost);
+        cudaFree(d_counter);
+
+        return h_counter;
+    }
 }
 
 

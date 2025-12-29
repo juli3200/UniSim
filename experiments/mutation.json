@@ -14,11 +14,11 @@
     "min_energy_ligand": 0.005,
     "max_energy_ligand": 0.01,
     "max_age": 15,
-    "receptor_types_per_entity": 2,
+    "receptor_types_per_entity": 1,
     "receptors_per_entity": 10,
     "store_capacity": 2500,
     "blbla": 0.0,
-    "possible_ligands": 1
+    "possible_ligands": 2
 
 }
 
