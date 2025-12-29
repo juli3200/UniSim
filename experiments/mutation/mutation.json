@@ -17,7 +17,7 @@
     "receptor_types_per_entity": 1,
     "receptors_per_entity": 100,
     "store_capacity": 2500,
-    "possible_ligands": 2
+    "possible_ligands": 4
 
 }
 
