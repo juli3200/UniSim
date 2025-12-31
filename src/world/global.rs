@@ -596,6 +596,24 @@ impl World {
             }
         }
     }
+
+    pub fn get_spec_count(&self, spec: u16) -> usize {
+        
+
+        #[cfg(feature = "cuda")]
+        {
+            if self.cuda_world.is_some() {
+                return self.cuda_world.as_ref().unwrap().count_spec_ligands(spec as u32) as usize
+            } else {
+                return self.ligands.iter().filter(|ligand| ligand.spec == spec).count()
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            return self.ligands.iter().filter(|ligand| ligand.spec == spec).count()
+        }
+    }
+
 }
 
 use std::io::{self, Write};

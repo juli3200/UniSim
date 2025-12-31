@@ -6,13 +6,14 @@ use rand_distr::{Distribution, Normal};
 
 impl Genome {
     #[allow(dead_code)]
-    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, plasmid_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>, plasmids: Vec<u16>) -> Self {
+    pub fn new(move_threshold: i16, ligand_emission_threshold: i16, plasmid_threshold: i16, ligands: Vec<u16>, receptor_dna: Vec<u64>, toxins_active: bool, plasmids: Vec<u16>) -> Self {
         Self {
             move_threshold,
             ligand_emission_threshold,
             plasmid_threshold,
             ligands,
             receptor_dna,
+            toxins_active,
             plasmids,
         }
     }
@@ -135,6 +136,7 @@ impl Genome {
             plasmid_threshold,
             ligands,
             receptor_dna,
+            toxins_active: settings.toxins_active(),
             plasmids,
         }
     }

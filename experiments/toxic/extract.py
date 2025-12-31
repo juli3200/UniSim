@@ -190,7 +190,7 @@ class Genome:
             self.plasmids = []
 
 
-        self.size = 4 + (receptors_n * 8) + (ligand_n * 2) + ( (4 + len(self.plasmids)*2) if toxins_active else 0)
+        self.size = 4 + (receptors_n * 8) + (ligand_n * 2) + ( (4 + len(self.plasmids)*2) if toxins_active else 0) 
 
         self.raw_bytes = bytes[old:index]
         

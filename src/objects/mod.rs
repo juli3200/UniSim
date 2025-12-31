@@ -42,6 +42,7 @@ pub(crate) struct Genome{
 
     // plasmid
     // size limited by settings.plasmid_capacity()
+    pub(crate) toxins_active: bool, // wheter toxins are active in sim
     pub(crate) plasmid_threshold: i16, // threshold for plasmid transfer decision
     pub(crate) plasmids: Vec<u16>, // plasmid genes -> spec 
 

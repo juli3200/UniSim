@@ -34,8 +34,9 @@ class World:
         self.velocity = struct.unpack('f', self.bytes[33:37])[0]
         self.gravity = [struct.unpack('f', self.bytes[37:41])[0], struct.unpack('f', self.bytes[41:45])[0]]
         self.drag = struct.unpack('f', self.bytes[45:49])[0]
+        self.toxins_active = bool(self.bytes[49])  # toxins active 1 byte
 
-        # reserved bytes 32 bytes from 49 to 81
+        # reserved bytes 31 bytes from 50 to 81
 
         self.ligands_per_entity = struct.unpack('I', self.bytes[81:85])[0]
         self.receptors_per_entity = struct.unpack('I', self.bytes[85:89])[0]
@@ -68,7 +69,7 @@ class World:
 class State:
 
     def __init__(self, world: World, n: int):
-        self.entities: list[Entity] = []
+        self.entities = []
         self.ligands = []
         self.world = world
         self.n = n
@@ -145,7 +146,7 @@ class Entity:
 
 
         if parent.genome_save:
-            self.genome = Genome(bytes, index, parent.world.receptors_per_entity, parent.world.ligands_per_entity)
+            self.genome = Genome(bytes, index, parent.world.receptors_per_entity, parent.world.ligands_per_entity, parent.world.toxins_active)
             index += self.genome.size
         
 
@@ -155,7 +156,7 @@ class Entity:
         return [self.x, self.y]
 
 class Genome:
-    def __init__(self, bytes, index, receptors_n, ligand_n):
+    def __init__(self, bytes, index, receptors_n, ligand_n, toxins_active):
         old = index
 
         self.move_threshold = struct.unpack('h', bytes[index:index + 2])[0]
@@ -177,21 +178,24 @@ class Genome:
 
         index += receptors_n * 8
 
+        if toxins_active:
+            n_plasmids = struct.unpack('I', bytes[index:index + 4])[0]
+            index +=4
+            self.plasmids = []
+            for j in range(n_plasmids):
+                plasmid = struct.unpack('H', bytes[index + j *2:index + j *2 +2])[0]
+                self.plasmids.append(plasmid)
+            index -= 4
+        else:
+            self.plasmids = []
 
-        self.size = 4 + (receptors_n * 8) + (ligand_n * 2)
+
+        self.size = 4 + (receptors_n * 8) + (ligand_n * 2) + ( (4 + len(self.plasmids)*2) if toxins_active else 0)
 
         self.raw_bytes = bytes[old:index]
-    
-    def get_receptors_spec(self):
-        rec = []
-        for r in self.receptors:
-            bytes_rec = bytes(struct.pack('Q', r))
-            # Get the last two bytes and unpack as unsigned short (u16)
-            spec = struct.unpack('H', bytes_rec[-2:])[0]
-            rec.append(spec)
-            
-        return rec
-
+        
+    def get_plasmids(self):
+        return self.plasmids
 
 class Ligand:
     def __init__(self, bytes, index):

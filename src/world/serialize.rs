@@ -31,7 +31,9 @@ pub(crate) fn serialize_header(world: &World) -> Result<Vec<u8>, String> {
     buffer.extend(&world.settings.general_force().1.to_le_bytes()); // gravity 8 bytes
     buffer.extend(&world.settings.drag().to_le_bytes()); // drag 4 bytes
 
-    buffer.extend(vec![0u8; 32]); // reserved 32 bytes
+    buffer.push(world.settings.toxins_active() as u8 ); // toxins active 1 byte
+
+    buffer.extend(vec![0u8; 31]); // reserved 31 bytes
 
     // entity bio settings
     buffer.extend(&world.settings.ligands_per_entity().to_le_bytes()); // ligand variety 4 bytes per entity
@@ -289,6 +291,15 @@ impl Save for crate::objects::Genome{
         for receptor in self.receptor_dna.iter() {
             buffer.extend(&receptor.to_le_bytes()); // receptor DNA 8 bytes each
         }
+
+        if self.toxins_active {
+            // add plasmids
+            buffer.extend(&self.plasmids.len().to_le_bytes()); // number of plasmids 4 bytes
+            for plasmid in self.plasmids.iter() {
+                buffer.extend(&plasmid.to_le_bytes()); // plasmid genes 2 bytes each
+            }
+        } 
+
         Ok(buffer)
     }
 
