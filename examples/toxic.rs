@@ -7,9 +7,9 @@ fn main() {
 
     let mut world = World::new(settings);
 
-    let name = "1";
+    let name = "3";
 
-    world.save(Some(&format!("experiments/toxic/cache/{}", name)), true).expect("Failed to save world");
+    world.save(Some(&format!("experiments/toxic/cache/{}.bin", name)), true).expect("Failed to save world");
 
     world.cuda_initialize().expect("Failed to initialize CUDA");
 

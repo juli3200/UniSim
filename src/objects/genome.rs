@@ -97,7 +97,14 @@ impl Genome {
                 *receptor = mutate_rec;
             }
         }
+        
 
+        // mutate plasmids
+        for plasmid in new_genome.plasmids.iter_mut() {
+            if rng.random_bool(settings.mutation_rate()) {
+                *plasmid = random_plasmid_gene(settings);
+            }
+        }
 
 
         new_genome

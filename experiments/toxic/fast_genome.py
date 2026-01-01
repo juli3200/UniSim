@@ -11,6 +11,7 @@ import hashlib
 
 import numpy as np
 import os
+from collections import Counter
 
 
 
@@ -77,38 +78,36 @@ def receptor_spec_statistics(world: extract.World) -> list[dict]:
 
     return data
 
+
 def plasmid_data_statistics(world: extract.World) -> list[dict]:
-    """Count how many times each plasmid (by number) appears per state."""
-    print("Extracting plasmid data per state...")
+    """Count how many times each plasmid (by number) appears per state. Optimized for speed."""
+    print("Extracting plasmid data per state (fast)...")
     world.end = False
     world.counter = 0
-    states = []
+    data = []
+    state_idx = 0
+    get_state = world.get_state
+    max_plasmid_value = 5
     while True:
-        state = world.get_state()
+        state = get_state()
         if state is None:
             break
-        states.append(state)
-
-    data = []
-    for i, state in enumerate(states):
-        plasmid_counter = {}
-        for entity in state.entities:
-            plasmids = entity.genome.get_plasmids()
-            for plasmid in plasmids:
-                # Ensure plasmid is treated as an integer (number)
-                plasmid_num = int(plasmid)
-                plasmid_counter[plasmid_num] = plasmid_counter.get(plasmid_num, 0) + 1
-        for plasmid_num, count in plasmid_counter.items():
-            data.append({
-                'state': i,
-                'plasmid': plasmid_num,
-                'count': count
-            })
-
+        entities = state.entities
+        counter = Counter()
+        for entity in entities:
+            # Only count plasmids with value < n
+            counter.update(
+                plasmid_num for plasmid_num in map(int, entity.genome.get_plasmids()) if plasmid_num < max_plasmid_value
+            )
+        data.extend(
+            {'state': state_idx, 'plasmid': plasmid_num, 'count': count}
+            for plasmid_num, count in counter.items()
+        )
+        state_idx += 1
     return data
 
 def plot_plasmid_statistics(data: list[dict], filename: str):
-    """Plot plasmid counts over time (plasmids are numbered 0..n)."""
+    """Plot plasmid counts as percentage of total population over time."""
     if not data:
         print("No data to plot.")
         return
@@ -119,24 +118,28 @@ def plot_plasmid_statistics(data: list[dict], filename: str):
     pivot = df.pivot(index='state', columns='plasmid', values='count').fillna(0)
     pivot = pivot.sort_index(axis=1)  # Sort columns by plasmid number
 
+    # Calculate total plasmids per state (sum across all plasmids)
+    total_per_state = pivot.sum(axis=1)
+    # Calculate percentage for each plasmid per state
+    pivot_percent = pivot.div(total_per_state, axis=0) * 100
+
     plt.figure(figsize=(12, 6))
     colors = plt.cm.tab20.colors
-    for idx, plasmid in enumerate(pivot.columns):
+    for idx, plasmid in enumerate(pivot_percent.columns):
         plt.plot(
-            pivot.index,
-            pivot[plasmid],
+            pivot_percent.index,
+            pivot_percent[plasmid],
             label=f"Plasmid {plasmid}",
             color=colors[idx % len(colors)]
         )
 
     plt.xlabel("Zeit (States)")
-    plt.ylabel("Anzahl der Plasmide")
-    plt.title("Plasmidverteilung im Zeitverlauf")
+    plt.ylabel("Prozentsatz der Plasmide")
+    plt.title("Plasmidverteilung im Zeitverlauf (Prozentual)")
     plt.xlim(0, 5000)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(filename)
-    plt.close()
+    plt.show()
 
 
 def bytes_similarity(a: bytes, b: bytes) -> float:
@@ -410,6 +413,7 @@ def plot_different_species_alive(species_alive: list[np.ndarray], n_entities: li
 if __name__ == "__main__":
 
     root = tk.Tk()
+    root.withdraw()  # Hide the root window
     file_path = filedialog.askopenfilename(title="Wähle eine Simulationsdatei aus", filetypes=[("Alle Dateien", "*.*")])
     if not file_path:
         print("Keine Datei ausgewählt. Beende.")
@@ -418,9 +422,9 @@ if __name__ == "__main__":
     world = extract.World(file_path)
     
     # Example usage:
-    genome_data = genome_statistics(world, ignore_threshold=1, similarity_threshold=0.95)
-    stackplot_genome_statistics(genome_data, "genome_stackplot.png")
-    lineplot_genome_statistics(genome_data, "genome_lineplot.png")
+    #genome_data = genome_statistics(world, ignore_threshold=1, similarity_threshold=0.95)
+    #stackplot_genome_statistics(genome_data, "genome_stackplot.png")
+    #lineplot_genome_statistics(genome_data, "genome_lineplot.png")
 
 
     plasmid_data = plasmid_data_statistics(world)

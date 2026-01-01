@@ -294,12 +294,11 @@ impl Save for crate::objects::Genome{
 
         if self.toxins_active {
             // add plasmids
-            buffer.extend(&self.plasmids.len().to_le_bytes()); // number of plasmids 4 bytes
+            buffer.extend(&(self.plasmids.len() as u32).to_le_bytes()); // number of plasmids 4 bytes
             for plasmid in self.plasmids.iter() {
                 buffer.extend(&plasmid.to_le_bytes()); // plasmid genes 2 bytes each
             }
         } 
-
         Ok(buffer)
     }
 

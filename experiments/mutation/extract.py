@@ -146,7 +146,8 @@ class Entity:
 
 
         if parent.genome_save:
-            self.genome = Genome(bytes, index, parent.world.receptors_per_entity, parent.world.ligands_per_entity, parent.world.toxins_active)
+            self.genome = Genome(bytes, index, parent.world.receptors_per_entity,
+                                  parent.world.ligands_per_entity, parent.world.toxins_active)
             index += self.genome.size
         
 
@@ -178,21 +179,28 @@ class Genome:
 
         index += receptors_n * 8
 
+        
+        self.raw_bytes = bytes[old:index]
+
+
         if toxins_active:
+            c = 0
+            self.plasmids = []
             n_plasmids = struct.unpack('I', bytes[index:index + 4])[0]
             index +=4
-            self.plasmids = []
+            c +=4
             for j in range(n_plasmids):
+
                 plasmid = struct.unpack('H', bytes[index + j *2:index + j *2 +2])[0]
                 self.plasmids.append(plasmid)
-            index -= 4
+                index += 2
+                c +=2
+            
         else:
             self.plasmids = []
 
+        self.size = 4 + (receptors_n * 8) + (ligand_n * 2) + ( 4 + (len(self.plasmids)*2) if toxins_active else 0)
 
-        self.size = 4 + (receptors_n * 8) + (ligand_n * 2) + ( (4 + len(self.plasmids)*2) if toxins_active else 0)
-
-        self.raw_bytes = bytes[old:index]
         
     def get_plasmids(self):
         return self.plasmids

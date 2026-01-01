@@ -349,7 +349,7 @@ impl Entity {
         let plasmid = if self.genome.plasmids.is_empty() {
             return None; // no plasmids to transfer
         } else {
-            self.genome.plasmids[0] // for now, just transfer the first plasmid
+            self.genome.plasmids[0] 
         };
         Some(PlasmidPackage {
             plasmid,
