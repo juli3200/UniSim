@@ -173,8 +173,9 @@ get_set_maker!(
         ligand_velocity: f32, 2.0, // default velocity of ligands
         general_force: (f32, f32), (0.0, 0.0), // gravity of the world
         drag: f32, 0.5, // drag/friction of the world
-        idle_energy_cost: f32, 1e-3, // energy cost per second depending on Area
         entity_acceleration: f32, 1.0, 
+        
+        idle_energy_cost: f32, 1e-3, // energy cost per second depending on Area
         entity_run_energy_cost: f32, 0.001, // energy cost of entity movement
         entity_tumble_energy_cost: f32, 0.005, // energy cost of entity tumbling
 

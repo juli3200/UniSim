@@ -182,6 +182,13 @@ impl World {
                         println!("Entities: {}, Ligands: {}", self.entities.len(), self.ligands.len());
                     }
                 }
+
+                let mut plasmids = vec![0; self.settings.possible_ligands()];
+                for entity in &self.entities {
+                    for plasmid in &entity.genome.plasmids {
+                        plasmids[*plasmid as usize] += 1;
+                    }
+                }
             }
 
             // exit early if there are no entities left

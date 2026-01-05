@@ -7,7 +7,7 @@ fn main() {
 
     let mut world = World::new(settings);
 
-    let name = "b";
+    let name = "low_energy";
 
     world.save(Some(&format!("experiments/toxic/cache/{}.bin", name)), true).expect("Failed to save world");
 

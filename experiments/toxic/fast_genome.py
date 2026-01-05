@@ -125,6 +125,7 @@ def plot_plasmid_statistics(data: list[dict], filename: str):
 
     plt.figure(figsize=(12, 6))
     colors = plt.cm.tab20.colors
+    order = [0, 1, 3, 2, 4]  # Desired order of plasmids in legend
     for idx, plasmid in enumerate(pivot_percent.columns):
         plt.plot(
             pivot_percent.index,
@@ -135,7 +136,6 @@ def plot_plasmid_statistics(data: list[dict], filename: str):
 
     plt.xlabel("Zeit (States)")
     plt.ylabel("Prozentsatz der Plasmide")
-    plt.title("Plasmidverteilung im Zeitverlauf (Prozentual)")
     plt.xlim(0, 5000)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
@@ -299,7 +299,6 @@ def stackplot_genome_statistics(data: list[dict], filename: str):
         loc="upper left",
         bbox_to_anchor=(1.0, 1.0)
     )
-    plt.axvline(x=2500, color='black', linestyle='--', linewidth=2)
     plt.xlim(0, 5000)
     plt.tight_layout()
     plt.savefig(filename)
@@ -351,7 +350,6 @@ def lineplot_genome_statistics(data: list[dict], filename: str):
             loc="upper left",
             bbox_to_anchor=(1.0, 1.0)
         )
-    plt.axvline(x=2500, color='black', linestyle='--', linewidth=2)
     plt.xlim(0, 5000)
     plt.tight_layout()
     plt.savefig(filename)
@@ -380,7 +378,6 @@ def plot_num_species_alive(data: list[dict], filename: str = None) -> tuple[np.n
         plt.xlabel("Zeit (States)")
         plt.ylabel("Anzahl")
         plt.title("Anzahl Arten und Entitäten im Zeitverlauf")
-        plt.axvline(x=2500, color='black', linestyle='--', linewidth=2)
         plt.xlim(0, 5000)
         plt.legend()
         plt.tight_layout()
@@ -421,11 +418,9 @@ if __name__ == "__main__":
 
     world = extract.World(file_path)
     
-    # Example usage:
-    #genome_data = genome_statistics(world, ignore_threshold=1, similarity_threshold=0.95)
-    #stackplot_genome_statistics(genome_data, "genome_stackplot.png")
-    #lineplot_genome_statistics(genome_data, "genome_lineplot.png")
-
+    genome_data = genome_statistics(world, ignore_threshold=1, similarity_threshold=0.95)
+    stackplot_genome_statistics(genome_data, "genome_stackplot.png")
+    lineplot_genome_statistics(genome_data, "genome_lineplot.png")
 
     plasmid_data = plasmid_data_statistics(world)
     plot_plasmid_statistics(plasmid_data, "plasmid_stats.png")

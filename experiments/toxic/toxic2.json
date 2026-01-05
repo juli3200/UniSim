@@ -5,11 +5,11 @@
     "drag": 0.2,
     "spawn_size": 1.0,
     "give_start_vel": true,
-    "velocity": 3.0,
+    "velocity": 8.0,
     "enable_entity_ligand_emission": true,
     "toxins_active": true,
     "ligand_velocity": 5.0,
-    "max_size": 2.0,
+    "max_size": 1.0,
     "cuda_memory_interval": 2500,
     "min_energy_ligand": 0.003,
     "max_energy_ligand": 0.01,
@@ -18,7 +18,6 @@
     "receptors_per_entity": 1000,
     "store_capacity": 2500,
     "possible_ligands": 8,
-    "mutation_rate": 0.0,
+    "mutation_rate": 0.1,
     "std_dev_mutation": 0.0
-
 }
