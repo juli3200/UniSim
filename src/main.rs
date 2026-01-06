@@ -30,8 +30,15 @@ fn main() {
         std::io::stdin().read_line(&mut input).expect("Failed to read line");
         input.trim().to_string()
     };
+    // Check if the file exists before proceeding
+    let mut world = if !std::path::Path::new(&filename).exists() {
+        println!("File '{}' does not exist.", filename);
+        World::new(settings!())
+    } else {
+        
+        World::new(settings!(filename))
+    };
 
-    let mut world = World::new(settings!(filename));
 
 
 
@@ -106,11 +113,17 @@ fn main() {
                     }
                     continue;
                 }
+                #[cfg(feature = "cuda")]
                 if command == "cuda_init" {
                     match world.cuda_initialize() {
                         Ok(_) => println!("CUDA initialized successfully."),
                         Err(e) => println!("Failed to initialize CUDA: {}", e),
                     }
+                    continue;
+                }
+                #[cfg(not(feature = "cuda"))]
+                if command == "cuda_init" {
+                    println!("CUDA feature is not enabled in this build.");
                     continue;
                 }
                 if let Some(rest) = command.strip_prefix("save ") {

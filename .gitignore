@@ -4,5 +4,9 @@
 /.idea
 scripts/__pycache__/
 
+
+lib/
 Cargo.lock
 .env/
+native
+release/

@@ -65,7 +65,7 @@ macro_rules!  edit_settings {
 #[macro_export]
 macro_rules! settings {
     () => {
-        Settings::new(100)
+        Settings::new()
     };
     ($($setting:ident = $value:expr),+ $(,)?) => {
         {
