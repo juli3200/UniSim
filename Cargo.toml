@@ -2,19 +2,12 @@
 name = "UniSim"
 version = "0.1.0"
 edition = "2024"
-include = [
-    "src/**",
-    "Cargo.toml",
-    "build.rs",
-    "native/**"
-]
 links = "UniSim"
 
 [features]
-default = ["rayon"]
+default = ["rayon", "cuda"]
 debug = []
 save_ligands = ["debug"]
-
 cuda = ["dep:libc", "rayon"]
 
 [dev-dependencies]
