@@ -12,11 +12,11 @@ Das Programm simuliert Einzeller und versucht evolutionäre Mechanismen zu simul
 
 ## Experimente
 Alle Rohdaten für die in der Arbeit besprochenen Experimente befinden sich im
-["Experiments"](https://github.com/juli3200/UniSim/tree/main/experiments) Ordner.
+[experiments](https://github.com/juli3200/UniSim/tree/main/experiments) Ordner.
 
 ## Anleitung
 
-Laden Sie den neusten verfügbaren release(LINK FOLGT) herunter. Falls eine CUDA kompatible NVIDIA Grafikkarte verfügbar ist, können sie die ```UniSim_gpu``` Version laden. 
+Laden Sie den neusten verfügbaren [release](https://github.com/juli3200/UniSim/releases/tag/v1.0.0) herunter. Falls eine CUDA kompatible NVIDIA Grafikkarte verfügbar ist, können sie die ```UniSim_gpu``` Version laden. 
 Falls nicht, verwenden Sie die ```UniSim``` Version. Vor dem starten des Programms muss eine ```config.json``` Datei angelegt werden. In Ihr können Simulationsparameter (vgl. Abschnitt 3.2.4)
 angepasst werden. Falls kein Pfad angegeben wird, werden die Standardwerte verwendet.
 
@@ -25,7 +25,7 @@ Mit ```help``` können alle verfügbaren Commands abgebildet werden.
 Um die Simulation anzuschauen, verwenden Sie das ```view``` Programm. Für andere Analysen verwenden Sie die Python Skripte im ```Scripts``` Ordner.
 
 ### Fortgeschrittene Installation
-Um kompliziertere Programme mit der ```UniSim``` Bibliothek zu schreiben, muss dirketer Zugriff darauf genommen werden. Dafür werden [Rust](https://rust-lang.org/tools/install/) und CUDA C++ (Optional) benötigt.
+Um kompliziertere Programme mit der ```UniSim``` Bibliothek zu schreiben, muss dirketer Zugriff darauf genommen werden. Dafür werden [Rust](https://rust-lang.org/tools/install/) und [CUDA C++](https://developer.nvidia.com/cuda-downloads) (Optional) benötigt.
 Falls Sie keine kompatible NVIDIA Grafikkarte besitzen, muss das feature ```cuda``` im ```Cargo.toml``` deaktiviert werden. 
 
 Führen sie folgende Commands aus falls Sie das Cuda feature aktiviert haben:
