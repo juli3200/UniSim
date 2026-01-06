@@ -11,7 +11,15 @@ Das Programm simuliert Einzeller und versucht evolutionäre Mechanismen zu simul
 
 ## Anleitung
 
+Laden Sie den neusten verfügbaren release(LINK FOLGT) herunter. Falls eine CUDA kompatible NVIDIA Grafikkarte verfügbar ist, können sie die ```UniSim_gpu``` Version laden. 
+Falls nicht, verwenden Sie die ```UniSim``` Version. Vor dem starten des Programms muss eine ```config.json``` Datei angelegt werden. In Ihr können Simulationsparameter (vgl. Abschnitt 3.2.4)
+angepasst werden. Falls kein Pfad angegeben wird, werden die Standardwerte verwendet.
 
+Mit ```help``` können alle verfügbaren Commands abgebildet werden. 
+
+Um die Simulation anzuschauen, verwenden Sie das ```view``` Programm. Für andere Analysen verwenden Sie die Python Skripte im ```Scripts``` Ordner.
+
+### Fortgeschrittene Installation
 
 
 
