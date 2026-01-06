@@ -127,6 +127,11 @@ impl World {
         }
     }
 
+    pub fn run_seconds(&mut self, seconds: f32) {
+        let n = (self.settings.fps() as f32 * seconds) as usize;
+        self.run(n);
+    }
+
     pub fn run(&mut self, n: usize) {
 
         if !self.init {
