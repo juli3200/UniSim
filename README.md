@@ -20,7 +20,7 @@ Laden Sie den neusten verfügbaren [release](https://github.com/juli3200/UniSim/
 Falls nicht, verwenden Sie die ```UniSim``` Version. Vor dem starten des Programms muss eine ```config.json``` Datei angelegt werden. In Ihr können Simulationsparameter (vgl. Abschnitt 3.2.4)
 angepasst werden. Falls kein Pfad angegeben wird, werden die Standardwerte verwendet.
 
-Mit ```help``` können alle verfügbaren Commands abgebildet werden. Um die Welt zu speichern muss der ```save``` Command __vor__ dem Startr der  Simulation aufgerufen werden.
+Mit ```help``` können alle verfügbaren Commands abgebildet werden. Um die Welt zu speichern muss der ```save``` Command __vor__ dem Start der  Simulation aufgerufen werden.
 
 Um die Simulation anzuschauen, verwenden Sie das ```view``` Programm. Für andere Analysen verwenden Sie die Python Skripte im ```Scripts``` Ordner.
 
